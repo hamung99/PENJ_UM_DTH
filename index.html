@@ -2749,31 +2749,57 @@ function idbOpenNoVersion(name){
    sekali), BUAT skemanya lebih dulu (meniru persis skema Dexie yang dipakai
    tab DTH Dashboard). Tanpa ini, restore/pull ke device baru akan diam-diam
    gagal menyimpan data DTH karena object store 'faktur'/'metadata' belum
-   ada saat itu. ---- */
+   ada saat itu.
+   PENTING: JANGAN hardcode nomor versi di sini. Dexie (dipakai tab DTH)
+   mengalikan nomor versi yang dideklarasikan (mis. version(2)) x10 secara
+   internal, sehingga versi asli IndexedDB bisa jadi 20, 30, dst — bukan 2.
+   Kalau kita paksa buka dengan versi tetap yang lebih kecil dari versi asli
+   yang sudah tersimpan, browser akan menolak dengan error "requested
+   version is less than the existing version". Makanya di sini kita SELALU
+   buka dulu TANPA menentukan versi (ikut versi yang sudah ada apa adanya),
+   dan hanya menaikkan versi (currentVersion + 1) kalau object store yang
+   dibutuhkan memang belum ada. ---- */
 function idbOpenDTHDatabase(){
   return new Promise((resolve, reject)=>{
-    const req = indexedDB.open('DTHDatabase', 2);
-    req.onupgradeneeded = (ev) => {
-      const d = req.result;
-      const tx = req.transaction;
-      let store;
-      if (!d.objectStoreNames.contains('faktur')) {
-        store = d.createObjectStore('faktur', { keyPath:'id', autoIncrement:true });
-      } else {
-        store = tx.objectStore('faktur');
+    const reqCheck = indexedDB.open('DTHDatabase');
+    reqCheck.onsuccess = () => {
+      const dbCheck = reqCheck.result;
+      const hasFaktur = dbCheck.objectStoreNames.contains('faktur');
+      const hasMetadata = dbCheck.objectStoreNames.contains('metadata');
+      if (hasFaktur && hasMetadata) {
+        // Skema sudah lengkap, tidak perlu upgrade sama sekali.
+        resolve(dbCheck);
+        return;
       }
-      const idx = [
-        ['no_faktur','no_faktur'], ['salesman','salesman'], ['tanggal_dropping','tanggal_dropping'],
-        ['ket','ket'], ['tagihan','tagihan'], ['bulan','bulan'],
-        ['[bulan+salesman]', ['bulan','salesman']], ['[bulan+ket]', ['bulan','ket']]
-      ];
-      idx.forEach(([name, keyPath]) => { if (!store.indexNames.contains(name)) store.createIndex(name, keyPath); });
-      if (!d.objectStoreNames.contains('metadata')) {
-        d.createObjectStore('metadata', { keyPath:'key' });
-      }
+      // Skema belum lengkap (device baru) -> naikkan versi dari versi
+      // SAAT INI (bukan angka tetap) supaya tidak pernah lebih rendah
+      // dari versi yang sudah tersimpan di browser.
+      const nextVersion = dbCheck.version + 1;
+      dbCheck.close();
+      const req = indexedDB.open('DTHDatabase', nextVersion);
+      req.onupgradeneeded = () => {
+        const d = req.result;
+        const tx = req.transaction;
+        let store;
+        if (!d.objectStoreNames.contains('faktur')) {
+          store = d.createObjectStore('faktur', { keyPath:'id', autoIncrement:true });
+        } else {
+          store = tx.objectStore('faktur');
+        }
+        const idx = [
+          ['no_faktur','no_faktur'], ['salesman','salesman'], ['tanggal_dropping','tanggal_dropping'],
+          ['ket','ket'], ['tagihan','tagihan'], ['bulan','bulan'],
+          ['[bulan+salesman]', ['bulan','salesman']], ['[bulan+ket]', ['bulan','ket']]
+        ];
+        idx.forEach(([name, keyPath]) => { if (!store.indexNames.contains(name)) store.createIndex(name, keyPath); });
+        if (!d.objectStoreNames.contains('metadata')) {
+          d.createObjectStore('metadata', { keyPath:'key' });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror   = () => reject(req.error || new Error('Gagal membuka DTHDatabase'));
     };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror   = () => reject(req.error || new Error('Gagal membuka DTHDatabase'));
+    reqCheck.onerror = () => reject(reqCheck.error || new Error('Gagal membuka DTHDatabase'));
   });
 }
 function idbGetAll(db, storeName){
