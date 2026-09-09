@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rekap-gabungan-v1';
+const CACHE_NAME = 'rekap-gabungan-v2';
 const APP_SHELL = [
   './index.html',
   './manifest.json',

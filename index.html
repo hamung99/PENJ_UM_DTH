@@ -13,6 +13,7 @@
 <link rel="icon" href="icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root{
     --primary:#24518E; --primary-d:#1A4B75; --bg:#eef2f8; --border:#dce4f0;
@@ -114,6 +115,26 @@
   }
   #backupReminderBar .btn-close-reminder:hover{
     background:rgba(146,64,14,.15) !important;opacity:1;
+  }
+
+  #cloudUpdateBar{
+    display:none;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;
+    background:#dbeafe;color:#1e3a8a;font-size:12.5px;font-weight:600;
+    padding:7px 12px;border-bottom:1px solid #93c5fd;
+    position:relative;
+  }
+  #cloudUpdateBar button{
+    appearance:none;border:1px solid #1e3a8a;background:#1e3a8a;color:#fff;
+    padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;
+  }
+  #cloudUpdateBar button:hover{background:#172a63}
+  #cloudUpdateBar .btn-close-reminder{
+    appearance:none;border:none !important;background:transparent !important;color:#1e3a8a !important;
+    padding:2px 8px;border-radius:4px;font-size:18px;font-weight:700;cursor:pointer;
+    line-height:1;margin-left:4px;opacity:.8;
+  }
+  #cloudUpdateBar .btn-close-reminder:hover{
+    background:rgba(30,58,138,.15) !important;opacity:1;
   }
 
   main#appMain{flex:1;min-height:0;display:flex;background:#fff}
@@ -434,6 +455,12 @@
       <button type="button" onclick="document.getElementById('restoreFileInput').click()">📂 Restore dari File Backup...</button>
       <input type="file" id="restoreFileInput" accept=".json" style="display:none" onchange="handleRestoreFile(event)">
       <div class="bm-hint">Backup mencakup: Rekap Penjualan, Rekap Uang Masuk, dan data Batal/Titip/Lunas. Gunakan "Restore" jika terjadi error atau data hilang.</div>
+      <hr>
+      <h4>☁️ Sync Antar-Device (Cloud)</h4>
+      <div class="bm-status" id="cloudStatusText">Memeriksa status cloud…</div>
+      <button type="button" class="primary" onclick="cloudPush()">⬆️ Upload Data Device Ini ke Cloud</button>
+      <button type="button" onclick="cloudPull(false)">⬇️ Ambil Data Terbaru dari Cloud</button>
+      <div class="bm-hint">Gunakan "Upload" setelah selesai kerja di device ini, dan "Ambil" sebelum mulai kerja di device lain, supaya data selalu sinkron. Data terbaru akan MENIMPA data di device tujuan.</div>
     </div>
   </div>
 </header>
@@ -442,6 +469,12 @@
   <span>⚠️ Anda belum backup data hari ini.</span>
   <button type="button" onclick="backupToFolder()">Backup Sekarang</button>
   <button type="button" class="btn-close-reminder" onclick="dismissBackupReminder()" title="Tutup">×</button>
+</div>
+
+<div id="cloudUpdateBar">
+  <span>🔄 Ada data lebih baru di Cloud (kemungkinan diupload dari device lain).</span>
+  <button type="button" onclick="cloudPull(false)">Ambil Sekarang</button>
+  <button type="button" class="btn-close-reminder" onclick="dismissCloudBar()" title="Tutup">×</button>
 </div>
 
 <main id="appMain">
@@ -2840,7 +2873,7 @@ function toggleBackupMenu(ev){
   const isOpen = panel.classList.contains('open');
   closeParentMenu();
   if (isOpen) { panel.classList.remove('open'); btn.classList.remove('open'); }
-  else { panel.classList.add('open'); btn.classList.add('open'); updateBackupStatusUI(); }
+  else { panel.classList.add('open'); btn.classList.add('open'); updateBackupStatusUI(); updateCloudStatusUI(); if (typeof cloudPull==='function') cloudPull(true); }
 }
 document.addEventListener('click', function(e){
   const wrap = document.getElementById('backupMenuWrap');
@@ -2981,6 +3014,123 @@ async function handleRestoreFile(ev){
   try { backupDirHandle = await loadDirHandle(); } catch(e){ backupDirHandle = null; }
   updateBackupStatusUI();
 })();
+
+/* ==========================================================================
+   SYNC ANTAR-DEVICE via Supabase (cloud database)
+   - Satu baris di tabel 'app_backups' (id='main') menyimpan SELURUH data
+     aplikasi (format sama persis dengan file backup JSON di atas), plus
+     kolom updated_at untuk tahu versi mana yang paling baru.
+   - "Upload" menimpa data di Cloud dengan data device ini.
+   - "Ambil" menimpa data di device ini dengan data dari Cloud.
+   - Cara kerja sengaja manual (bukan otomatis tiap ketikan) supaya user
+     yang menentukan kapan data "dikirim"/"ditarik", menghindari data
+     tertimpa tanpa sadar saat 2 device dipakai bersamaan.
+   ========================================================================== */
+const SUPABASE_URL = 'https://iqrfnqncvhmmbovgbcwl.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_iC3iBA0ZDpVgFuIb5597EA_biVMPjQK';
+const CLOUD_TABLE = 'app_backups';
+const CLOUD_ROW_ID = 'main';
+const CLOUD_LAST_SYNC_KEY = '__cloud_last_sync__';
+
+let _sb = null;
+try {
+  if (window.supabase && window.supabase.createClient) {
+    _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+} catch(e) { _sb = null; }
+
+function fmtCloudTime(iso){
+  if (!iso) return '-';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString('id-ID', { dateStyle:'medium', timeStyle:'short' });
+  } catch(e) { return iso; }
+}
+
+function updateCloudStatusUI(cloudUpdatedAt){
+  const el = document.getElementById('cloudStatusText');
+  if (!el) return;
+  const lastSync = localStorage.getItem(CLOUD_LAST_SYNC_KEY);
+  let line = 'Sync terakhir di device ini: ' + fmtCloudTime(lastSync);
+  if (cloudUpdatedAt !== undefined) {
+    line += '  •  Data di Cloud: ' + (cloudUpdatedAt ? fmtCloudTime(cloudUpdatedAt) : 'belum ada');
+  }
+  el.textContent = line;
+}
+
+/* ---- upload data device ini ke Cloud (menimpa data Cloud) ---- */
+async function cloudPush(){
+  if (!_sb) { alert('Modul Cloud Sync gagal dimuat. Periksa koneksi internet lalu muat ulang halaman.'); return; }
+  if (!confirm('Ini akan MENIMPA data di Cloud dengan data yang ada di device ini sekarang. Lanjutkan?')) return;
+  try {
+    const data = await collectAllBackupData();
+    const nowIso = new Date().toISOString();
+    const { error } = await _sb.from(CLOUD_TABLE).upsert({ id: CLOUD_ROW_ID, data: data, updated_at: nowIso });
+    if (error) throw error;
+    localStorage.setItem(CLOUD_LAST_SYNC_KEY, nowIso);
+    localStorage.setItem(BACKUP_LAST_KEY, todayStr());
+    updateBackupStatusUI();
+    updateCloudStatusUI(nowIso);
+    const bar = document.getElementById('cloudUpdateBar');
+    if (bar) bar.style.display = 'none';
+    alert('✅ Data berhasil di-upload ke Cloud.\n\nDi device lain, buka menu 💾 Backup lalu klik "⬇️ Ambil Data Terbaru dari Cloud" untuk menyamakan datanya.');
+  } catch(e) {
+    alert('Gagal upload ke Cloud: ' + (e.message || e));
+  }
+}
+
+/* ---- ambil data terbaru dari Cloud (menimpa data device ini) ----
+   silent=true dipakai saat pengecekan otomatis di background (tidak menampilkan
+   alert/confirm, hanya menyiapkan data untuk banner "Ambil Sekarang"). */
+async function cloudPull(silent){
+  if (!_sb) { if(!silent) alert('Modul Cloud Sync gagal dimuat. Periksa koneksi internet lalu muat ulang halaman.'); return; }
+  try {
+    const { data: rows, error } = await _sb.from(CLOUD_TABLE).select('data, updated_at').eq('id', CLOUD_ROW_ID).limit(1);
+    if (error) throw error;
+    if (!rows || !rows.length) {
+      if (!silent) alert('Belum ada data tersimpan di Cloud. Upload dulu dari salah satu device.');
+      updateCloudStatusUI(null);
+      return;
+    }
+    const cloudUpdatedAt = rows[0].updated_at;
+    updateCloudStatusUI(cloudUpdatedAt);
+    if (!silent) {
+      if (!confirm('PERINGATAN: ini akan MENIMPA semua data di device ini dengan data dari Cloud (terakhir diupload: ' + fmtCloudTime(cloudUpdatedAt) + '). Lanjutkan?')) return;
+      await restoreAllBackupData(rows[0].data);
+      localStorage.setItem(CLOUD_LAST_SYNC_KEY, cloudUpdatedAt);
+      alert('✅ Data terbaru dari Cloud berhasil diambil. Halaman akan dimuat ulang.');
+      location.reload();
+    }
+    return cloudUpdatedAt;
+  } catch(e) {
+    if (!silent) alert('Gagal mengambil data dari Cloud: ' + (e.message || e));
+  }
+}
+
+function dismissCloudBar(){
+  const bar = document.getElementById('cloudUpdateBar');
+  if (bar) bar.style.display = 'none';
+  const lastSeen = document.getElementById('cloudStatusText');
+  // tandai supaya tidak ditawarkan lagi untuk versi yang sama di sesi ini
+  window.__cloudBarDismissedFor = window.__cloudLatestKnown || null;
+}
+
+/* ---- cek otomatis saat halaman dibuka: apakah ada data lebih baru di Cloud? ---- */
+async function checkCloudUpdatesOnLoad(){
+  if (!_sb) return;
+  try {
+    const { data: rows, error } = await _sb.from(CLOUD_TABLE).select('updated_at').eq('id', CLOUD_ROW_ID).limit(1);
+    if (error || !rows || !rows.length) return;
+    const cloudTime = rows[0].updated_at;
+    window.__cloudLatestKnown = cloudTime;
+    const lastSync = localStorage.getItem(CLOUD_LAST_SYNC_KEY);
+    if (!lastSync || new Date(cloudTime) > new Date(lastSync)) {
+      const bar = document.getElementById('cloudUpdateBar');
+      if (bar && window.__cloudBarDismissedFor !== cloudTime) bar.style.display = 'flex';
+    }
+  } catch(e) { /* offline / gagal koneksi - diamkan saja */ }
+}
+checkCloudUpdatesOnLoad();
 
 loadIframe('iframe-penjualan', B64_PENJUALAN);
 loadIframe('iframe-uangmasuk', B64_UANGMASUK);
