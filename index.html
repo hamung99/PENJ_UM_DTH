@@ -2744,6 +2744,38 @@ function idbOpenNoVersion(name){
     req.onerror   = () => reject(req.error || new Error('Gagal membuka ' + name));
   });
 }
+/* ---- helper KHUSUS untuk 'DTHDatabase': buka dan, kalau object store-nya
+   belum ada (mis. device ini belum pernah membuka tab DTH Dashboard sama
+   sekali), BUAT skemanya lebih dulu (meniru persis skema Dexie yang dipakai
+   tab DTH Dashboard). Tanpa ini, restore/pull ke device baru akan diam-diam
+   gagal menyimpan data DTH karena object store 'faktur'/'metadata' belum
+   ada saat itu. ---- */
+function idbOpenDTHDatabase(){
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open('DTHDatabase', 2);
+    req.onupgradeneeded = (ev) => {
+      const d = req.result;
+      const tx = req.transaction;
+      let store;
+      if (!d.objectStoreNames.contains('faktur')) {
+        store = d.createObjectStore('faktur', { keyPath:'id', autoIncrement:true });
+      } else {
+        store = tx.objectStore('faktur');
+      }
+      const idx = [
+        ['no_faktur','no_faktur'], ['salesman','salesman'], ['tanggal_dropping','tanggal_dropping'],
+        ['ket','ket'], ['tagihan','tagihan'], ['bulan','bulan'],
+        ['[bulan+salesman]', ['bulan','salesman']], ['[bulan+ket]', ['bulan','ket']]
+      ];
+      idx.forEach(([name, keyPath]) => { if (!store.indexNames.contains(name)) store.createIndex(name, keyPath); });
+      if (!d.objectStoreNames.contains('metadata')) {
+        d.createObjectStore('metadata', { keyPath:'key' });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror   = () => reject(req.error || new Error('Gagal membuka DTHDatabase'));
+  });
+}
 function idbGetAll(db, storeName){
   return new Promise((resolve, reject)=>{
     if (!db.objectStoreNames.contains(storeName)) { resolve([]); return; }
@@ -2846,7 +2878,7 @@ async function restoreAllBackupData(obj){
   if (ls.lunas !== undefined) localStorage.setItem('__rekap_lunas_v1__', ls.lunas);
   /* ---- pulihkan data tab DTH (jika ada di file backup ini) ---- */
   if (obj.dth && (obj.dth.faktur || obj.dth.metadata)) {
-    const dbD = await idbOpenNoVersion('DTHDatabase');
+    const dbD = await idbOpenDTHDatabase();
     await idbClearAndBulkPut(dbD, 'faktur', obj.dth.faktur, null);
     await idbClearAndBulkPut(dbD, 'metadata', obj.dth.metadata, null);
     dbD.close();
