@@ -289,14 +289,16 @@
   .scan-summary b{font-size:13px;color:#172033;line-height:1.15}
   .scan-table-wrap{flex:1;overflow:auto;max-height:calc(100vh - 180px);border:1px solid #dce4f0;border-radius:6px}
   .scan-table{border-collapse:collapse;width:100%;min-width:1100px;font-size:12px;table-layout:auto}
-  .scan-table.scan-table-ada{min-width:1280px}
+  .scan-table.scan-table-ada{min-width:1280px;table-layout:fixed}
   .scan-table th{background:#1f4e78;color:#fff;padding:7px 8px;position:sticky;top:0;text-align:left;z-index:1;white-space:nowrap}
   .scan-table td{padding:6px 8px;border-bottom:1px solid #e2e8f0;white-space:nowrap;vertical-align:middle}
   .scan-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .scan-table th.col-no,.scan-table td.col-no{width:48px;text-align:center}
+  .scan-table th.col-faktur,.scan-table td.col-faktur{width:160px;overflow:hidden;text-overflow:ellipsis}
+  .scan-table th.col-date,.scan-table td.col-date{width:100px;white-space:nowrap}
   .scan-table td.col-alamat,.scan-table td.col-customer{
     max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
-  .scan-table td.col-date{white-space:nowrap;min-width:88px}
   .scan-table td.col-status{text-align:center;min-width:88px}
   .scan-table td.col-jenis{max-width:140px;overflow:hidden;text-overflow:ellipsis}
   .scan-table tfoot td{font-weight:700;background:#fff3cd}
@@ -2227,12 +2229,12 @@ function renderScanTable(id,data,withUM,pageKey,pagerId){
   }
   const pg=pageSlice(data, pageKey);
   const isTidak = pageKey==='tidak';
-  let h='<table class="scan-table'+(withUM?' scan-table-ada':'')+'"><thead><tr><th>No</th><th>No Faktur</th><th>Tanggal</th>';
+  let h='<table class="scan-table'+(withUM?' scan-table-ada':'')+'"><thead><tr><th class="col-no">No</th><th class="col-faktur">No Faktur</th><th class="col-date">Tanggal</th>';
   if(isTidak) h+='<th>Jatuh Tempo</th><th>Status JT</th><th>Di DTH?</th>';
   h+='<th>Sales</th><th>Customer</th><th>Alamat</th><th>Produk</th>';
   if(!withUM) h+='<th>Pembayaran</th>';
   h+='<th class="num">Nominal Faktur</th>';
-  if(withUM) h+='<th class="num">Nominal UM</th><th class="num">Selisih</th><th>Jenis UM</th><th>Tgl UM</th><th>Status</th>';
+  if(withUM) h+='<th class="num">Nominal UM</th><th class="num">Selisih</th><th>Jenis UM</th><th class="col-date">Tgl UM</th><th>Status</th>';
   h+='</tr></thead><tbody>';
   pg.rows.forEach((r,i)=>{
     const no=pg.start+i+1;
@@ -2278,7 +2280,7 @@ function renderScanTable(id,data,withUM,pageKey,pagerId){
       rowStyle = 'background:#fffbeb';
     }
 
-    h+='<tr'+(rowStyle?' style="'+rowStyle+'"':'')+'><td>'+no+'</td><td>'+fakturCell+'</td><td class="col-date">'+escScan(formatScanDate(r.tanggal))+'</td>';
+    h+='<tr'+(rowStyle?' style="'+rowStyle+'"':'')+'><td class="col-no">'+no+'</td><td class="col-faktur">'+fakturCell+'</td><td class="col-date">'+escScan(formatScanDate(r.tanggal))+'</td>';
 
     if(isTidak){
       const isTempo = isPembayaranTempo(r.pembayaran);
@@ -2355,12 +2357,12 @@ function renderScanTableUmOnly(id,data,pageKey,pagerId){
   }
   const pg=pageSlice(data, pageKey);
   let h='<table class="scan-table"><thead><tr>';
-  h+='<th>No</th><th>No Faktur</th><th>Tgl UM</th><th>Sales</th><th>Customer</th><th>Alamat</th><th>Jenis UM</th><th>Nominal UM</th>';
+  h+='<th class="col-no">No</th><th class="col-faktur">No Faktur</th><th class="col-date">Tgl UM</th><th>Sales</th><th>Customer</th><th>Alamat</th><th>Jenis UM</th><th class="num">Nominal UM</th>';
   h+='</tr></thead><tbody>';
   pg.rows.forEach((r,i)=>{
     const no=pg.start+i+1;
     const fakturCell='<a href="#" class="scan-faktur-link" data-idx="'+(pg.start+i)+'" title="Klik untuk melihat detail & cek manual" onclick="openFakturModal(\'umOnly\', parseInt(this.dataset.idx,10)); return false;">'+escScan(r.faktur)+'</a>';
-    h+='<tr><td>'+no+'</td><td>'+fakturCell+'</td><td>'+escScan(formatScanDate(r.tanggal))+'</td>';
+    h+='<tr><td class="col-no">'+no+'</td><td class="col-faktur">'+fakturCell+'</td><td class="col-date">'+escScan(formatScanDate(r.tanggal))+'</td>';
     h+='<td>'+escScan(r.sales)+'</td><td>'+escScan(r.customer)+'</td><td>'+escScan(r.alamat)+'</td>';
     h+='<td>'+escScan(r.jenis||'')+'</td><td class="num">'+rupiahScan(r.total)+'</td></tr>';
   });
