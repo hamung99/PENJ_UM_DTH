@@ -1196,19 +1196,19 @@ function sameScanIdentity(pen, um){
   return scanIdentityScore(pen, um) >= 0.85;
 }
 
-// Deteksi kemungkinan SALAH KETIK 1 digit pada No Faktur (mis. "011..." vs "010...").
-// Sengaja dibatasi ketat: panjang string harus sama persis dan hanya boleh ada
-// TEPAT SATU karakter yang berbeda (bukan kurang/lebih panjang, bukan 2+ beda),
-// supaya faktur yang benar-benar berbeda tidak ikut tertangkap.
+// Deteksi kemungkinan SALAH KETIK No Faktur di sisi Uang Masuk, mencakup:
+//  - 1 digit TERTUKAR (mis. "011..." vs "010...", panjang sama)
+//  - 1 digit HILANG/KURANG (mis. "0110032..." vs "011003.." tanpa satu digit, panjang beda 1)
+//  - 1 digit KELEBIHAN (kebalikan dari atas)
+// Dipakai jarak Levenshtein umum (insert/delete/substitute, masing-masing biaya 1)
+// dan hanya dianggap "typo" kalau totalnya PERSIS 1 edit. Panjang boleh beda
+// maksimal 1 karakter saja (insert/delete satu digit), supaya faktur yang
+// benar-benar berbeda (banyak digit beda / bentuknya lain) tetap ditolak.
 function fakturTypoMatch(f1, f2){
   const a=String(f1||''), b=String(f2||'');
   if(!a || !b || a===b) return false;
-  if(a.length !== b.length) return false;
-  let diff=0;
-  for(let i=0;i<a.length;i++){
-    if(a[i]!==b[i]){ diff++; if(diff>1) return false; }
-  }
-  return diff===1;
+  if(Math.abs(a.length - b.length) > 1) return false;
+  return levenshteinScan(a, b) === 1;
 }
 
 function scanIdentityKey(r){
