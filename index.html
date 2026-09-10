@@ -1172,23 +1172,43 @@ function similarityScan(a, b){
   return 1 - (dist / maxLen);
 }
 
-function sameScanIdentity(pen, um){
-  if(!pen || !um) return false;
-  const f1=normScan(pen.faktur), f2=normScan(um.faktur);
-  if(!f1 || f1!==f2) return false;
-
+// Skor kecocokan identitas (Customer/Alamat/Sales) TANPA melibatkan No Faktur.
+// Dipakai baik oleh sameScanIdentity (faktur wajib sama persis) maupun oleh
+// fallback pencocokan "salah ketik No Faktur" (lihat fakturTypoMatch di bawah).
+function scanIdentityScore(pen, um){
   const cust = similarityScan(normScanIdentity(pen.customer), normScanIdentity(um.customer));
   const alamat = similarityScan(normScanIdentity(pen.alamat), normScanIdentity(um.alamat));
   const sales = similarityScan(normScanIdentity(pen.sales), normScanIdentity(um.sales));
 
   // Tiap field boleh sedikit beda (typo kecil, skor turun sedikit),
   // tapi tidak boleh ada satupun field yang jauh berbeda (di bawah 0.6 = dianggap toko/sales lain).
-  if(cust < 0.6 || alamat < 0.6 || sales < 0.6) return false;
+  if(cust < 0.6 || alamat < 0.6 || sales < 0.6) return 0;
 
   // Rata-rata tertimbang: Customer & Alamat lebih menentukan identitas toko,
   // Sales sedikit lebih longgar (kadang beda petugas input).
-  const overall = (cust * 0.4) + (alamat * 0.4) + (sales * 0.2);
-  return overall >= 0.85;
+  return (cust * 0.4) + (alamat * 0.4) + (sales * 0.2);
+}
+
+function sameScanIdentity(pen, um){
+  if(!pen || !um) return false;
+  const f1=normScan(pen.faktur), f2=normScan(um.faktur);
+  if(!f1 || f1!==f2) return false;
+  return scanIdentityScore(pen, um) >= 0.85;
+}
+
+// Deteksi kemungkinan SALAH KETIK 1 digit pada No Faktur (mis. "011..." vs "010...").
+// Sengaja dibatasi ketat: panjang string harus sama persis dan hanya boleh ada
+// TEPAT SATU karakter yang berbeda (bukan kurang/lebih panjang, bukan 2+ beda),
+// supaya faktur yang benar-benar berbeda tidak ikut tertangkap.
+function fakturTypoMatch(f1, f2){
+  const a=String(f1||''), b=String(f2||'');
+  if(!a || !b || a===b) return false;
+  if(a.length !== b.length) return false;
+  let diff=0;
+  for(let i=0;i<a.length;i++){
+    if(a[i]!==b[i]){ diff++; if(diff>1) return false; }
+  }
+  return diff===1;
 }
 
 function scanIdentityKey(r){
@@ -1525,6 +1545,17 @@ function applyScanFilters(){
     umByFaktur.get(k).push(x);
   });
 
+  // Indeks kandidat UM berdasarkan Nominal (dibulatkan), khusus untuk fallback
+  // "kemungkinan salah ketik No Faktur" di bawah. Nominal yang sama persis adalah
+  // sinyal kuat, jadi kandidatnya dipersempit dulu lewat nominal sebelum dicek
+  // typo faktur + identitas toko/sales.
+  const umByTotal=new Map();
+  um.forEach(x=>{
+    const t=Math.round(scanNum(x.total));
+    if(!umByTotal.has(t)) umByTotal.set(t,[]);
+    umByTotal.get(t).push(x);
+  });
+
   const _batalSet = getBatalSet();
   const _titipSet = getTitipSet();
   const _lunasSet = getLunasSet();
@@ -1547,11 +1578,27 @@ function applyScanFilters(){
         manualStatus:manualStatus
       });
     } else if(!_batalSet.has(fk)){
-      tidak.push({...x,um:null,selisih:0});
+      // FALLBACK OTOMATIS: kemungkinan No Faktur di sisi Uang Masuk salah ketik
+      // 1 digit (mis. "011..." vs "010..."). Hanya dianggap cocok jika SEMUA syarat
+      // ketat ini terpenuhi sekaligus, supaya tidak salah gabung transaksi lain:
+      //  - Nominal sama persis
+      //  - Customer/Alamat/Sales sangat mirip (skor identitas >= 0.85)
+      //  - No Faktur hanya beda TEPAT 1 karakter (fakturTypoMatch)
+      const totalKey=Math.round(x.total);
+      const totalKandidat=umByTotal.get(totalKey)||[];
+      const typoHit=totalKandidat.find(u=>fakturTypoMatch(fk, normScan(u.faktur)) && scanIdentityScore(x,u)>=0.85);
+      if(typoHit){
+        ada.push({...x, um:typoHit, selisih:0, typoFaktur:true, typoFakturUM:typoHit.faktur});
+      } else {
+        tidak.push({...x,um:null,selisih:0});
+      }
     }
     // Faktur ditandai BATAL => disembunyikan dari sub-tab Penjualan-Tidak Ada UM.
     // Faktur ditandai TITIP/LUNAS => dipindah ke sub-tab Penjualan-Ada di UM (lihat atas).
     // Jika No Faktur sama tetapi Customer/Alamat/Sales berbeda, TIDAK dianggap cocok.
+    // Jika No Faktur beda 1 digit tapi Nominal+Customer+Alamat+Sales identik,
+    // dianggap salah ketik dan tetap dipasangkan (lihat fallback typoFaktur di atas),
+    // namun tetap ditandai dengan badge "TYPO FAKTUR" di tabel supaya bisa dicek user.
   });
 
   // UM-Tidak Ada di Penjualan harus mencari ke SELURUH histori Penjualan.
@@ -2070,10 +2117,13 @@ function renderScanTable(id,data,withUM,pageKey,pagerId){
         : r.manualStatus==='beda'
           ? ' <span style="display:inline-block;background:#fee2e2;color:#b91c1c;font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px;margin-left:4px" title="Ditandai manual: sudah dicek, nominal beda tapi dianggap normal">NOMINAL BEDA</span>'+umRecBadge
           : '';
+    const typoBadge = r.typoFaktur
+      ? ' <span style="display:inline-block;background:#fef9c3;color:#854d0e;font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px;margin-left:4px" title="Dicocokkan OTOMATIS: No Faktur di Uang Masuk beda 1 digit ('+escScan(r.typoFakturUM)+'), tapi Nominal, Customer, Alamat, dan Sales identik. Kemungkinan besar salah ketik. Silakan cek."'+'>⚠ TYPO FAKTUR</span>'
+      : '';
     const isClickable = true; // semua faktur (baik "Ada di UM" maupun "Tidak Ada UM") kini bisa dibuka detailnya
     const fakturCell = isClickable
-      ? '<a href="#" class="scan-faktur-link" data-pgkey="'+escScan(pageKey)+'" data-idx="'+(pg.start+i)+'" title="Klik untuk melihat detail faktur" onclick="openFakturModal(this.dataset.pgkey, parseInt(this.dataset.idx,10)); return false;">'+escScan(r.faktur)+'</a>'+minusBadge+manualBadge
-      : escScan(r.faktur)+manualBadge;
+      ? '<a href="#" class="scan-faktur-link" data-pgkey="'+escScan(pageKey)+'" data-idx="'+(pg.start+i)+'" title="Klik untuk melihat detail faktur" onclick="openFakturModal(this.dataset.pgkey, parseInt(this.dataset.idx,10)); return false;">'+escScan(r.faktur)+'</a>'+minusBadge+manualBadge+typoBadge
+      : escScan(r.faktur)+manualBadge+typoBadge;
 
     const statusAda = withUM ? scanStatusAda(r) : null;
     let rowStyle = '';
@@ -2129,7 +2179,8 @@ function renderScanTable(id,data,withUM,pageKey,pagerId){
       } else {
         stBadge='<span class="scan-stamp-lunas" style="color:#15803d;border-color:#15803d;background:rgba(21,128,61,0.05)">LUNAS</span>';
       }
-      h+='<td class="num">'+rupiahScan(r.um&&r.um.total)+'</td><td class="num">'+rupiahScan(r.selisih)+'</td><td>'+escScan(r.um&&r.um.jenis)+'</td><td>'+escScan(formatScanDate(r.um&&r.um.tanggal))+'</td><td style="text-align:center">'+stBadge+'</td>';
+      const jenisUmCell = escScan(r.um&&r.um.jenis)+(r.typoFaktur ? ' <small style="color:#854d0e">(No UM: '+escScan(r.typoFakturUM)+')</small>' : '');
+      h+='<td class="num">'+rupiahScan(r.um&&r.um.total)+'</td><td class="num">'+rupiahScan(r.selisih)+'</td><td>'+jenisUmCell+'</td><td>'+escScan(formatScanDate(r.um&&r.um.tanggal))+'</td><td style="text-align:center">'+stBadge+'</td>';
     }
     h+='</tr>';
   });
@@ -2223,7 +2274,8 @@ function exportAdaExcel(){
     'Selisih': scanNum(r.selisih),
     'Jenis UM': (r.um&&r.um.jenis)||'',
     'Tgl UM': formatScanDate(r.um&&r.um.tanggal),
-    'Status': ({lunas:'LUNAS',titip:'TITIP',beda:'NOMINAL BEDA'})[scanStatusAda(r)]
+    'Status': ({lunas:'LUNAS',titip:'TITIP',beda:'NOMINAL BEDA'})[scanStatusAda(r)],
+    'Catatan': r.typoFaktur ? ('TYPO FAKTUR - No Faktur Penjualan: '+(r.faktur||'')+' | No Faktur di UM: '+(r.typoFakturUM||'')+' (beda 1 digit, dicocokkan otomatis via Nominal+Customer+Alamat+Sales)') : ''
   }));
   exportRowsToExcel(rows, 'Penjualan-Ada di UM', 'Scan_Penjualan_Ada_di_UM');
 }
