@@ -288,13 +288,28 @@
   .scan-summary small{display:block;color:#64748b;font-size:9px;letter-spacing:.02em;line-height:1.1}
   .scan-summary b{font-size:13px;color:#172033;line-height:1.15}
   .scan-table-wrap{flex:1;overflow:auto;max-height:calc(100vh - 180px);border:1px solid #dce4f0;border-radius:6px}
-  .scan-table{border-collapse:collapse;width:100%;min-width:1100px;font-size:12px}
-  .scan-table th{background:#1f4e78;color:#fff;padding:7px 8px;position:sticky;top:0;text-align:left;z-index:1}
-  .scan-table td{padding:6px 8px;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-  .scan-table td.num{text-align:right}
+  .scan-table{border-collapse:collapse;width:100%;min-width:1100px;font-size:12px;table-layout:auto}
+  .scan-table.scan-table-ada{min-width:1280px}
+  .scan-table th{background:#1f4e78;color:#fff;padding:7px 8px;position:sticky;top:0;text-align:left;z-index:1;white-space:nowrap}
+  .scan-table td{padding:6px 8px;border-bottom:1px solid #e2e8f0;white-space:nowrap;vertical-align:middle}
+  .scan-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .scan-table td.col-alamat,.scan-table td.col-customer{
+    max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .scan-table td.col-date{white-space:nowrap;min-width:88px}
+  .scan-table td.col-status{text-align:center;min-width:88px}
+  .scan-table td.col-jenis{max-width:140px;overflow:hidden;text-overflow:ellipsis}
   .scan-table tfoot td{font-weight:700;background:#fff3cd}
   .scan-empty{text-align:center;color:#64748b;padding:28px 12px;font-size:13px}
+  /* Stempel miring hanya untuk konteks non-tabel; di tabel pakai pill ringkas */
   .scan-stamp-lunas{display:inline-block;padding:2px 12px;border:3px double #c0392b;border-radius:5px;color:#c0392b;font-weight:400;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;transform:rotate(-7deg);background:rgba(192,57,43,0.04)}
+  .scan-status-pill{
+    display:inline-block;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:700;
+    letter-spacing:.02em;text-transform:uppercase;border:1px solid transparent;white-space:nowrap;
+  }
+  .scan-status-pill.lunas{background:#dcfce7;color:#15803d;border-color:#86efac}
+  .scan-status-pill.titip{background:#fef3c7;color:#b45309;border-color:#fcd34d}
+  .scan-status-pill.beda{background:#fee2e2;color:#b91c1c;border-color:#fca5a5}
   .scan-pager{
     display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
     margin-top:8px;padding:6px 2px;font-size:12px;color:#475569;
@@ -2212,12 +2227,12 @@ function renderScanTable(id,data,withUM,pageKey,pagerId){
   }
   const pg=pageSlice(data, pageKey);
   const isTidak = pageKey==='tidak';
-  let h='<table class="scan-table"><thead><tr><th>No</th><th>No Faktur</th><th>Tanggal</th>';
+  let h='<table class="scan-table'+(withUM?' scan-table-ada':'')+'"><thead><tr><th>No</th><th>No Faktur</th><th>Tanggal</th>';
   if(isTidak) h+='<th>Jatuh Tempo</th><th>Status JT</th><th>Di DTH?</th>';
   h+='<th>Sales</th><th>Customer</th><th>Alamat</th><th>Produk</th>';
   if(!withUM) h+='<th>Pembayaran</th>';
-  h+='<th>Nominal Faktur</th>';
-  if(withUM) h+='<th>Nominal UM</th><th>Selisih</th><th>Jenis UM</th><th>Tgl UM</th><th>Status</th>';
+  h+='<th class="num">Nominal Faktur</th>';
+  if(withUM) h+='<th class="num">Nominal UM</th><th class="num">Selisih</th><th>Jenis UM</th><th>Tgl UM</th><th>Status</th>';
   h+='</tr></thead><tbody>';
   pg.rows.forEach((r,i)=>{
     const no=pg.start+i+1;
@@ -2263,7 +2278,7 @@ function renderScanTable(id,data,withUM,pageKey,pagerId){
       rowStyle = 'background:#fffbeb';
     }
 
-    h+='<tr'+(rowStyle?' style="'+rowStyle+'"':'')+'><td>'+no+'</td><td>'+fakturCell+'</td><td>'+escScan(formatScanDate(r.tanggal))+'</td>';
+    h+='<tr'+(rowStyle?' style="'+rowStyle+'"':'')+'><td>'+no+'</td><td>'+fakturCell+'</td><td class="col-date">'+escScan(formatScanDate(r.tanggal))+'</td>';
 
     if(isTidak){
       const isTempo = isPembayaranTempo(r.pembayaran);
@@ -2294,20 +2309,21 @@ function renderScanTable(id,data,withUM,pageKey,pagerId){
     const produkLabel = produkKat==='FITRI' ? 'Fitri' : produkKat==='RUPA_RUPA' ? 'Rupa Rupa' : produkKat==='CAMPURAN' ? 'Campuran' : '<span style="color:#94a3b8">—</span>';
     const produkColor = produkKat==='FITRI' ? '#fef3c7;color:#92400e' : produkKat==='RUPA_RUPA' ? '#dbeafe;color:#1e40af' : produkKat==='CAMPURAN' ? '#fee2e2;color:#b91c1c' : '';
     const produkCell = produkKat ? '<span style="display:inline-block;background:'+produkColor+';font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px">'+produkLabel+'</span>' : produkLabel;
-    h+='<td>'+escScan(r.sales)+'</td><td>'+escScan(r.customer)+'</td><td>'+escScan(r.alamat)+'</td><td>'+produkCell+'</td>';
+    h+='<td>'+escScan(r.sales)+'</td><td class="col-customer" title="'+escScan(r.customer||'')+'">'+escScan(r.customer)+'</td><td class="col-alamat" title="'+escScan(r.alamat||'')+'">'+escScan(r.alamat)+'</td><td>'+produkCell+'</td>';
     if(!withUM) h+='<td>'+escScan(r.pembayaran||'')+'</td>';
     h+='<td class="num">'+(r.total===0?'<b style="color:#b91c1c">'+rupiahScan(r.total)+'</b>':rupiahScan(r.total))+'</td>';
     if(withUM){
       let stBadge;
       if(statusAda==='titip'){
-        stBadge='<span class="scan-stamp-lunas" style="color:#b45309;border-color:#b45309;background:rgba(180,83,9,0.05)">TITIP</span>';
+        stBadge='<span class="scan-status-pill titip">TITIP</span>';
       } else if(statusAda==='beda'){
-        stBadge='<span class="scan-stamp-lunas" style="color:#b91c1c;border-color:#b91c1c;background:rgba(185,28,28,0.05)">NOMINAL BEDA</span>';
+        stBadge='<span class="scan-status-pill beda">BEDA</span>';
       } else {
-        stBadge='<span class="scan-stamp-lunas" style="color:#15803d;border-color:#15803d;background:rgba(21,128,61,0.05)">LUNAS</span>';
+        stBadge='<span class="scan-status-pill lunas">LUNAS</span>';
       }
+      const jenisUmText = String((r.um&&r.um.jenis)||'')+(r.typoFaktur ? ' (No UM: '+String(r.typoFakturUM||'')+')' : '');
       const jenisUmCell = escScan(r.um&&r.um.jenis)+(r.typoFaktur ? ' <small style="color:#854d0e">(No UM: '+escScan(r.typoFakturUM)+')</small>' : '');
-      h+='<td class="num">'+rupiahScan(r.um&&r.um.total)+'</td><td class="num">'+rupiahScan(r.selisih)+'</td><td>'+jenisUmCell+'</td><td>'+escScan(formatScanDate(r.um&&r.um.tanggal))+'</td><td style="text-align:center">'+stBadge+'</td>';
+      h+='<td class="num">'+rupiahScan(r.um&&r.um.total)+'</td><td class="num">'+rupiahScan(r.selisih)+'</td><td class="col-jenis" title="'+escScan(jenisUmText)+'">'+jenisUmCell+'</td><td class="col-date">'+escScan(formatScanDate(r.um&&r.um.tanggal))+'</td><td class="col-status">'+stBadge+'</td>';
     }
     h+='</tr>';
   });
