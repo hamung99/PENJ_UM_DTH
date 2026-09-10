@@ -1564,8 +1564,33 @@ function applyScanFilters(){
     const kandidat=umByFaktur.get(normScan(x.faktur))||[];
     const hit=kandidat.find(u=>sameScanIdentity(x,u));
     const fk=normScan(x.faktur);
+
+    // FALLBACK: No Faktur cocok PERSIS (kunci sudah unik per transaksi), tapi
+    // Customer/Alamat/Sales tidak lolos ambang ketat sameScanIdentity (mis. Alamat
+    // di sisi Uang Masuk salah input/beda kecamatan). Karena No Faktur exact match
+    // sendiri sudah sangat kuat sebagai identitas transaksi, di sini kita hanya
+    // mewajibkan nama Customer tetap mirip (jaga-jaga kalau suatu saat No Faktur
+    // ternyata dipakai ulang lintas customer) - Alamat/Sales boleh beda, tapi tetap
+    // ditandai dengan badge supaya user bisa cek.
+    let looseHit=null, looseDetail=null;
+    if(!hit){
+      for(const u of kandidat){
+        const custScore = similarityScan(normScanIdentity(x.customer), normScanIdentity(u.customer));
+        if(custScore < 0.5) continue;
+        looseHit = u;
+        looseDetail = {
+          cust: custScore,
+          alamat: similarityScan(normScanIdentity(x.alamat), normScanIdentity(u.alamat)),
+          sales: similarityScan(normScanIdentity(x.sales), normScanIdentity(u.sales))
+        };
+        break;
+      }
+    }
+
     if(hit){
       ada.push({...x,um:hit,selisih:x.total-hit.total});
+    } else if(looseHit){
+      ada.push({...x, um:looseHit, selisih:x.total-looseHit.total, identityMismatch:true, identityDetail:looseDetail});
     } else if(_titipSet.has(fk) || _lunasSet.has(fk)){
       // Ditandai manual TITIP/LUNAS (dicek manual, sudah ada pembayaran) =>
       // dipindah masuk ke sub-tab Penjualan-Ada di UM, dengan "UM" sintetis
@@ -2120,10 +2145,20 @@ function renderScanTable(id,data,withUM,pageKey,pagerId){
     const typoBadge = r.typoFaktur
       ? ' <span style="display:inline-block;background:#fef9c3;color:#854d0e;font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px;margin-left:4px" title="Dicocokkan OTOMATIS: No Faktur di Uang Masuk beda 1 digit ('+escScan(r.typoFakturUM)+'), tapi Nominal, Customer, Alamat, dan Sales identik. Kemungkinan besar salah ketik. Silakan cek."'+'>⚠ TYPO FAKTUR</span>'
       : '';
+    let identityBadge = '';
+    if(r.identityMismatch){
+      const parts=[];
+      if(r.identityDetail){
+        if(r.identityDetail.alamat<0.6) parts.push('Alamat');
+        if(r.identityDetail.sales<0.6) parts.push('Sales');
+      }
+      const label = parts.length ? (parts.join('/')+' Beda') : 'Identitas Beda';
+      identityBadge = ' <span style="display:inline-block;background:#ffe4e6;color:#9f1239;font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px;margin-left:4px" title="No Faktur DAN Customer cocok, tapi '+escScan(parts.join(' & ')||'data lain')+' di Uang Masuk berbeda dari Penjualan (kemungkinan salah input di salah satu sisi). Silakan cek.">⚠ '+escScan(label.toUpperCase())+'</span>';
+    }
     const isClickable = true; // semua faktur (baik "Ada di UM" maupun "Tidak Ada UM") kini bisa dibuka detailnya
     const fakturCell = isClickable
-      ? '<a href="#" class="scan-faktur-link" data-pgkey="'+escScan(pageKey)+'" data-idx="'+(pg.start+i)+'" title="Klik untuk melihat detail faktur" onclick="openFakturModal(this.dataset.pgkey, parseInt(this.dataset.idx,10)); return false;">'+escScan(r.faktur)+'</a>'+minusBadge+manualBadge+typoBadge
-      : escScan(r.faktur)+manualBadge+typoBadge;
+      ? '<a href="#" class="scan-faktur-link" data-pgkey="'+escScan(pageKey)+'" data-idx="'+(pg.start+i)+'" title="Klik untuk melihat detail faktur" onclick="openFakturModal(this.dataset.pgkey, parseInt(this.dataset.idx,10)); return false;">'+escScan(r.faktur)+'</a>'+minusBadge+manualBadge+typoBadge+identityBadge
+      : escScan(r.faktur)+manualBadge+typoBadge+identityBadge;
 
     const statusAda = withUM ? scanStatusAda(r) : null;
     let rowStyle = '';
@@ -2275,7 +2310,11 @@ function exportAdaExcel(){
     'Jenis UM': (r.um&&r.um.jenis)||'',
     'Tgl UM': formatScanDate(r.um&&r.um.tanggal),
     'Status': ({lunas:'LUNAS',titip:'TITIP',beda:'NOMINAL BEDA'})[scanStatusAda(r)],
-    'Catatan': r.typoFaktur ? ('TYPO FAKTUR - No Faktur Penjualan: '+(r.faktur||'')+' | No Faktur di UM: '+(r.typoFakturUM||'')+' (beda 1 digit, dicocokkan otomatis via Nominal+Customer+Alamat+Sales)') : ''
+    'Catatan': r.typoFaktur
+      ? ('TYPO FAKTUR - No Faktur Penjualan: '+(r.faktur||'')+' | No Faktur di UM: '+(r.typoFakturUM||'')+' (beda 1 digit, dicocokkan otomatis via Nominal+Customer+Alamat+Sales)')
+      : (r.identityMismatch
+        ? ('IDENTITAS BEDA - No Faktur & Customer cocok, tapi '+(r.identityDetail&&r.identityDetail.alamat<0.6?'Alamat ':'')+(r.identityDetail&&r.identityDetail.sales<0.6?'Sales ':'')+'di Uang Masuk berbeda dari Penjualan. Cek manual.')
+        : '')
   }));
   exportRowsToExcel(rows, 'Penjualan-Ada di UM', 'Scan_Penjualan_Ada_di_UM');
 }
