@@ -288,7 +288,7 @@
   .scan-summary small{display:block;color:#64748b;font-size:9px;letter-spacing:.02em;line-height:1.1}
   .scan-summary b{font-size:13px;color:#172033;line-height:1.15}
   .scan-table-wrap{flex:1;overflow:auto;max-height:calc(100vh - 180px);border:1px solid #dce4f0;border-radius:6px}
-  .scan-table{border-collapse:collapse;width:100%;min-width:1100px;font-size:12px;table-layout:auto}
+  .scan-table{border-collapse:separate;border-spacing:0;width:100%;min-width:1100px;font-size:12px;table-layout:auto}
   .scan-table.scan-table-ada{min-width:1280px}
   .scan-table th{background:#1f4e78;color:#fff;padding:7px 8px;position:sticky;top:0;text-align:left;z-index:1;white-space:nowrap}
   .scan-table td{padding:6px 8px;border-bottom:1px solid #e2e8f0;white-space:nowrap;vertical-align:middle}
@@ -303,6 +303,14 @@
      punya ruang lebih dan tidak terpotong. */
   .scan-table th:nth-child(1),.scan-table td:nth-child(1){width:1%;white-space:nowrap}
   .scan-table th:nth-child(2),.scan-table td:nth-child(2){width:1%;white-space:nowrap;padding-right:16px}
+  /* Kolom Status ditempelkan (sticky) di sisi kanan tabel supaya badge LUNAS/TITIP/BEDA
+     selalu kelihatan penuh walau tabel di-scroll ke kanan (banyak kolom lain di kiri). */
+  .scan-table td.col-status,.scan-table th.col-status{
+    position:sticky;right:0;width:1%;white-space:nowrap;
+    background:#fff;box-shadow:-6px 0 8px -6px rgba(15,23,42,.35);
+  }
+  .scan-table th.col-status{background:#1f4e78;z-index:2}
+  .scan-table td.col-status{z-index:1}
   .scan-table td.col-jenis{max-width:140px;overflow:hidden;text-overflow:ellipsis}
   .scan-table tfoot td{font-weight:700;background:#fff3cd}
   .scan-empty{text-align:center;color:#64748b;padding:28px 12px;font-size:13px}
@@ -517,6 +525,8 @@
   html[data-theme="dark"] .scan-badge-belum-jt{background:#14532d!important;color:#bbf7d0!important}
   html[data-theme="dark"] .scan-badge-overdue{background:#450a0a!important;color:#fecaca!important}
   html[data-theme="dark"] .scan-status-pill.lunas{background:#14532d!important;color:#bbf7d0!important;border-color:#166534!important}
+  html[data-theme="dark"] .scan-table td.col-status{background:#0f172a!important}
+  html[data-theme="dark"] .scan-table th.col-status{background:#1e3a5f!important}
   html[data-theme="dark"] .scan-badge-produk-fitri{background:#78350f!important;color:#fde68a!important}
   html[data-theme="dark"] .scan-badge-produk-rupa{background:#1e3a5f!important;color:#bfdbfe!important}
   html[data-theme="dark"] .scan-badge-produk-campuran{background:#450a0a!important;color:#fecaca!important}
@@ -2445,7 +2455,7 @@ function renderScanTable(id,data,withUM,pageKey,pagerId){
   h+='<th>Sales</th><th>Customer</th><th>Alamat</th><th>Produk</th>';
   if(!withUM) h+='<th>Pembayaran</th>';
   h+='<th class="num">Nominal Faktur</th>';
-  if(withUM) h+='<th class="num">Nominal UM</th><th class="num">Selisih</th><th>Jenis UM</th><th>Tgl UM</th><th>Status</th>';
+  if(withUM) h+='<th class="num">Nominal UM</th><th class="num">Selisih</th><th>Jenis UM</th><th>Tgl UM</th><th class="col-status">Status</th>';
   h+='</tr></thead><tbody>';
   pg.rows.forEach((r,i)=>{
     const no=pg.start+i+1;
