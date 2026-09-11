@@ -297,16 +297,22 @@
     max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
   .scan-table td.col-date{white-space:nowrap;min-width:88px}
-  .scan-table td.col-status{text-align:center;min-width:96px;width:1%}
-  /* Kolom No & No Faktur dibuat menyempit sesuai isi (bukan ikut melebar mengisi sisa tabel),
-     supaya jarak ke kolom Tanggal tidak longgar dan kolom-kolom di kanan (termasuk Status/LUNAS)
-     punya ruang lebih dan tidak terpotong. */
-  .scan-table th:nth-child(1),.scan-table td:nth-child(1){width:1%;white-space:nowrap}
-  .scan-table th:nth-child(2),.scan-table td:nth-child(2){width:1%;white-space:nowrap;padding-right:16px}
-  /* Kolom Status ditempelkan (sticky) di sisi kanan tabel supaya badge LUNAS/TITIP/BEDA
-     selalu kelihatan penuh walau tabel di-scroll ke kanan (banyak kolom lain di kiri). */
+  .scan-table td.col-status{text-align:center;min-width:78px;width:1%}
+  /* Kolom No, No Faktur, Tanggal: menyempit sesuai isi (bukan melebar mengisi sisa tabel)
+     supaya jarak No Faktur → Tanggal tidak longgar dan kolom kanan (Status/LUNAS) cukup lebar. */
+  .scan-table th:nth-child(1),.scan-table td:nth-child(1){
+    width:1%;max-width:3.2em;white-space:nowrap;padding-left:8px;padding-right:4px;
+  }
+  .scan-table th:nth-child(2),.scan-table td:nth-child(2){
+    width:1%;white-space:nowrap;padding-left:4px;padding-right:8px;
+  }
+  .scan-table th:nth-child(3),.scan-table td:nth-child(3){
+    width:1%;white-space:nowrap;padding-left:6px;padding-right:8px;
+  }
+  /* Kolom Status sticky di kanan supaya badge LUNAS/TITIP/BEDA selalu penuh saat scroll. */
   .scan-table td.col-status,.scan-table th.col-status{
-    position:sticky;right:0;width:1%;white-space:nowrap;
+    position:sticky;right:0;width:1%;min-width:78px;white-space:nowrap;
+    padding-left:8px;padding-right:10px;
     background:#fff;box-shadow:-6px 0 8px -6px rgba(15,23,42,.35);
   }
   .scan-table th.col-status{background:#1f4e78;z-index:2}
