@@ -1640,6 +1640,75 @@ function scanStatusAda(r){
   return sel===0 ? 'lunas' : 'beda';
 }
 
+/* ===== MATCH DTH KHUSUS: Penjualan-Tidak Ada UM -> Tidak di DTH =====
+   Tujuan bisnis sub-tab ini:
+   Penjualan belum mempunyai Uang Masuk DAN faktur juga belum ditemukan di DTH.
+
+   Karena No Faktur di DTH bisa salah ketik, pencarian dilakukan berlapis:
+   1) No Faktur exact (setelah normalisasi) -> langsung dianggap ADA.
+   2) Jika tidak exact, cari No Faktur beda tepat 1 edit karakter.
+   3) Kandidat typo hanya diterima bila identitas outlet/customer + salesman
+      cukup mirip DAN nominal DTH sama dengan nominal Penjualan bila nominal DTH tersedia.
+   4) Jika kandidat lebih dari satu / identitas tidak cukup kuat -> TIDAK dianggap ada.
+
+   Helper ini hanya dipakai oleh logika Di DTH pada Penjualan-Tidak Ada UM.
+*/
+function scanDthMatchForPenjualan(pen){
+  try{
+    if(!pen || !scanResults || !scanResults.dthLoaded) return null;
+    const exactMap=scanResults.dthByFaktur;
+    const fk=normScan(pen.faktur);
+    if(!fk) return null;
+
+    // Prioritas 1: No Faktur exact.
+    if(exactMap && exactMap.has(fk)) return {row:exactMap.get(fk), typo:false};
+
+    const raw=scanResults.dthRawAll || [];
+    if(!raw.length) return null;
+
+    const kandidat=[];
+    const penTotal=Math.round(scanNum(pen.total));
+    const penCust=normScanIdentity(pen.customer);
+    const penSales=normScanIdentity(pen.sales);
+
+    for(const d of raw){
+      const df=normScan(d && d.faktur);
+      if(!df || !fakturTypoMatch(fk,df)) continue;
+
+      // DTH memakai nama_outlet/salesman.
+      const dcust=normScanIdentity(d.nama_outlet || d.customer || d.toko || '');
+      const dsales=normScanIdentity(d.salesman || d.sales || '');
+      const custScore=similarityScan(penCust,dcust);
+      const salesScore=similarityScan(penSales,dsales);
+      if(custScore < 0.75 || salesScore < 0.65) continue;
+
+      // Bila DTH punya nominal tagihan, wajib sama. Ini pengaman utama
+      // agar typo No Faktur tidak menghubungkan transaksi yang kebetulan mirip.
+      const dthTotal=Math.round(scanNum(d.tagihan ?? d.total ?? d.nominal));
+      if(penTotal>0 && dthTotal>0 && penTotal!==dthTotal) continue;
+
+      kandidat.push({row:d, typo:true, custScore, salesScore});
+    }
+
+    // Hanya terima kandidat tunggal. Jika ada dua kandidat yang sama-sama kuat,
+    // jangan menebak; biarkan tetap "Tidak di DTH" untuk pemeriksaan manual.
+    if(kandidat.length===1) return kandidat[0];
+
+    if(kandidat.length>1){
+      kandidat.sort((a,b)=>{
+        const sa=(a.custScore*0.7)+(a.salesScore*0.3);
+        const sb=(b.custScore*0.7)+(b.salesScore*0.3);
+        return sb-sa;
+      });
+      const a=kandidat[0], b=kandidat[1];
+      const scoreA=(a.custScore*0.7)+(a.salesScore*0.3);
+      const scoreB=(b.custScore*0.7)+(b.salesScore*0.3);
+      if(scoreA-scoreB >= 0.08) return a;
+    }
+  }catch(e){ console.warn('scanDthMatchForPenjualan:',e); }
+  return null;
+}
+
 function applyScanFilters(){
   if(!scanResults.scanned) return;
   const fBulanPen=[...(document.getElementById('fltBulanPenj')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
@@ -1898,10 +1967,10 @@ function applyScanFilters(){
   }
 
   // Filter Di DTH?: ada | tidak
+  // Khusus Penjualan-Tidak Ada UM: exact No Faktur + fallback typo 1 karakter.
   if(fDiDTH){
-    const dthMap = scanResults.dthByFaktur;
     tidakFiltered = tidakFiltered.filter(x=>{
-      const hit = dthMap && dthMap.has(normScan(x.faktur));
+      const hit = scanDthMatchForPenjualan(x);
       if(fDiDTH==='ada') return !!hit;
       if(fDiDTH==='tidak') return !hit;
       return true;
@@ -2222,6 +2291,9 @@ function scanDataRun(){
       penByMonth,penHistoryByMonth,umByMonth,penKeys,
       dthLoaded:dthDataReady,
       dthFakturSet,dthByFaktur,
+      // Data mentah DTH disimpan khusus untuk fallback typo pada
+      // sub-tab Penjualan-Tidak Ada UM -> Tidak di DTH.
+      dthRawAll:dthRaw,
       dthCount:dthRaw.length
     };
     scanPage={ada:1,tidak:1,umOnly:1};
@@ -2242,7 +2314,7 @@ function renderScanResults(){
   document.getElementById('scanTidakCount').textContent=tidak.length.toLocaleString('id-ID');
   document.getElementById('scanTidakNominal').textContent=rupiahScan(sum(tidak,'total'));
   const dthMap=scanResults.dthByFaktur;
-  const dthHitCount = dthMap ? tidak.reduce((n,x)=>n+(dthMap.has(normScan(x.faktur))?1:0),0) : 0;
+  const dthHitCount = scanResults.dthLoaded ? tidak.reduce((n,x)=>n+(scanDthMatchForPenjualan(x)?1:0),0) : 0;
   const dthCountEl=document.getElementById('scanTidakDthCount');
   if(dthCountEl){
     if(!scanResults.dthLoaded) dthCountEl.textContent = '(DTH blm dimuat)';
@@ -2428,11 +2500,12 @@ function renderScanTable(id,data,withUM,pageKey,pagerId){
       } else {
         h+='<td><span style="color:#94a3b8">—</span></td>';
       }
-      const dthHit = scanResults.dthByFaktur && scanResults.dthByFaktur.get(normScan(r.faktur));
+      const dthMatch = scanDthMatchForPenjualan(r);
+      const dthHit = dthMatch && dthMatch.row;
       if(dthHit){
         const tglDth = formatScanDate(dthHit.tanggal) || String(dthHit.tanggal||'').trim();
-        const dthTip = 'DTH terakhir: '+(tglDth||'-')+' | '+(dthHit.nama_outlet||'')+' / '+(dthHit.salesman||'')+' / '+rupiahScan(dthHit.tagihan);
-        const dthLabel = tglDth ? ('Ada · '+tglDth) : 'Ada';
+        const dthTip = (dthMatch.typo ? 'Ditemukan via TYPO No Faktur (beda 1 karakter). ' : '') + 'DTH terakhir: '+(tglDth||'-')+' | '+(dthHit.nama_outlet||'')+' / '+(dthHit.salesman||'')+' / '+rupiahScan(dthHit.tagihan);
+        const dthLabel = (dthMatch.typo ? 'Ada*' : 'Ada') + (tglDth ? (' · '+tglDth) : '');
         h+='<td><span title="'+escScan(dthTip)+'" style="display:inline-block;background:#dbeafe;color:#1e40af;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;cursor:help;white-space:nowrap">'+escScan(dthLabel)+'</span></td>';
       } else if(scanResults.dthLoaded){
         h+='<td><span style="display:inline-block;background:#f1f5f9;color:#64748b;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px">Tidak</span></td>';
@@ -2574,9 +2647,9 @@ function exportTidakExcel(){
     let statusLabel='-';
     if(st && st.type==='belum') statusLabel='Belum JT';
     else if(st && st.type==='overdue') statusLabel='Overdue '+st.hari+' hari';
-    const dthHit=dthMap && dthMap.get(normScan(r.faktur));
+    const dthHit=scanDthMatchForPenjualan(r);
     const diDth = dthHit
-      ? ('Ada' + (dthHit.tanggal ? (' ('+formatScanDate(dthHit.tanggal)+')') : ''))
+      ? ('Ada' + (dthHit.typo ? ' (TYPO)' : '') + (dthHit.row && dthHit.row.tanggal ? (' ('+formatScanDate(dthHit.row.tanggal)+')') : ''))
       : (scanResults.dthLoaded ? 'Tidak' : '?');
     return {
       'No': i+1,
