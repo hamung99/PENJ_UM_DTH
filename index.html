@@ -44,9 +44,14 @@
   }
   nav#mainTabs button .icon{margin-right:6px}
 
-  /* MENU di header biru (shared untuk Penjualan & Uang Masuk) — senada dengan tab */
+  /* Grup aksi kanan (MENU + Terang + Backup) — selalu rata kanan di semua tab.
+     margin-left:auto di wrapper ini, BUKAN di parentMenuWrap, supaya saat MENU
+     disembunyikan (tab Scan/DTH) tombol Terang & Backup tetap di kanan. */
+  #headerRightActions{
+    margin-left:auto;display:inline-flex;align-items:center;gap:6px;flex-shrink:0;
+  }
   #parentMenuWrap{
-    margin-left:auto;position:relative;flex-shrink:0;
+    position:relative;flex-shrink:0;
   }
   #parentMenuBtn{
     appearance:none;display:inline-flex;align-items:center;gap:5px;
@@ -297,12 +302,11 @@
     max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
   .scan-table td.col-date{white-space:nowrap}
-  /* Kolom kiri (No / No Faktur / Tanggal) dipaksa sempit — table-layout:fixed
-     supaya sisa ruang ke kolom tengah & Status, bukan mengisi gap kosong di No Faktur. */
+  /* Kolom kiri (No / No Faktur / Tanggal) dipaksa sempit — table-layout:fixed */
   .scan-table th:nth-child(1),.scan-table td:nth-child(1){width:36px;padding-left:8px;padding-right:4px}
   .scan-table th:nth-child(2),.scan-table td:nth-child(2){width:128px;padding-left:4px;padding-right:6px}
   .scan-table th:nth-child(3),.scan-table td:nth-child(3){width:78px;padding-left:4px;padding-right:6px}
-  /* Status sticky kanan — min lebar cukup untuk badge LUNAS */
+  /* Status sticky kanan — badge LUNAS selalu lega */
   .scan-table td.col-status,.scan-table th.col-status{
     position:sticky;right:0;width:72px;min-width:72px;text-align:center;white-space:nowrap;
     padding-left:6px;padding-right:8px;
@@ -561,38 +565,40 @@
       <span class="icon">🔗</span>Analisa DTH_UM
     </button>
   </nav>
-  <div id="parentMenuWrap">
-    <button type="button" id="parentMenuBtn" onclick="toggleParentMenu(event)">
-      <span>☰ MENU</span><span class="chev">▼</span>
+  <div id="headerRightActions">
+    <div id="parentMenuWrap">
+      <button type="button" id="parentMenuBtn" onclick="toggleParentMenu(event)">
+        <span>☰ MENU</span><span class="chev">▼</span>
+      </button>
+    </div>
+    <button type="button" id="installAppBtn" onclick="triggerPwaInstall()" style="display:none;appearance:none;display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:6px;padding:5px 12px;font-weight:600;font-size:12.5px;cursor:pointer;line-height:1.25;">
+      <span>⬇️ Install App</span>
     </button>
-  </div>
-  <button type="button" id="installAppBtn" onclick="triggerPwaInstall()" style="display:none;appearance:none;display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:6px;padding:5px 12px;font-weight:600;font-size:12.5px;cursor:pointer;line-height:1.25;">
-    <span>⬇️ Install App</span>
-  </button>
-  <button type="button" id="themeToggleBtn" onclick="toggleTheme()" title="Mode gelap / terang">
-    <span id="themeToggleIcon">🌙</span><span id="themeToggleLabel">Gelap</span>
-  </button>
-  <div id="backupMenuWrap">
-    <button type="button" id="backupMenuBtn" onclick="toggleBackupMenu(event)">
-      <span class="dot" id="backupDot"></span><span>💾 Backup</span>
+    <button type="button" id="themeToggleBtn" onclick="toggleTheme()" title="Mode gelap / terang">
+      <span id="themeToggleIcon">🌙</span><span id="themeToggleLabel">Gelap</span>
     </button>
-    <div id="backupMenuPanel" onclick="event.stopPropagation()">
-      <h4>💾 Backup &amp; Restore Semua Data</h4>
-      <div class="bm-status" id="backupStatusText">Memeriksa status backup…</div>
-      <button type="button" onclick="chooseBackupFolder()">🔗 Pilih Folder Google Drive (sekali saja)</button>
-      <button type="button" class="primary" onclick="backupToFolder()">💾 Backup Sekarang ke Google Drive</button>
-      <button type="button" onclick="backupDownloadFile()">⬇️ Unduh File Backup (manual)</button>
-      <hr>
-      <button type="button" onclick="restoreFromFolder()">♻️ Restore dari Folder Google Drive</button>
-      <button type="button" onclick="document.getElementById('restoreFileInput').click()">📂 Restore dari File Backup...</button>
-      <input type="file" id="restoreFileInput" accept=".json" style="display:none" onchange="handleRestoreFile(event)">
-      <div class="bm-hint">Backup mencakup: Rekap Penjualan, Rekap Uang Masuk, dan data Batal/Titip/Lunas. Gunakan "Restore" jika terjadi error atau data hilang.</div>
-      <hr>
-      <h4>☁️ Sync Antar-Device (Cloud)</h4>
-      <div class="bm-status" id="cloudStatusText">Memeriksa status cloud…</div>
-      <button type="button" class="primary" onclick="cloudPush()">⬆️ Upload Data Device Ini ke Cloud</button>
-      <button type="button" onclick="cloudPull(false)">⬇️ Ambil Data Terbaru dari Cloud</button>
-      <div class="bm-hint">Gunakan "Upload" setelah selesai kerja di device ini, dan "Ambil" sebelum mulai kerja di device lain, supaya data selalu sinkron. Data terbaru akan MENIMPA data di device tujuan.</div>
+    <div id="backupMenuWrap">
+      <button type="button" id="backupMenuBtn" onclick="toggleBackupMenu(event)">
+        <span class="dot" id="backupDot"></span><span>💾 Backup</span>
+      </button>
+      <div id="backupMenuPanel" onclick="event.stopPropagation()">
+        <h4>💾 Backup &amp; Restore Semua Data</h4>
+        <div class="bm-status" id="backupStatusText">Memeriksa status backup…</div>
+        <button type="button" onclick="chooseBackupFolder()">🔗 Pilih Folder Google Drive (sekali saja)</button>
+        <button type="button" class="primary" onclick="backupToFolder()">💾 Backup Sekarang ke Google Drive</button>
+        <button type="button" onclick="backupDownloadFile()">⬇️ Unduh File Backup (manual)</button>
+        <hr>
+        <button type="button" onclick="restoreFromFolder()">♻️ Restore dari Folder Google Drive</button>
+        <button type="button" onclick="document.getElementById('restoreFileInput').click()">📂 Restore dari File Backup...</button>
+        <input type="file" id="restoreFileInput" accept=".json" style="display:none" onchange="handleRestoreFile(event)">
+        <div class="bm-hint">Backup mencakup: Rekap Penjualan, Rekap Uang Masuk, dan data Batal/Titip/Lunas. Gunakan "Restore" jika terjadi error atau data hilang.</div>
+        <hr>
+        <h4>☁️ Sync Antar-Device (Cloud)</h4>
+        <div class="bm-status" id="cloudStatusText">Memeriksa status cloud…</div>
+        <button type="button" class="primary" onclick="cloudPush()">⬆️ Upload Data Device Ini ke Cloud</button>
+        <button type="button" onclick="cloudPull(false)">⬇️ Ambil Data Terbaru dari Cloud</button>
+        <div class="bm-hint">Gunakan "Upload" setelah selesai kerja di device ini, dan "Ambil" sebelum mulai kerja di device lain, supaya data selalu sinkron. Data terbaru akan MENIMPA data di device tujuan.</div>
+      </div>
     </div>
   </div>
 </header>
