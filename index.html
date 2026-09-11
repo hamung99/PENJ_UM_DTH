@@ -297,7 +297,12 @@
     max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
   .scan-table td.col-date{white-space:nowrap;min-width:88px}
-  .scan-table td.col-status{text-align:center;min-width:88px}
+  .scan-table td.col-status{text-align:center;min-width:96px;width:1%}
+  /* Kolom No & No Faktur dibuat menyempit sesuai isi (bukan ikut melebar mengisi sisa tabel),
+     supaya jarak ke kolom Tanggal tidak longgar dan kolom-kolom di kanan (termasuk Status/LUNAS)
+     punya ruang lebih dan tidak terpotong. */
+  .scan-table th:nth-child(1),.scan-table td:nth-child(1){width:1%;white-space:nowrap}
+  .scan-table th:nth-child(2),.scan-table td:nth-child(2){width:1%;white-space:nowrap;padding-right:16px}
   .scan-table td.col-jenis{max-width:140px;overflow:hidden;text-overflow:ellipsis}
   .scan-table tfoot td{font-weight:700;background:#fff3cd}
   .scan-empty{text-align:center;color:#64748b;padding:28px 12px;font-size:13px}
