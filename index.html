@@ -512,6 +512,9 @@
   html[data-theme="dark"] .scan-badge-belum-jt{background:#14532d!important;color:#bbf7d0!important}
   html[data-theme="dark"] .scan-badge-overdue{background:#450a0a!important;color:#fecaca!important}
   html[data-theme="dark"] .scan-status-pill.lunas{background:#14532d!important;color:#bbf7d0!important;border-color:#166534!important}
+  html[data-theme="dark"] .scan-badge-produk-fitri{background:#78350f!important;color:#fde68a!important}
+  html[data-theme="dark"] .scan-badge-produk-rupa{background:#1e3a5f!important;color:#bfdbfe!important}
+  html[data-theme="dark"] .scan-badge-produk-campuran{background:#450a0a!important;color:#fecaca!important}
 
   #themeToggleBtn{
     appearance:none;display:inline-flex;align-items:center;gap:5px;
@@ -2435,7 +2438,8 @@ function renderScanTable(id,data,withUM,pageKey,pagerId){
     const produkKat = r.produkKategori || '';
     const produkLabel = produkKat==='FITRI' ? 'Fitri' : produkKat==='RUPA_RUPA' ? 'Rupa Rupa' : produkKat==='CAMPURAN' ? 'Campuran' : '<span style="color:#94a3b8">—</span>';
     const produkColor = produkKat==='FITRI' ? '#fef3c7;color:#92400e' : produkKat==='RUPA_RUPA' ? '#dbeafe;color:#1e40af' : produkKat==='CAMPURAN' ? '#fee2e2;color:#b91c1c' : '';
-    const produkCell = produkKat ? '<span style="display:inline-block;background:'+produkColor+';font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px">'+produkLabel+'</span>' : produkLabel;
+    const produkCls = produkKat==='FITRI' ? 'scan-badge-produk-fitri' : produkKat==='RUPA_RUPA' ? 'scan-badge-produk-rupa' : produkKat==='CAMPURAN' ? 'scan-badge-produk-campuran' : '';
+    const produkCell = produkKat ? '<span class="'+produkCls+'" style="display:inline-block;background:'+produkColor+';font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px">'+produkLabel+'</span>' : produkLabel;
     h+='<td>'+escScan(r.sales)+'</td><td class="col-customer" title="'+escScan(r.customer||'')+'">'+escScan(r.customer)+'</td><td class="col-alamat" title="'+escScan(r.alamat||'')+'">'+escScan(r.alamat)+'</td><td>'+produkCell+'</td>';
     if(!withUM) h+='<td>'+escScan(r.pembayaran||'')+'</td>';
     h+='<td class="num">'+(r.total===0?'<b style="color:#b91c1c">'+rupiahScan(r.total)+'</b>':rupiahScan(r.total))+'</td>';
