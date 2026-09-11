@@ -502,6 +502,16 @@
   html[data-theme="dark"] #scanFakturModal .sfm-grid b{color:#f1f5f9}
   html[data-theme="dark"] #scanFakturModal .sfm-total{background:#422006;border-color:#78350f}
   html[data-theme="dark"] #themeToggleBtn.open{background:#fff;color:#1A4B75;border-color:#fff}
+  /* Redupkan warna yang terlalu menyolok di mode gelap (tab Scan Data > Penjualan-Tidak Ada UM) */
+  html[data-theme="dark"] .btn-export-excel{background:#14532d!important;border-color:#166534!important;color:#bbf7d0!important;box-shadow:none!important}
+  html[data-theme="dark"] .btn-export-excel:hover{background:#166534!important}
+  html[data-theme="dark"] .kandidat-bar-row .btn-kandidat-reset,
+  html[data-theme="dark"] .btn-kandidat-reset{background:#1e293b!important;color:#e2e8f0!important;border-color:#475569!important}
+  html[data-theme="dark"] .kandidat-bar-row .btn-kandidat-reset:hover,
+  html[data-theme="dark"] .btn-kandidat-reset:hover{background:#334155!important}
+  html[data-theme="dark"] .scan-badge-belum-jt{background:#14532d!important;color:#bbf7d0!important}
+  html[data-theme="dark"] .scan-badge-overdue{background:#450a0a!important;color:#fecaca!important}
+  html[data-theme="dark"] .scan-status-pill.lunas{background:#14532d!important;color:#bbf7d0!important;border-color:#166534!important}
 
   #themeToggleBtn{
     appearance:none;display:inline-flex;align-items:center;gap:5px;
@@ -2403,9 +2413,9 @@ function renderScanTable(id,data,withUM,pageKey,pagerId){
       const st = statusJatuhTempo(r);
       h+='<td>'+(jt ? escScan(formatScanDate(jt)) : '<span style="color:#94a3b8">—</span>')+'</td>';
       if(st && st.type==='belum'){
-        h+='<td><span style="display:inline-block;background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px">Belum JT</span></td>';
+        h+='<td><span class="scan-badge-belum-jt" style="display:inline-block;background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px">Belum JT</span></td>';
       } else if(st && st.type==='overdue'){
-        h+='<td><span style="display:inline-block;background:#fee2e2;color:#b91c1c;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px">Overdue '+st.hari+' hari</span></td>';
+        h+='<td><span class="scan-badge-overdue" style="display:inline-block;background:#fee2e2;color:#b91c1c;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px">Overdue '+st.hari+' hari</span></td>';
       } else {
         h+='<td><span style="color:#94a3b8">—</span></td>';
       }
