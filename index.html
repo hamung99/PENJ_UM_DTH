@@ -288,36 +288,29 @@
   .scan-summary small{display:block;color:#64748b;font-size:9px;letter-spacing:.02em;line-height:1.1}
   .scan-summary b{font-size:13px;color:#172033;line-height:1.15}
   .scan-table-wrap{flex:1;overflow:auto;max-height:calc(100vh - 180px);border:1px solid #dce4f0;border-radius:6px}
-  .scan-table{border-collapse:separate;border-spacing:0;width:100%;min-width:1100px;font-size:12px;table-layout:auto}
-  .scan-table.scan-table-ada{min-width:1280px}
-  .scan-table th{background:#1f4e78;color:#fff;padding:7px 8px;position:sticky;top:0;text-align:left;z-index:1;white-space:nowrap}
-  .scan-table td{padding:6px 8px;border-bottom:1px solid #e2e8f0;white-space:nowrap;vertical-align:middle}
+  .scan-table{border-collapse:separate;border-spacing:0;width:100%;min-width:1100px;font-size:12px;table-layout:fixed}
+  .scan-table.scan-table-ada{min-width:1180px}
+  .scan-table th{background:#1f4e78;color:#fff;padding:7px 6px;position:sticky;top:0;text-align:left;z-index:1;white-space:nowrap}
+  .scan-table td{padding:6px 6px;border-bottom:1px solid #e2e8f0;white-space:nowrap;vertical-align:middle}
   .scan-table td.num{text-align:right;font-variant-numeric:tabular-nums}
   .scan-table td.col-alamat,.scan-table td.col-customer{
-    max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
-  .scan-table td.col-date{white-space:nowrap;min-width:88px}
-  .scan-table td.col-status{text-align:center;min-width:78px;width:1%}
-  /* Kolom No, No Faktur, Tanggal: menyempit sesuai isi (bukan melebar mengisi sisa tabel)
-     supaya jarak No Faktur → Tanggal tidak longgar dan kolom kanan (Status/LUNAS) cukup lebar. */
-  .scan-table th:nth-child(1),.scan-table td:nth-child(1){
-    width:1%;max-width:3.2em;white-space:nowrap;padding-left:8px;padding-right:4px;
-  }
-  .scan-table th:nth-child(2),.scan-table td:nth-child(2){
-    width:1%;white-space:nowrap;padding-left:4px;padding-right:8px;
-  }
-  .scan-table th:nth-child(3),.scan-table td:nth-child(3){
-    width:1%;white-space:nowrap;padding-left:6px;padding-right:8px;
-  }
-  /* Kolom Status sticky di kanan supaya badge LUNAS/TITIP/BEDA selalu penuh saat scroll. */
+  .scan-table td.col-date{white-space:nowrap}
+  /* Kolom kiri (No / No Faktur / Tanggal) dipaksa sempit — table-layout:fixed
+     supaya sisa ruang ke kolom tengah & Status, bukan mengisi gap kosong di No Faktur. */
+  .scan-table th:nth-child(1),.scan-table td:nth-child(1){width:36px;padding-left:8px;padding-right:4px}
+  .scan-table th:nth-child(2),.scan-table td:nth-child(2){width:128px;padding-left:4px;padding-right:6px}
+  .scan-table th:nth-child(3),.scan-table td:nth-child(3){width:78px;padding-left:4px;padding-right:6px}
+  /* Status sticky kanan — min lebar cukup untuk badge LUNAS */
   .scan-table td.col-status,.scan-table th.col-status{
-    position:sticky;right:0;width:1%;min-width:78px;white-space:nowrap;
-    padding-left:8px;padding-right:10px;
+    position:sticky;right:0;width:72px;min-width:72px;text-align:center;white-space:nowrap;
+    padding-left:6px;padding-right:8px;
     background:#fff;box-shadow:-6px 0 8px -6px rgba(15,23,42,.35);
   }
   .scan-table th.col-status{background:#1f4e78;z-index:2}
   .scan-table td.col-status{z-index:1}
-  .scan-table td.col-jenis{max-width:140px;overflow:hidden;text-overflow:ellipsis}
+  .scan-table td.col-jenis{max-width:120px;overflow:hidden;text-overflow:ellipsis}
   .scan-table tfoot td{font-weight:700;background:#fff3cd}
   .scan-empty{text-align:center;color:#64748b;padding:28px 12px;font-size:13px}
   /* Stempel miring hanya untuk konteks non-tabel; di tabel pakai pill ringkas */
