@@ -2497,7 +2497,7 @@ function scanDataRun(){
       dthCount:dthRaw.length
     };
     scanPage={ada:1,tidak:1,umOnly:1,sumberData:1};
-    populateSumberDataList();
+    try{ populateSumberDataList(); }catch(e){ console.warn('populateSumberDataList gagal, Sumber Data dilewati', e); scanResults.sumberData=[]; }
     populateScanFilterOptions();
     applyScanFilters();
     scanBusy=false; setScanButtonBusy(false);
@@ -2644,108 +2644,87 @@ function populateSumberDataList(){
     const d=parseScanDate(v); if(!d) return '';
     return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   };
-  const identity = r => ({
-    faktur:faktur(r.faktur || r.noFaktur || r.no_faktur),
-    customer:norm(r.customer || r.nama_outlet || r.nama_toko || r.toko),
-    alamat:norm(r.alamat),
-    sales:norm(r.sales || r.salesman),
-    tanggal:dateKey(r.tanggal || r.tanggal_dropping || r.tgl),
-    nominal:num(r.total!=null?r.total:(r.nominal!=null?r.nominal:r.tagihan))
-  });
-  const score=(a,b)=>{
-    const A=identity(a),B=identity(b);
-    if(A.faktur && B.faktur && A.faktur===B.faktur) return 1000;
-    let s=0;
-    if(A.customer&&B.customer&&A.customer===B.customer)s+=3;
-    if(A.alamat&&B.alamat&&A.alamat===B.alamat)s+=3;
-    if(A.sales&&B.sales&&A.sales===B.sales)s+=2;
-    if(A.nominal&&B.nominal&&Math.round(A.nominal)===Math.round(B.nominal))s+=2;
-    if(A.tanggal&&B.tanggal&&A.tanggal===B.tanggal)s+=1;
-    return s;
-  };
-  const strong=(a,b,s)=>{
-    if(s>=1000)return true;
-    const A=identity(a),B=identity(b);
-    const c=A.customer&&B.customer&&A.customer===B.customer;
-    const al=A.alamat&&B.alamat&&A.alamat===B.alamat;
-    const sa=A.sales&&B.sales&&A.sales===B.sales;
-    const n=A.nominal&&B.nominal&&Math.round(A.nominal)===Math.round(B.nominal);
-    return s>=5 || (c&&al&&n) || (c&&sa&&n);
-  };
-  const best=(base,rows,used)=>{
-    let hit=null,bestScore=-1,bestIndex=-1;
-    rows.forEach((r,i)=>{
-      if(used.has(i))return;
-      const s=score(base,r);
-      if(s>bestScore){best=r;bestScore=s;bestIndex=i;}
+  const getFaktur = r => faktur(r.faktur || r.noFaktur || r.no_faktur);
+
+  // Index tiap sumber berdasarkan No. Faktur -> O(1) lookup per baris,
+  // BUKAN O(n) scan penuh per baris seperti versi sebelumnya (itu penyebab
+  // proses SCAN DATA tidak pernah selesai pada data besar / banyak bulan).
+  const indexByFaktur = rows => {
+    const map = new Map();
+    const noFakturRows = [];
+    rows.forEach(r=>{
+      const k = getFaktur(r);
+      if(!k){ noFakturRows.push(r); return; }
+      if(!map.has(k)) map.set(k, []);
+      map.get(k).push(r);
     });
-    return hit = best && strong(base,best,bestScore) ? {row:best,index:bestIndex,score:bestScore}:null;
-  };
-  const all=(base,rows,used)=>{
-    const out=[];
-    rows.forEach((r,i)=>{ if(used.has(i))return; const s=score(base,r); if(strong(base,r,s))out.push({row:r,index:i,score:s}); });
-    return out;
+    return { map, noFakturRows };
   };
 
-  // Bentuk master UNION 4 sumber, bukan hanya Penjualan.
-  // Ini penting: UM/DTH/AR yang tidak mempunyai pasangan Penjualan tidak menunggu
-  // sampai baris paling bawah dan tidak terlihat seolah-olah kolomnya kosong.
-  const masters=[];
-  const keyMap=new Map();
-  const addMaster=(r,source)=>{
-    const k=faktur(r.faktur||r.noFaktur||r.no_faktur);
-    const id=identity(r);
-    const fallback=(id.customer||'')+'|'+(id.alamat||'')+'|'+(id.sales||'')+'|'+(id.tanggal||'');
-    const key=k?('F:'+k):('X:'+fallback+'|'+source+'|'+masters.length);
-    if(k && keyMap.has('F:'+k)){
-      const m=keyMap.get('F:'+k);
-      m.sources.add(source); return m;
-    }
-    const m={seed:r,sources:new Set([source]),faktur:r.faktur||r.noFaktur||r.no_faktur||'',customer:r.customer||r.nama_outlet||r.nama_toko||r.toko||'',alamat:r.alamat||'',sales:r.sales||r.salesman||'',tanggal:r.tanggal||r.tanggal_dropping||r.tgl||'',nominal:0,pembayaran:r.pembayaran||''};
-    masters.push(m);
-    if(k)keyMap.set('F:'+k,m);
-    return m;
-  };
-  penRaw.forEach(r=>addMaster(r,'pen'));
-  umRaw.forEach(r=>addMaster(r,'um'));
-  dthRaw.forEach(r=>addMaster(r,'dth'));
-  arRaw.forEach(r=>addMaster(r,'ar'));
+  const penIdx = indexByFaktur(penRaw);
+  const umIdx  = indexByFaktur(umRaw);
+  const dthIdx = indexByFaktur(dthRaw);
+  const arIdx  = indexByFaktur(arRaw);
 
-  const usedUM=new Set(),usedDTH=new Set(),usedAR=new Set();
+  // Union semua No. Faktur yang punya kunci, dari 4 sumber sekaligus.
+  const allKeys = new Set([...penIdx.map.keys(), ...umIdx.map.keys(), ...dthIdx.map.keys(), ...arIdx.map.keys()]);
+
   const rows=[];
-  masters.forEach(m=>{
-    const base=m.seed;
-    const pHits=all(base,penRaw,new Set());
-    const umHits=all(base,umRaw,usedUM);
-    const dthHit=best(base,dthRaw,usedDTH);
-    const arHit=best(base,arRaw,usedAR);
-    // Bila master berasal dari sumber selain Penjualan, cari pasangan Penjualan.
-    let penHit=null;
-    if(!penRaw.includes(base)) penHit=best(base,penRaw,new Set());
-    const p=penHit?penHit.row:(penRaw.includes(base)?base:null);
-    if(p) m.sources.add('pen');
-    umHits.forEach(x=>{usedUM.add(x.index);m.sources.add('um');});
-    if(dthHit){usedDTH.add(dthHit.index);m.sources.add('dth');}
-    if(arHit){usedAR.add(arHit.index);m.sources.add('ar');}
-    const penNom=p ? num(p.total) : 0;
-    const umTotal=umHits.reduce((n,x)=>n+num(x.row.total),0);
+  allKeys.forEach(k=>{
+    const penHits = penIdx.map.get(k) || [];
+    const umHits  = umIdx.map.get(k)  || [];
+    const dthHits = dthIdx.map.get(k) || [];
+    const arHits  = arIdx.map.get(k)  || [];
+    const p   = penHits[0] || null;
+    const dth = dthHits[0] || null;
+    const ar  = arHits[0]  || null;
+    const penNom  = penHits.reduce((n,x)=>n+num(x.total),0);
+    const umTotal = umHits.reduce((n,x)=>n+num(x.total),0);
     rows.push({
-      rowType:m.sources.has('pen')?'gabungan':(m.sources.has('um')?'um-only':(m.sources.has('dth')?'dth-only':'ar-only')),
-      tanggal:p?.tanggal||m.tanggal||'',noFaktur:p?.faktur||m.faktur||'',sales:p?.sales||m.sales||'',
-      nominalFaktur:penNom,pembayaran:p?.pembayaran||m.pembayaran||'',customer:p?.customer||m.customer||'',alamat:p?.alamat||m.alamat||'',
-      um:umHits.length?{tanggal:umHits[0].row.tanggal||'',nominal:umTotal,keterangan:umHits.map(x=>[x.row.customer,x.row.alamat,x.row.sales,x.row.jenis].filter(Boolean).join(' · ')).filter(Boolean).join(' | '),count:umHits.length}:null,
-      dth:dthHit?{tanggal:dthHit.row.tanggal||dthHit.row.tanggal_dropping||'',keterangan:[dthHit.row.faktur,dthHit.row.nama_outlet,dthHit.row.salesman,dthHit.row.tagihan!=null?rupiahScan(dthHit.row.tagihan):'',dthHit.row.ket].filter(Boolean).join(' · '),nominal:num(dthHit.row.tagihan)}:null,
-      ar:arHit?{tanggal:arHit.row.tanggal||'',keterangan:[arHit.row.faktur,arHit.row.customer,arHit.row.alamat,arHit.row.sales,arHit.row.nominal!=null?rupiahScan(arHit.row.nominal):'',arHit.row.keterangan].filter(Boolean).join(' · '),nominal:num(arHit.row.nominal)}:null,
-      sortDate:parseScanDate(p?.tanggal||m.tanggal)||new Date(0)
+      rowType: p?'gabungan':(umHits.length?'um-only':(dth?'dth-only':'ar-only')),
+      tanggal:p?.tanggal||umHits[0]?.tanggal||dth?.tanggal||ar?.tanggal||'',
+      noFaktur:p?.faktur||umHits[0]?.faktur||dth?.faktur||ar?.faktur||'',
+      sales:p?.sales||umHits[0]?.sales||dth?.salesman||ar?.sales||'',
+      nominalFaktur:penNom,
+      pembayaran:p?.pembayaran||'',
+      customer:p?.customer||umHits[0]?.customer||dth?.nama_outlet||ar?.customer||'',
+      alamat:p?.alamat||umHits[0]?.alamat||dth?.alamat||ar?.alamat||'',
+      um:umHits.length?{tanggal:umHits[0].tanggal||'',nominal:umTotal,keterangan:umHits.map(x=>[x.customer,x.alamat,x.sales,x.jenis].filter(Boolean).join(' · ')).filter(Boolean).join(' | '),count:umHits.length}:null,
+      dth:dth?{tanggal:dth.tanggal||dth.tanggal_dropping||'',keterangan:[dth.faktur,dth.nama_outlet,dth.salesman,dth.tagihan!=null?rupiahScan(dth.tagihan):'',dth.ket].filter(Boolean).join(' · '),nominal:num(dth.tagihan)}:null,
+      ar:ar?{tanggal:ar.tanggal||'',keterangan:[ar.faktur,ar.customer,ar.alamat,ar.sales,ar.nominal!=null?rupiahScan(ar.nominal):'',ar.keterangan].filter(Boolean).join(' · '),nominal:num(ar.nominal)}:null,
+      sortDate:parseScanDate(p?.tanggal||umHits[0]?.tanggal||dth?.tanggal||ar?.tanggal)||new Date(0)
     });
   });
 
-  // Jangan tampilkan baris duplikat karena union master + fallback matching.
-  const seen=new Set();
-  scanResults.sumberData=rows.filter(r=>{
-    const k=(faktur(r.noFaktur)||'X:'+norm(r.customer)+'|'+norm(r.alamat)+'|'+dateKey(r.tanggal));
-    if(seen.has(k)) return false; seen.add(k); return true;
-  }).sort((a,b)=>(b.sortDate.getTime()||0)-(a.sortDate.getTime()||0));
+  // Baris tanpa No. Faktur sama sekali tidak dicocokkan (fuzzy match O(n^2)
+  // dihilangkan demi performa) — tetap ditampilkan apa adanya per baris asal,
+  // supaya tidak hilang dari daftar.
+  const noFakturPushPen = r => rows.push({
+    rowType:'gabungan',tanggal:r.tanggal||'',noFaktur:r.faktur||r.noFaktur||r.no_faktur||'',sales:r.sales||'',
+    nominalFaktur:num(r.total),pembayaran:r.pembayaran||'',customer:r.customer||'',alamat:r.alamat||'',
+    um:null,dth:null,ar:null,sortDate:parseScanDate(r.tanggal)||new Date(0)
+  });
+  const noFakturPushUm = r => rows.push({
+    rowType:'um-only',tanggal:'',noFaktur:'',sales:'',nominalFaktur:0,pembayaran:'',customer:'',alamat:'',
+    um:{tanggal:r.tanggal||'',nominal:num(r.total),keterangan:[r.customer,r.alamat,r.sales,r.jenis].filter(Boolean).join(' · '),count:1},
+    dth:null,ar:null,sortDate:parseScanDate(r.tanggal)||new Date(0)
+  });
+  const noFakturPushDth = r => rows.push({
+    rowType:'dth-only',tanggal:'',noFaktur:'',sales:'',nominalFaktur:0,pembayaran:'',customer:'',alamat:'',
+    um:null,dth:{tanggal:r.tanggal||r.tanggal_dropping||'',keterangan:[r.nama_outlet,r.salesman,r.tagihan!=null?rupiahScan(r.tagihan):'',r.ket].filter(Boolean).join(' · '),nominal:num(r.tagihan)},
+    ar:null,sortDate:parseScanDate(r.tanggal||r.tanggal_dropping)||new Date(0)
+  });
+  const noFakturPushAr = r => rows.push({
+    rowType:'ar-only',tanggal:'',noFaktur:'',sales:'',nominalFaktur:0,pembayaran:'',customer:'',alamat:'',
+    um:null,dth:null,ar:{tanggal:r.tanggal||'',keterangan:[r.customer,r.alamat,r.sales,r.nominal!=null?rupiahScan(r.nominal):'',r.keterangan].filter(Boolean).join(' · '),nominal:num(r.nominal)},
+    sortDate:parseScanDate(r.tanggal)||new Date(0)
+  });
+  penIdx.noFakturRows.forEach(noFakturPushPen);
+  umIdx.noFakturRows.forEach(noFakturPushUm);
+  dthIdx.noFakturRows.forEach(noFakturPushDth);
+  arIdx.noFakturRows.forEach(noFakturPushAr);
+
+  scanResults.sumberData = rows.sort((a,b)=>(b.sortDate.getTime()||0)-(a.sortDate.getTime()||0));
 }
 
 function renderSumberDataTable(){
