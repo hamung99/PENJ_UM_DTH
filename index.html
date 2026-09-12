@@ -800,13 +800,13 @@
           </div>
           <div class="fg">
             <label for="fltPembayaran">Jenis Pembayaran</label>
-            <select id="fltPembayaran" onchange="applyScanFilters()">
+            <select id="fltPembayaran" onchange="scheduleScanFilters(50)">
               <option value="">Semua jenis</option>
             </select>
           </div>
           <div class="fg">
             <label for="fltSales">Sales</label>
-            <select id="fltSales" onchange="applyScanFilters()">
+            <select id="fltSales" onchange="scheduleScanFilters(50)">
               <option value="">Semua Sales</option>
             </select>
           </div>
@@ -1681,12 +1681,20 @@ function fillSelect(id, values, allLabel){
   const el=document.getElementById(id);
   if(!el) return;
   const cur=el.value;
+  // Hindari rebuild DOM bila opsi sama → select tidak "jeda"/flicker saat dibuka ulang
+  const nextVals = values.map(v=>String(v));
+  const prevOpts = [...el.options].slice(1).map(o=>o.value);
+  const same = prevOpts.length===nextVals.length && prevOpts.every((v,i)=>v===nextVals[i]);
+  if(same){
+    if(cur && nextVals.includes(cur)) el.value=cur;
+    return;
+  }
   const opts=['<option value="">'+escScan(allLabel)+'</option>'];
-  values.forEach(v=>{
+  nextVals.forEach(v=>{
     opts.push('<option value="'+escScan(v)+'">'+escScan(v)+'</option>');
   });
   el.innerHTML=opts.join('');
-  if(values.includes(cur)) el.value=cur;
+  if(nextVals.includes(cur)) el.value=cur;
 }
 
 function fillScanUmMonthDropdown(values){
@@ -1759,7 +1767,7 @@ function populateScanFilterOptions(){
   const salesAll=[...new Set([...salesPen, ...salesUm])].sort((a,b)=>a.localeCompare(b,'id'));
   const jenisAll=[...jenisUm].sort((a,b)=>a.localeCompare(b,'id'));
   fillSelect('fltBulanPenj', bulanPen, 'Semua bulan');
-  fillSelect('fltPembayaran', [...bayar].sort(), 'Semua jenis');
+  fillSelect('fltPembayaran', [...bayar].sort((a,b)=>a.localeCompare(b,'id')), 'Semua jenis');
   fillSelect('fltSales', salesAll, 'Semua Sales');
   fillSelect('fltBulanUM', bulanUm, 'Semua bulan UM');
   fillSelect('fltSalesTidak', [...salesPen].sort((a,b)=>a.localeCompare(b,'id')), 'Semua Sales');
@@ -1896,12 +1904,18 @@ let _scanFilterPending=false;
 function scheduleScanFilters(ms){
   _scanFilterPending=true;
   if(_scanFilterTimer) clearTimeout(_scanFilterTimer);
+  const delay = typeof ms==='number' ? ms : 200;
   _scanFilterTimer=setTimeout(function(){
     _scanFilterTimer=null;
     if(!_scanFilterPending) return;
     _scanFilterPending=false;
-    applyScanFilters();
-  }, typeof ms==='number' ? ms : 200);
+    // Lepas dari event handler native <select> supaya daftar pilihan tidak lag/jeda
+    if(typeof requestAnimationFrame==='function'){
+      requestAnimationFrame(function(){ applyScanFilters(); });
+    } else {
+      applyScanFilters();
+    }
+  }, delay);
 }
 function flushScanFilters(){
   if(_scanFilterTimer){ clearTimeout(_scanFilterTimer); _scanFilterTimer=null; }
