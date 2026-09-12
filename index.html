@@ -340,22 +340,22 @@
   .scan-table-multi td{padding:4px 4px;border-bottom:1px solid #e2e8f0;white-space:nowrap;vertical-align:middle;overflow:hidden;text-overflow:ellipsis}
   .scan-table-multi td.num{text-align:right;font-variant-numeric:tabular-nums}
 
-  /* Lebar proporsional — bagian PENJUALAN dirapatkan (lebih ringkas) */
+  /* Lebar proporsional — tanggal 2 digit (dd/mm/yy) agar kolom Ket lebih lega */
   .scan-table-multi col.c-no{width:26px}
-  .scan-table-multi col.c-tgl{width:60px}
+  .scan-table-multi col.c-tgl{width:52px}
   .scan-table-multi col.c-faktur{width:96px}
   .scan-table-multi col.c-sales{width:52px}
   .scan-table-multi col.c-nom{width:74px}
   .scan-table-multi col.c-bayar{width:58px}
   .scan-table-multi col.c-cust{width:92px}
   .scan-table-multi col.c-alamat{width:100px}
-  .scan-table-multi col.c-um-tgl{width:72px}
+  .scan-table-multi col.c-um-tgl{width:56px}
   .scan-table-multi col.c-um-nom{width:88px}
-  .scan-table-multi col.c-um-ket{width:110px}
-  .scan-table-multi col.c-dth-tgl{width:72px}
-  .scan-table-multi col.c-dth-ket{width:110px}
-  .scan-table-multi col.c-ar-tgl{width:72px}
-  .scan-table-multi col.c-ar-ket{width:110px}
+  .scan-table-multi col.c-um-ket{width:130px}
+  .scan-table-multi col.c-dth-tgl{width:56px}
+  .scan-table-multi col.c-dth-ket{width:130px}
+  .scan-table-multi col.c-ar-tgl{width:56px}
+  .scan-table-multi col.c-ar-ket{width:130px}
 
   /* Header grup (baris 1: colspan) rata tengah — dan stacking 2 baris sticky
      supaya baris 1 (PENJUALAN/UANG MASUK/DTH/REKAP AR) tidak tertutup/hilang
@@ -758,6 +758,12 @@
             <label for="fltPembayaran">Jenis Pembayaran</label>
             <select id="fltPembayaran" onchange="applyScanFilters()">
               <option value="">Semua jenis</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label for="fltSales">Sales</label>
+            <select id="fltSales" onchange="applyScanFilters()">
+              <option value="">Semua Sales</option>
             </select>
           </div>
           <div class="fg">
@@ -1821,6 +1827,7 @@ function populateScanFilterOptions(){
   fillSelect('fltBulanPenj', bulanPen, 'Semua bulan');
   fillSelect('fltPembayaran', [...bayar].sort(), 'Semua jenis');
   fillSelect('fltBulanUM', bulanUm, 'Semua bulan UM');
+  fillSelect('fltSales', salesAll, 'Semua Sales');
   fillSelect('fltSalesTidak', [...salesPen].sort((a,b)=>a.localeCompare(b,'id')), 'Semua Sales');
   fillSelect('fltSalesAda', salesAll, 'Semua Sales');
   fillSelect('fltSalesUmOnly', [...salesUm].sort((a,b)=>a.localeCompare(b,'id')), 'Semua Sales');
@@ -1829,7 +1836,7 @@ function populateScanFilterOptions(){
 }
 
 function resetScanFilters(){
-  ['fltPembayaran','fltBulanUM','fltCariKandidat','fltCariSumberData','fltCariScan',
+  ['fltPembayaran','fltSales','fltBulanUM','fltCariKandidat','fltCariSumberData','fltCariScan',
    'fltStatusJT','fltSalesTidak','fltDiDTH','fltProdukTidak',
    'fltSalesAda','fltJenisUmAda','fltProdukAda','fltStatusAda','fltSalesUmOnly','fltJenisUmOnly'
   ].forEach(id=>{
@@ -2823,7 +2830,7 @@ function populateSumberDataList(){
 }
 
 /**
- * Terapkan filter Bulan Penjualan / Jenis Pembayaran / Bulan UM / kotak pencarian
+ * Terapkan filter Bulan Penjualan / Jenis Pembayaran / Sales / Bulan UM / kotak pencarian
  * ke tabel Sumber Data. Bulan Penjualan dicocokkan ke tanggal Penjualan baris,
  * Bulan UM dicocokkan ke tanggal Uang Masuk baris (independen dari Bulan Penjualan),
  * supaya perilakunya konsisten dengan filter di sub-tab lain.
@@ -2834,6 +2841,7 @@ function applySumberDataFilters(){
 
   const fBulanPen=[...(document.getElementById('fltBulanPenj')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
   const fBayar=(document.getElementById('fltPembayaran')||{}).value||'';
+  const fSales=(document.getElementById('fltSales')||{}).value||'';
   const fBulanUM=[...(document.getElementById('fltBulanUM')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
   const fCari=String(
     (document.getElementById('fltCariScan')||{}).value ||
@@ -2850,6 +2858,10 @@ function applySumberDataFilters(){
   if(fBayar){
     const nb = normScan(fBayar);
     out = out.filter(r => normScan(r.pembayaran) === nb);
+  }
+  if(fSales){
+    const ns = normScan(fSales);
+    out = out.filter(r => normScan(r.sales) === ns);
   }
   if(fBulanUM.length){
     const set = new Set(fBulanUM);
@@ -2897,8 +2909,8 @@ function formatScanDate(v){
   if(!d) return (v===null||v===undefined||v==='')?'':String(v);
   const dd=String(d.getDate()).padStart(2,'0');
   const mm=String(d.getMonth()+1).padStart(2,'0');
-  const yyyy=d.getFullYear();
-  return dd+'/'+mm+'/'+yyyy;
+  const yy=String(d.getFullYear()).slice(-2);
+  return dd+'/'+mm+'/'+yy;
 }
 
 function pageSlice(data, key){
