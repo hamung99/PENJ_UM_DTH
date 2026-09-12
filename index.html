@@ -273,6 +273,15 @@
   .scan-month-option input{margin:0;accent-color:#1e40af}
   .scan-month-help{padding:5px 8px 7px;font-size:9px;color:#64748b;border-bottom:1px solid #eef2f7;margin-bottom:3px}
   .scan-filters .fg-btn{min-width:auto}
+  .scan-filters .fg-search{flex:1 1 180px;min-width:160px;max-width:280px}
+  .scan-filters .fg-search input[type=search]{
+    appearance:none;border:1px solid #dce4f0;background:#fff;
+    color:#1e293b;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:500;
+    width:100%;height:32px;line-height:1.25;
+  }
+  .scan-filters .fg-search input[type=search]:focus{
+    outline:none;border-color:#5b9bd5;box-shadow:0 0 0 2px rgba(91,155,213,.2)
+  }
   .scan-filters .btn-reset{
     appearance:none;border:1px solid #dce4f0;background:#fff;color:#475569;
     padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;line-height:1.25;height:32px;
@@ -759,6 +768,10 @@
               <select id="fltBulanUM" multiple hidden></select>
             </div>
           </div>
+          <div class="fg fg-search">
+            <label for="fltCariScan">Cari</label>
+            <input type="search" id="fltCariScan" placeholder="No Faktur / Customer / Toko…" oninput="onScanSearchInput()" autocomplete="off">
+          </div>
           <div class="fg fg-btn">
             <label>&nbsp;</label>
             <button type="button" class="btn-reset" onclick="resetScanFilters()">Reset</button>
@@ -818,7 +831,7 @@
             <button type="button" id="btnCariKandidatBatal" onclick="cariKandidatBatal()">
               <span class="ico">🔍</span> Cari Kandidat Batal
             </button>
-            <input type="search" id="fltCariKandidat" placeholder="Filter: No Faktur / Customer / Sales / Alamat…" oninput="applyScanFilters()" autocomplete="off">
+            <input type="search" id="fltCariKandidat" placeholder="Filter: No Faktur / Customer / Sales / Alamat…" oninput="onScanSearchInputFromPanel(this)" autocomplete="off">
             <select id="fltStatusJT" onchange="applyScanFilters()" title="Filter Status Jatuh Tempo">
               <option value="">Semua Status</option>
               <option value="belum">Belum JT</option>
@@ -871,7 +884,7 @@
 
       <div class="scan-panel" id="scan-sumber-data">
         <div class="scan-sub-toolbar">
-          <input type="search" id="fltCariSumberData" placeholder="🔍 Cari: No Faktur / Customer / Toko / Alamat…" oninput="applyScanFilters()" autocomplete="off">
+          <input type="search" id="fltCariSumberData" placeholder="🔍 Cari: No Faktur / Customer / Toko / Alamat…" oninput="onScanSearchInputFromPanel(this)" autocomplete="off">
         </div>
         <div id="scanSumberDataTable" class="scan-table-wrap-multi"><div class="scan-empty">Klik SCAN DATA untuk membaca 4 Sumber Data (Penjualan, Uang Masuk, DTH, Rekap AR).</div></div>
         <div class="scan-pager" id="pager-sumber-data" style="display:none"></div>
@@ -1696,8 +1709,12 @@ function toggleScanMonthDropdown(ev){
   if(ev){ev.preventDefault();ev.stopPropagation();}
   const menu=document.getElementById('fltBulanPenjMenu');
   const other=document.getElementById('fltBulanUmMenu');
-  if(other) other.classList.remove('open');
-  if(menu) menu.classList.toggle('open');
+  if(other){ if(other.classList.contains('open')){ other.classList.remove('open'); if(typeof flushScanFilters==='function') flushScanFilters(); } }
+  if(menu){
+    const willClose=menu.classList.contains('open');
+    menu.classList.toggle('open');
+    if(willClose && typeof flushScanFilters==='function') flushScanFilters();
+  }
 }
 
 function onScanMonthChecked(cb){
@@ -1711,7 +1728,8 @@ function onScanMonthChecked(cb){
   }
   el.querySelectorAll('option').forEach(o=>{o.selected=checked.some(c=>c.value===o.value);});
   updateScanMonthButton();
-  applyScanFilters();
+  // Hanya tandai pending — filter dijalankan saat dropdown ditutup (tanpa jeda di setiap centang).
+  _scanFilterPending=true;
 }
 
 function fillSelect(id, values, allLabel){
@@ -1755,10 +1773,13 @@ function updateScanUmMonthButton(){
 function toggleScanUmMonthDropdown(ev){
   if(ev){ev.preventDefault();ev.stopPropagation();}
   const menu=document.getElementById('fltBulanUmMenu');
-  // tutup menu bulan penjualan jika terbuka
   const other=document.getElementById('fltBulanPenjMenu');
-  if(other) other.classList.remove('open');
-  if(menu) menu.classList.toggle('open');
+  if(other){ if(other.classList.contains('open')){ other.classList.remove('open'); if(typeof flushScanFilters==='function') flushScanFilters(); } }
+  if(menu){
+    const willClose=menu.classList.contains('open');
+    menu.classList.toggle('open');
+    if(willClose && typeof flushScanFilters==='function') flushScanFilters();
+  }
 }
 
 function onScanUmMonthChecked(cb){
@@ -1772,7 +1793,7 @@ function onScanUmMonthChecked(cb){
   }
   el.querySelectorAll('option').forEach(o=>{o.selected=checked.some(c=>c.value===o.value);});
   updateScanUmMonthButton();
-  applyScanFilters();
+  _scanFilterPending=true;
 }
 
 function populateScanFilterOptions(){
@@ -1805,7 +1826,7 @@ function populateScanFilterOptions(){
 }
 
 function resetScanFilters(){
-  ['fltPembayaran','fltBulanUM','fltCariKandidat','fltCariSumberData',
+  ['fltPembayaran','fltBulanUM','fltCariKandidat','fltCariSumberData','fltCariScan',
    'fltStatusJT','fltSalesTidak','fltDiDTH','fltProdukTidak',
    'fltSalesAda','fltJenisUmAda','fltProdukAda','fltStatusAda','fltSalesUmOnly','fltJenisUmOnly'
   ].forEach(id=>{
@@ -1921,12 +1942,52 @@ function scanDthMatchForPenjualan(pen){
   return null;
 }
 
+/* Debounce filter agar centang bulan & ketik cari tidak lag */
+let _scanFilterTimer=null;
+let _scanFilterPending=false;
+function scheduleScanFilters(ms){
+  _scanFilterPending=true;
+  if(_scanFilterTimer) clearTimeout(_scanFilterTimer);
+  _scanFilterTimer=setTimeout(function(){
+    _scanFilterTimer=null;
+    if(!_scanFilterPending) return;
+    _scanFilterPending=false;
+    applyScanFilters();
+  }, typeof ms==='number' ? ms : 200);
+}
+function flushScanFilters(){
+  if(_scanFilterTimer){ clearTimeout(_scanFilterTimer); _scanFilterTimer=null; }
+  if(_scanFilterPending){
+    _scanFilterPending=false;
+    applyScanFilters();
+  }
+}
+function onScanSearchInput(){
+  const q=String((document.getElementById('fltCariScan')||{}).value||'');
+  // Sinkronkan ke filter cari per-panel agar logika lama tetap jalan
+  const k=document.getElementById('fltCariKandidat');
+  if(k) k.value=q;
+  const s=document.getElementById('fltCariSumberData');
+  if(s) s.value=q;
+  scheduleScanFilters(250);
+}
+function onScanSearchInputFromPanel(el){
+  const q=String((el&&el.value)||'');
+  const g=document.getElementById('fltCariScan');
+  if(g && g!==el) g.value=q;
+  const k=document.getElementById('fltCariKandidat');
+  if(k && k!==el) k.value=q;
+  const s=document.getElementById('fltCariSumberData');
+  if(s && s!==el) s.value=q;
+  scheduleScanFilters(250);
+}
+
 function applyScanFilters(){
   if(!scanResults.scanned) return;
   const fBulanPen=[...(document.getElementById('fltBulanPenj')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
   const fBayar=(document.getElementById('fltPembayaran')||{}).value||'';
   const fBulanUM=[...(document.getElementById('fltBulanUM')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
-  const fCari=String((document.getElementById('fltCariKandidat')||{}).value||'').trim().toLowerCase();
+  const fCari=String((document.getElementById('fltCariScan')||document.getElementById('fltCariKandidat')||{}).value||'').trim().toLowerCase();
   const fStatusJT=(document.getElementById('fltStatusJT')||{}).value||'';
   const fSalesTidak=(document.getElementById('fltSalesTidak')||{}).value||'';
   const fDiDTH=(document.getElementById('fltDiDTH')||{}).value||'';
@@ -2215,6 +2276,13 @@ function applyScanFilters(){
   if(fStatusAda){
     adaFiltered = adaFiltered.filter(x=>scanStatusAda(x)===fStatusAda);
   }
+  if(fCari){
+    adaFiltered = adaFiltered.filter(x=>{
+      const hay=[x.faktur,x.customer,x.sales,x.alamat,x.pembayaran,(x.produkList||[]).join(' '),x.um&&x.um.jenis]
+        .map(v=>String(v||'').toLowerCase()).join(' ');
+      return hay.includes(fCari);
+    });
+  }
 
   // Filter Sales + Jenis UM pada UM-Tidak Ada di Penjualan
   if(fSalesUmOnly){
@@ -2224,6 +2292,13 @@ function applyScanFilters(){
   if(fJenisUmOnly){
     const nj=normScan(fJenisUmOnly);
     umOnly = umOnly.filter(x=>normScan(x.jenis)===nj);
+  }
+  if(fCari){
+    umOnly = umOnly.filter(x=>{
+      const hay=[x.faktur,x.customer,x.sales,x.alamat,x.jenis]
+        .map(v=>String(v||'').toLowerCase()).join(' ');
+      return hay.includes(fCari);
+    });
   }
 
   // Urutkan UM-Tidak Ada di Penjualan dari Tgl UM paling TUA di atas.
@@ -3888,10 +3963,17 @@ function todayStr(){ return new Date().toISOString().slice(0,10); }
 document.addEventListener('click', function(e){
   const wrap=document.getElementById('scanMonthPenjDropdown');
   const menu=document.getElementById('fltBulanPenjMenu');
-  if(wrap && menu && !wrap.contains(e.target)) menu.classList.remove('open');
+  let closed=false;
+  if(wrap && menu && !wrap.contains(e.target) && menu.classList.contains('open')){
+    menu.classList.remove('open'); closed=true;
+  }
   const wrapUm=document.getElementById('scanMonthUmDropdown');
   const menuUm=document.getElementById('fltBulanUmMenu');
-  if(wrapUm && menuUm && !wrapUm.contains(e.target)) menuUm.classList.remove('open');
+  if(wrapUm && menuUm && !wrapUm.contains(e.target) && menuUm.classList.contains('open')){
+    menuUm.classList.remove('open'); closed=true;
+  }
+  // Saat dropdown bulan ditutup, terapkan filter segera (centang sudah di-update)
+  if(closed && typeof flushScanFilters==='function') flushScanFilters();
 });
 
 /* ---- UI: buka/tutup panel menu backup ---- */
