@@ -418,21 +418,21 @@
   .scan-table-multi thead tr:first-child th{text-align:center;letter-spacing:.02em;top:0;height:26px;box-sizing:border-box;z-index:11}
   .scan-table-multi thead tr:nth-child(2) th{top:26px;z-index:10;font-size:10px;letter-spacing:0;line-height:1.2;padding:5px 3px}
 
-  /* Header Penjualan (biru muda) */
-  .scan-table-multi th.h-pen{background:#5B9BD5;color:#fff}
-  .scan-table-multi td.pen-no,.scan-table-multi td.pen-tgl,.scan-table-multi td.pen-faktur,.scan-table-multi td.pen-sales,.scan-table-multi td.pen-nom,.scan-table-multi td.pen-bayar,.scan-table-multi td.pen-cust,.scan-table-multi td.pen-alamat{background:#E7F0F8}
+  /* Header Penjualan (biru muda, lebih lembut) */
+  .scan-table-multi th.h-pen{background:#9CC3E8;color:#1f2733}
+  .scan-table-multi td.pen-no,.scan-table-multi td.pen-tgl,.scan-table-multi td.pen-faktur,.scan-table-multi td.pen-sales,.scan-table-multi td.pen-nom,.scan-table-multi td.pen-bayar,.scan-table-multi td.pen-cust,.scan-table-multi td.pen-alamat{background:#F3F8FC;color:#334155}
   
-  /* Header Uang Masuk (pink/salmon) */
-  .scan-table-multi th.h-um{background:#D9A8C4;color:#fff}
-  .scan-table-multi td.um-tgl,.scan-table-multi td.um-nom,.scan-table-multi td.um-ket{background:#F5E5ED}
+  /* Header Uang Masuk (pink/salmon, lebih lembut) */
+  .scan-table-multi th.h-um{background:#E9C9DC;color:#1f2733}
+  .scan-table-multi td.um-tgl,.scan-table-multi td.um-nom,.scan-table-multi td.um-ket{background:#FBF2F7;color:#334155}
   
-  /* Header DTH (orange) */
-  .scan-table-multi th.h-dth{background:#F8B84F;color:#1f2733}
-  .scan-table-multi td.dth-tgl,.scan-table-multi td.dth-ket{background:#FEF2E5}
+  /* Header DTH (orange, lebih lembut) */
+  .scan-table-multi th.h-dth{background:#FBD9A6;color:#1f2733}
+  .scan-table-multi td.dth-tgl,.scan-table-multi td.dth-ket{background:#FFF8F0;color:#334155}
   
-  /* Header Rekap AR (grey muda) */
-  .scan-table-multi th.h-ar{background:#94A3B8;color:#1f2733}
-  .scan-table-multi td.ar-tgl,.scan-table-multi td.ar-ket{background:#F1F5F9}
+  /* Header Rekap AR (grey muda, lebih lembut) */
+  .scan-table-multi th.h-ar{background:#CBD5E1;color:#1f2733}
+  .scan-table-multi td.ar-tgl,.scan-table-multi td.ar-ket{background:#F8FAFC;color:#334155}
   
   .scan-empty{text-align:center;color:#64748b;padding:28px 12px;font-size:13px}
   /* Stempel miring hanya untuk konteks non-tabel; di tabel pakai pill ringkas */
@@ -476,6 +476,18 @@
   #scanFakturModal .sfm-grid > div{break-inside:avoid}
   #scanFakturModal .sfm-grid label{font-size:10px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.03em;display:block;margin-bottom:1px}
   #scanFakturModal .sfm-grid b{font-size:13px;color:#172033;font-weight:600;word-break:break-word;display:block}
+  /* Compact single-row header layout: label di atas, value di bawah, sejajar horizontal */
+  #scanFakturModal .sfm-grid.compact{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px 22px;font-size:13px}
+  #scanFakturModal .sfm-grid.compact > div{min-width:0;flex:0 1 auto}
+  #scanFakturModal .sfm-grid.compact .sfm-fld-faktur{flex:0 0 auto}
+  #scanFakturModal .sfm-grid.compact .sfm-fld-tgl{flex:0 0 auto}
+  #scanFakturModal .sfm-grid.compact .sfm-fld-cust{flex:1 1 180px;min-width:140px}
+  #scanFakturModal .sfm-grid.compact .sfm-fld-alamat{flex:1 1 200px;min-width:140px}
+  #scanFakturModal .sfm-grid.compact .sfm-fld-sales{flex:0 0 auto}
+  #scanFakturModal .sfm-grid.compact .sfm-fld-jenis{flex:0 0 auto}
+  #scanFakturModal .sfm-grid.compact .sfm-fld-pill{margin-left:auto;align-self:center;padding-top:6px}
+  #scanFakturModal .sfm-grid.compact .sfm-produk-list-full{flex:1 1 100%;font-size:11.5px;color:#64748b;font-weight:500;line-height:1.35;margin-top:-2px}
+  html[data-theme="dark"] #scanFakturModal .sfm-grid.compact .sfm-produk-list-full{color:#94a3b8}
   #scanFakturModal .sfm-total{background:#fff3cd;padding:5px 12px;border-radius:6px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;border:1px solid #f3d97a;min-height:0}
   #scanFakturModal .sfm-total label{color:#7c5a00;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin:0}
   #scanFakturModal .sfm-total b{font-size:15px;color:#172033;font-weight:700;line-height:1.2}
@@ -530,6 +542,8 @@
   #scanFakturModal .sfm-confirm-row.green button.primary{color:#14532d}
   @media (max-width: 640px){
     #scanFakturModal .sfm-grid{grid-template-columns:1fr}
+    #scanFakturModal .sfm-grid.compact{gap:6px 14px}
+    #scanFakturModal .sfm-grid.compact .sfm-fld-pill{margin-left:0;padding-top:0}
     #scanFakturModal{padding:8px}
     #scanFakturModal .sfm-box{max-height:94vh}
   }
@@ -587,18 +601,18 @@
   html[data-theme="dark"] .scan-table tbody tr:nth-child(even){background:#1a2332!important}
   html[data-theme="dark"] .scan-table tbody tr:hover{background:#1e3a5f!important}
   html[data-theme="dark"] .scan-table tfoot td{background:#422006!important;color:#fef3c7!important}
-  html[data-theme="dark"] .scan-table-multi{background:#0f172a!important;color:#e2e8f0!important}
-  /* Jangan paksa semua th jadi biru — pertahankan warna grup header */
-  html[data-theme="dark"] .scan-table-multi th.h-pen{background:#3b7ab5!important;color:#fff!important;border-color:#2d5f8a}
-  html[data-theme="dark"] .scan-table-multi th.h-um{background:#a87a96!important;color:#fff!important;border-color:#8a6078}
-  html[data-theme="dark"] .scan-table-multi th.h-dth{background:#c98e2e!important;color:#1f2733!important;border-color:#a87420}
-  html[data-theme="dark"] .scan-table-multi th.h-ar{background:#64748B!important;color:#e2e8f0!important;border-color:#475569}
-  html[data-theme="dark"] .scan-table-multi td{border-bottom-color:#334155!important;color:#e2e8f0!important}
-  html[data-theme="dark"] .scan-table-multi td.pen-no,.scan-table-multi td.pen-tgl,.scan-table-multi td.pen-faktur,.scan-table-multi td.pen-sales,.scan-table-multi td.pen-nom,.scan-table-multi td.pen-bayar,.scan-table-multi td.pen-cust,.scan-table-multi td.pen-alamat{background:#1a2f4a!important}
-  html[data-theme="dark"] .scan-table-multi td.um-tgl,.scan-table-multi td.um-nom,.scan-table-multi td.um-ket{background:#3a2a35!important}
-  html[data-theme="dark"] .scan-table-multi td.dth-tgl,.scan-table-multi td.dth-ket{background:#3a2f1a!important}
-  html[data-theme="dark"] .scan-table-multi td.ar-tgl,.scan-table-multi td.ar-ket{background:#1e293b!important}
-  html[data-theme="dark"] .scan-table-multi tbody tr:hover{background:#1e3a5f!important}
+  html[data-theme="dark"] .scan-table-multi{background:#1e293b!important;color:#cbd5e1!important}
+  /* Jangan paksa semua th jadi biru — pertahankan warna grup header, tapi lebih lembut/kurang kontras */
+  html[data-theme="dark"] .scan-table-multi th.h-pen{background:#4d7ea8!important;color:#eef2f8!important;border-color:#3d6486}
+  html[data-theme="dark"] .scan-table-multi th.h-um{background:#8f7080!important;color:#eef2f8!important;border-color:#75596b}
+  html[data-theme="dark"] .scan-table-multi th.h-dth{background:#a3813f!important;color:#1f2733!important;border-color:#8a6c32}
+  html[data-theme="dark"] .scan-table-multi th.h-ar{background:#5f6d80!important;color:#e2e8f0!important;border-color:#4b5768}
+  html[data-theme="dark"] .scan-table-multi td{border-bottom-color:#334155!important;color:#cbd5e1!important}
+  html[data-theme="dark"] .scan-table-multi td.pen-no,.scan-table-multi td.pen-tgl,.scan-table-multi td.pen-faktur,.scan-table-multi td.pen-sales,.scan-table-multi td.pen-nom,.scan-table-multi td.pen-bayar,.scan-table-multi td.pen-cust,.scan-table-multi td.pen-alamat{background:#233b56!important}
+  html[data-theme="dark"] .scan-table-multi td.um-tgl,.scan-table-multi td.um-nom,.scan-table-multi td.um-ket{background:#3a3038!important}
+  html[data-theme="dark"] .scan-table-multi td.dth-tgl,.scan-table-multi td.dth-ket{background:#3a3426!important}
+  html[data-theme="dark"] .scan-table-multi td.ar-tgl,.scan-table-multi td.ar-ket{background:#28313e!important}
+  html[data-theme="dark"] .scan-table-multi tbody tr:hover{background:#2a4463!important}
   html[data-theme="dark"] .scan-empty{color:#94a3b8}
   html[data-theme="dark"] .scan-faktur-link{color:#93c5fd!important}
   html[data-theme="dark"] .scan-faktur-link:hover{color:#bfdbfe!important;background:#1e3a5f}
@@ -3267,27 +3281,27 @@ function openFakturModal(pageKey, idx){
       else if(pk==='CAMPURAN'){ pillCls='campuran'; pkLbl='Campuran'; }
       else if(pk){ pkLbl = pk; }
       if(pl && pl.length){
-        produkListHtml = '<div style="grid-column:1/-1;margin-top:-2px;font-size:11.5px;color:#64748b;font-weight:500;line-height:1.35">'+escScan(pl.join(', '))+'</div>';
+        produkListHtml = '<div class="sfm-produk-list-full">'+escScan(pl.join(', '))+'</div>';
       }
     }
 
-    let html = '<div class="sfm-grid">';
-    html += '<div><label>No Faktur</label><b>'+escScan(r.faktur)+'</b></div>';
-    // Tanggal + pill kategori di kanan atas (sebaris)
-    html += '<div class="sfm-tgl-row"><div class="sfm-tgl-main"><label>'+(isUmSide?'Tgl UM':'Tanggal Faktur')+'</label><b>'+escScan(formatScanDate(r.tanggal))+'</b></div>';
+    // Header info: single-row compact layout (No Faktur • Tanggal • Customer • Alamat • Jenis • Pill)
+    // Sales diletakkan di baris bawah agar total nominal lebih cepat terlihat tanpa scroll dalam.
+    let html = '<div class="sfm-grid compact">';
+    html += '<div class="sfm-fld-faktur"><label>No Faktur</label><b>'+escScan(r.faktur)+'</b></div>';
+    html += '<div class="sfm-fld-tgl"><label>'+(isUmSide?'Tgl UM':'Tanggal Faktur')+'</label><b>'+escScan(formatScanDate(r.tanggal))+'</b></div>';
+    html += '<div class="sfm-fld-cust"><label>Customer</label><b>'+escScan(r.customer||'-')+'</b></div>';
+    html += '<div class="sfm-fld-alamat"><label>Alamat</label><b>'+escScan(r.alamat||'-')+'</b></div>';
+    html += '<div class="sfm-fld-jenis"><label>'+(isUmSide?'Jenis UM':'Jenis Pembayaran')+'</label><b>'+escScan((isUmSide?(r.jenis||(r.um&&r.um.jenis)):r.pembayaran)||'-')+'</b></div>';
     if(!isUmSide && (pillCls || pkLbl)){
       if(pillCls){
-        html += '<span class="sfm-produk-pill '+pillCls+'" title="Kategori Produk">'+escScan(pkLbl)+'</span>';
+        html += '<div class="sfm-fld-pill"><span class="sfm-produk-pill '+pillCls+'" title="Kategori Produk">'+escScan(pkLbl)+'</span></div>';
       } else {
-        html += '<span style="font-size:11px;color:#94a3b8;font-weight:600">'+escScan(pkLbl)+'</span>';
+        html += '<div class="sfm-fld-pill"><span style="font-size:11px;color:#94a3b8;font-weight:600">'+escScan(pkLbl)+'</span></div>';
       }
     }
-    html += '</div>';
-    html += '<div><label>Sales</label><b>'+escScan(r.sales||'-')+'</b></div>';
-    html += '<div><label>'+(isUmSide?'Jenis UM':'Jenis Pembayaran')+'</label><b>'+escScan((isUmSide?(r.jenis||(r.um&&r.um.jenis)):r.pembayaran)||'-')+'</b></div>';
-    html += '<div style="grid-column:1/-1"><label>Customer</label><b>'+escScan(r.customer||'-')+'</b></div>';
-    html += '<div style="grid-column:1/-1"><label>Alamat</label><b>'+escScan(r.alamat||'-')+'</b></div>';
-    if(produkListHtml) html += produkListHtml;
+    // Baris bawah: Sales (kolom penuh, tapi kompak)
+    html += '<div class="sfm-fld-sales" style="flex:1 1 100%"><label>Sales</label><b>'+escScan(r.sales||'-')+'</b></div>';
     html += '</div>';
     html += '<div class="sfm-total"><label>'+(isUmSide?'TOTAL NOMINAL UM':'TOTAL NOMINAL FAKTUR')+'</label><b>'+rupiahScan(r.total)+'</b></div>';
 
@@ -3295,24 +3309,26 @@ function openFakturModal(pageKey, idx){
     if(pageKey==='sumberData'){
       html += '<div class="sfm-section-title">Pasangan di Sumber Lain</div>';
       html += '<div class="sfm-grid">';
+      // Kumpulkan kategori yang "Tidak ada" agar tampil sebaris (satu baris berdampingan)
+      let noneRow = '';
+      if(!r.um) noneRow += '<div><label>Uang Masuk</label><b style="color:#b91c1c">Tidak ada</b></div>';
+      if(!r.dth) noneRow += '<div><label>DTH</label><b style="color:#b91c1c">Tidak ada</b></div>';
+      if(!r.ar) noneRow += '<div><label>Rekap AR</label><b style="color:#b91c1c">Tidak ada</b></div>';
+      if(noneRow){
+        html += '<div class="sfm-none-row" style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px 22px">'+noneRow+'</div>';
+      }
       if(r.um){
         html += '<div><label>Tgl UM</label><b>'+escScan(formatScanDate(r.um.tanggal))+'</b></div>';
         html += '<div><label>Nominal UM</label><b>'+rupiahScan(r.um.nominal)+'</b></div>';
         html += '<div style="grid-column:1/-1"><label>Keterangan UM</label><b>'+escScan(r.um.keterangan||'-')+'</b></div>';
-      } else {
-        html += '<div style="grid-column:1/-1"><label>Uang Masuk</label><b style="color:#b91c1c">Tidak ada</b></div>';
       }
       if(r.dth){
         html += '<div><label>Tgl DTH</label><b>'+escScan(formatScanDate(r.dth.tanggal))+'</b></div>';
         html += '<div style="grid-column:1/-1"><label>Keterangan DTH</label><b>'+escScan(r.dth.keterangan||'-')+'</b></div>';
-      } else {
-        html += '<div style="grid-column:1/-1"><label>DTH</label><b style="color:#b91c1c">Tidak ada</b></div>';
       }
       if(r.ar){
         html += '<div><label>Tgl AR</label><b>'+escScan(formatScanDate(r.ar.tanggal))+'</b></div>';
         html += '<div style="grid-column:1/-1"><label>Keterangan AR</label><b>'+escScan(r.ar.keterangan||'-')+'</b></div>';
-      } else {
-        html += '<div style="grid-column:1/-1"><label>Rekap AR</label><b style="color:#b91c1c">Tidak ada</b></div>';
       }
       html += '</div>';
     }
