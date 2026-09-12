@@ -244,26 +244,26 @@
   .scan-panel{display:none;flex:1;min-height:0;border:none;border-radius:0;background:#fff;padding:0;overflow:auto}
   .scan-panel.active{display:flex;flex-direction:column}
   .scan-meta-row{
-    display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 10px;
-    margin:0 0 10px;padding:0;justify-content:space-between;
+    display:flex;flex-wrap:nowrap;align-items:flex-end;gap:8px 10px;
+    margin:0 0 10px;padding:0;justify-content:flex-start;
   }
-  .scan-meta-row .scan-filters{flex:0 1 auto}
-  .scan-meta-row .scan-summary{margin-left:auto;justify-content:flex-end}
+  .scan-meta-row .scan-filters{flex:1 1 auto;min-width:0}
+  .scan-meta-row .scan-summary{margin-left:auto;justify-content:flex-end;flex-shrink:0}
 
   .scan-filters{
-    display:flex;flex-wrap:wrap;gap:6px 8px;align-items:flex-end;
+    display:flex;flex-wrap:nowrap;gap:6px 8px;align-items:flex-end;
     margin:0;padding:0;background:transparent;border:none;
   }
-  .scan-filters .fg{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .scan-filters .fg{display:flex;flex-direction:column;gap:2px;min-width:0;flex-shrink:0}
   .scan-filters label{font-size:9px;font-weight:600;color:#64748b;letter-spacing:.03em;text-transform:uppercase}
   .scan-filters select{
     appearance:none;border:1px solid #dce4f0;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M3 4.5L6 8l3-3.5'/%3E%3C/svg%3E") no-repeat right 6px center;
     color:#1e293b;padding:5px 24px 5px 8px;border-radius:6px;font-size:11px;font-weight:500;
-    min-width:120px;max-width:150px;cursor:pointer;line-height:1.25;height:32px;
+    min-width:110px;max-width:140px;cursor:pointer;line-height:1.25;height:32px;
   }
   .scan-filters select:focus{outline:none;border-color:#5b9bd5;box-shadow:0 0 0 2px rgba(91,155,213,.2)}
-  .scan-month-dropdown{position:relative;min-width:150px}
-  .scan-month-btn{appearance:none;width:150px;border:1px solid #dce4f0;background:#fff;color:#1e293b;padding:5px 26px 5px 8px;border-radius:6px;font-size:11px;font-weight:500;cursor:pointer;line-height:1.25;height:32px;text-align:left;position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .scan-month-dropdown{position:relative;min-width:130px}
+  .scan-month-btn{appearance:none;width:130px;border:1px solid #dce4f0;background:#fff;color:#1e293b;padding:5px 26px 5px 8px;border-radius:6px;font-size:11px;font-weight:500;cursor:pointer;line-height:1.25;height:32px;text-align:left;position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .scan-month-btn::after{content:'▾';position:absolute;right:8px;top:7px;color:#64748b;font-size:11px}
   .scan-month-btn:focus{outline:none;border-color:#5b9bd5;box-shadow:0 0 0 2px rgba(91,155,213,.2)}
   .scan-month-menu{display:none;position:absolute;z-index:1000;left:0;top:36px;width:210px;max-height:260px;overflow:auto;background:#fff;border:1px solid #dce4f0;border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.14);padding:6px}
@@ -272,8 +272,8 @@
   .scan-month-option:hover{background:#f1f5f9}
   .scan-month-option input{margin:0;accent-color:#1e40af}
   .scan-month-help{padding:5px 8px 7px;font-size:9px;color:#64748b;border-bottom:1px solid #eef2f7;margin-bottom:3px}
-  .scan-filters .fg-btn{min-width:auto}
-  .scan-filters .fg-search{flex:1 1 180px;min-width:160px;max-width:280px}
+  .scan-filters .fg-btn{min-width:auto;flex-shrink:0}
+  .scan-filters .fg-search{flex:1 1 160px;min-width:140px;max-width:240px}
   .scan-filters .fg-search input[type=search]{
     appearance:none;border:1px solid #dce4f0;background:#fff;
     color:#1e293b;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:500;
@@ -285,10 +285,13 @@
   .scan-filters .btn-reset{
     appearance:none;border:1px solid #dce4f0;background:#fff;color:#475569;
     padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;line-height:1.25;height:32px;
+    white-space:nowrap;
   }
   .scan-filters .btn-reset:hover{background:#f1f5f9;border-color:#94a3b8}
-  #metaExportWrap{align-items:flex-end;margin-left:auto}
-  #metaExportWrap .btn-export-excel{height:32px;padding:5px 14px;font-size:12px}
+  /* Sub-toolbar Sumber Data: pencarian digabung di bar filter utama — jangan tampil baris kedua */
+  #scan-sumber-data > .scan-sub-toolbar{display:none}
+  #metaExportWrap{align-items:flex-end;margin-left:auto;flex-shrink:0}
+  #metaExportWrap .btn-export-excel{height:32px;padding:5px 14px;font-size:12px;white-space:nowrap}
   .scan-export-row{display:flex;justify-content:flex-end;margin:0 0 8px}
   .btn-export-excel{
     appearance:none;border:1px solid #15803d;background:#16a34a;color:#fff;
@@ -2832,7 +2835,11 @@ function applySumberDataFilters(){
   const fBulanPen=[...(document.getElementById('fltBulanPenj')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
   const fBayar=(document.getElementById('fltPembayaran')||{}).value||'';
   const fBulanUM=[...(document.getElementById('fltBulanUM')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
-  const fCari=String((document.getElementById('fltCariSumberData')||{}).value||'').trim().toLowerCase();
+  const fCari=String(
+    (document.getElementById('fltCariScan')||{}).value ||
+    (document.getElementById('fltCariSumberData')||{}).value ||
+    ''
+  ).trim().toLowerCase();
 
   let out = all;
 
