@@ -290,8 +290,31 @@
   .scan-filters .btn-reset:hover{background:#f1f5f9;border-color:#94a3b8}
   /* Sub-toolbar Sumber Data: pencarian digabung di bar filter utama — jangan tampil baris kedua */
   #scan-sumber-data > .scan-sub-toolbar{display:none}
-  #metaExportWrap{align-items:flex-end;margin-left:auto;flex-shrink:0}
+  #metaExportWrap{align-items:flex-end;margin-left:auto;flex-shrink:0;display:flex;gap:8px;flex-wrap:wrap}
   #metaExportWrap .btn-export-excel{height:32px;padding:5px 14px;font-size:12px;white-space:nowrap}
+  .btn-pen-um-kosong{
+    appearance:none;height:32px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;
+    border-radius:6px;white-space:nowrap;line-height:1.25;
+    border:1px solid #c2410c;background:#fff7ed;color:#9a3412;
+    transition:background .15s,color .15s,border-color .15s,box-shadow .15s;
+  }
+  .btn-pen-um-kosong:hover{background:#ffedd5;border-color:#ea580c}
+  .btn-pen-um-kosong.active{
+    background:#ea580c;color:#fff;border-color:#c2410c;
+    box-shadow:0 0 0 2px rgba(234,88,12,.35);
+  }
+  .btn-pen-um-kosong .cnt{
+    display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;
+    font-size:11px;font-weight:800;background:rgba(0,0,0,.12);
+  }
+  .btn-pen-um-kosong.active .cnt{background:rgba(255,255,255,.25)}
+  html[data-theme="dark"] .btn-pen-um-kosong{
+    background:#431407;color:#fdba74;border-color:#9a3412;
+  }
+  html[data-theme="dark"] .btn-pen-um-kosong:hover{background:#7c2d12}
+  html[data-theme="dark"] .btn-pen-um-kosong.active{
+    background:#ea580c;color:#fff;border-color:#fb923c;
+  }
   .scan-export-row{display:flex;justify-content:flex-end;margin:0 0 8px}
   .btn-export-excel{
     appearance:none;border:1px solid #15803d;background:#16a34a;color:#fff;
@@ -340,21 +363,21 @@
   .scan-table-multi td{padding:4px 4px;border-bottom:1px solid #e2e8f0;white-space:nowrap;vertical-align:middle;overflow:hidden;text-overflow:ellipsis}
   .scan-table-multi td.num{text-align:right;font-variant-numeric:tabular-nums}
 
-  /* Lebar proporsional — tanggal 2 digit (dd/mm/yy) agar kolom Ket lebih lega */
+  /* Lebar proporsional — tanggal sempit (dd/mm/yy), ket UM/DTH/AR lebih lega */
   .scan-table-multi col.c-no{width:26px}
   .scan-table-multi col.c-tgl{width:52px}
-  .scan-table-multi col.c-faktur{width:96px}
-  .scan-table-multi col.c-sales{width:52px}
-  .scan-table-multi col.c-nom{width:74px}
-  .scan-table-multi col.c-bayar{width:58px}
-  .scan-table-multi col.c-cust{width:92px}
-  .scan-table-multi col.c-alamat{width:100px}
-  .scan-table-multi col.c-um-tgl{width:56px}
-  .scan-table-multi col.c-um-nom{width:88px}
+  .scan-table-multi col.c-faktur{width:90px}
+  .scan-table-multi col.c-sales{width:50px}
+  .scan-table-multi col.c-nom{width:72px}
+  .scan-table-multi col.c-bayar{width:56px}
+  .scan-table-multi col.c-cust{width:88px}
+  .scan-table-multi col.c-alamat{width:92px}
+  .scan-table-multi col.c-um-tgl{width:52px}
+  .scan-table-multi col.c-um-nom{width:80px}
   .scan-table-multi col.c-um-ket{width:130px}
-  .scan-table-multi col.c-dth-tgl{width:56px}
+  .scan-table-multi col.c-dth-tgl{width:52px}
   .scan-table-multi col.c-dth-ket{width:130px}
-  .scan-table-multi col.c-ar-tgl{width:56px}
+  .scan-table-multi col.c-ar-tgl{width:52px}
   .scan-table-multi col.c-ar-ket{width:130px}
 
   /* Header grup (baris 1: colspan) rata tengah — dan stacking 2 baris sticky
@@ -767,15 +790,6 @@
             </select>
           </div>
           <div class="fg">
-            <label for="fltSumberKondisi">Kondisi Data</label>
-            <select id="fltSumberKondisi" onchange="applyScanFilters()" title="Filter kombinasi Penjualan vs Uang Masuk">
-              <option value="">Semua kondisi</option>
-              <option value="pen-ada-um-kosong">Penjualan Ada · UM Kosong</option>
-              <option value="pen-ada-um-ada">Penjualan Ada · UM Ada</option>
-              <option value="pen-kosong-um-ada">Penjualan Kosong · UM Ada</option>
-            </select>
-          </div>
-          <div class="fg">
             <label for="fltBulanUmBtn">Bulan UM</label>
             <div class="scan-month-dropdown" id="scanMonthUmDropdown">
               <button type="button" class="scan-month-btn" id="fltBulanUmBtn" onclick="toggleScanUmMonthDropdown(event)">Semua bulan UM</button>
@@ -797,6 +811,9 @@
         </div>
         <div class="fg fg-btn" id="metaExportWrap" style="display:none">
           <label>&nbsp;</label>
+          <button type="button" class="btn-pen-um-kosong" id="btnPenAdaUmKosong" onclick="togglePenAdaUmKosong()" title="Tampilkan hanya Penjualan yang belum ada di Uang Masuk — prioritas cek manual">
+            ⚠ Penjualan Ada · UM Kosong
+          </button>
           <button type="button" class="btn-export-excel" id="btnExportSumberData" onclick="exportSumberDataExcel()">⬇️ Download Excel</button>
         </div>
         <div class="scan-summary" id="summary-ada">
@@ -1835,8 +1852,8 @@ function populateScanFilterOptions(){
   const jenisAll=[...jenisUm].sort((a,b)=>a.localeCompare(b,'id'));
   fillSelect('fltBulanPenj', bulanPen, 'Semua bulan');
   fillSelect('fltPembayaran', [...bayar].sort(), 'Semua jenis');
-  fillSelect('fltBulanUM', bulanUm, 'Semua bulan UM');
   fillSelect('fltSales', salesAll, 'Semua Sales');
+  fillSelect('fltBulanUM', bulanUm, 'Semua bulan UM');
   fillSelect('fltSalesTidak', [...salesPen].sort((a,b)=>a.localeCompare(b,'id')), 'Semua Sales');
   fillSelect('fltSalesAda', salesAll, 'Semua Sales');
   fillSelect('fltSalesUmOnly', [...salesUm].sort((a,b)=>a.localeCompare(b,'id')), 'Semua Sales');
@@ -1845,7 +1862,7 @@ function populateScanFilterOptions(){
 }
 
 function resetScanFilters(){
-  ['fltPembayaran','fltSales','fltSumberKondisi','fltBulanUM','fltCariKandidat','fltCariSumberData','fltCariScan',
+  ['fltPembayaran','fltSales','fltBulanUM','fltCariKandidat','fltCariSumberData','fltCariScan',
    'fltStatusJT','fltSalesTidak','fltDiDTH','fltProdukTidak',
    'fltSalesAda','fltJenisUmAda','fltProdukAda','fltStatusAda','fltSalesUmOnly','fltJenisUmOnly'
   ].forEach(id=>{
@@ -1860,6 +1877,10 @@ function resetScanFilters(){
   if(umSel){ umSel.querySelectorAll('option').forEach(o=>o.selected=false); }
   document.querySelectorAll('#fltBulanUmOptions input[type=checkbox]').forEach(x=>x.checked=false);
   updateScanUmMonthButton();
+  // Matikan tombol khusus Penjualan Ada · UM Kosong
+  if(scanResults) scanResults.penAdaUmKosong = false;
+  const btnPuk = document.getElementById('btnPenAdaUmKosong');
+  if(btnPuk){ btnPuk.classList.remove('active'); btnPuk.innerHTML = '⚠ Penjualan Ada · UM Kosong'; }
   applyScanFilters();
 }
 
@@ -2840,24 +2861,22 @@ function populateSumberDataList(){
 
 /**
  * Terapkan filter Bulan Penjualan / Jenis Pembayaran / Sales / Bulan UM / kotak pencarian
- * ke tabel Sumber Data. Bulan Penjualan dicocokkan ke tanggal Penjualan baris,
- * Bulan UM dicocokkan ke tanggal Uang Masuk baris (independen dari Bulan Penjualan),
- * supaya perilakunya konsisten dengan filter di sub-tab lain.
+ * + tombol khusus Penjualan Ada · UM Kosong ke tabel Sumber Data.
  */
 function applySumberDataFilters(){
   const all = scanResults.sumberDataAll || [];
-  if(!all.length){ scanResults.sumberData = []; return; }
+  if(!all.length){ scanResults.sumberData = []; updatePenAdaUmKosongBtn(0); return; }
 
   const fBulanPen=[...(document.getElementById('fltBulanPenj')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
   const fBayar=(document.getElementById('fltPembayaran')||{}).value||'';
   const fSales=(document.getElementById('fltSales')||{}).value||'';
-  const fKondisi=(document.getElementById('fltSumberKondisi')||{}).value||'';
   const fBulanUM=[...(document.getElementById('fltBulanUM')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
   const fCari=String(
     (document.getElementById('fltCariScan')||{}).value ||
     (document.getElementById('fltCariSumberData')||{}).value ||
     ''
   ).trim().toLowerCase();
+  const onlyPenAdaUmKosong = !!(scanResults && scanResults.penAdaUmKosong);
 
   let out = all;
 
@@ -2873,15 +2892,11 @@ function applySumberDataFilters(){
     const ns = normScan(fSales);
     out = out.filter(r => normScan(r.sales) === ns);
   }
-  // Kondisi: Penjualan vs Uang Masuk. DTH & Rekap AR tidak dibatasi (boleh ada/tidak).
-  if(fKondisi){
+  // Tombol khusus: Penjualan Ada · UM Kosong (DTH & AR boleh ada/tidak)
+  if(onlyPenAdaUmKosong){
     out = out.filter(r=>{
       const hasPen = r.rowType === 'gabungan' || !!(r.noFaktur && (r.nominalFaktur || r.pembayaran || r.customer || r.alamat || r.sales));
-      const hasUm = !!r.um;
-      if(fKondisi === 'pen-ada-um-kosong') return hasPen && !hasUm;
-      if(fKondisi === 'pen-ada-um-ada') return hasPen && hasUm;
-      if(fKondisi === 'pen-kosong-um-ada') return !hasPen && hasUm;
-      return true;
+      return hasPen && !r.um;
     });
   }
   if(fBulanUM.length){
@@ -2899,6 +2914,29 @@ function applySumberDataFilters(){
   }
 
   scanResults.sumberData = out;
+  updatePenAdaUmKosongBtn(out.length);
+}
+
+/** Toggle filter khusus: hanya baris Penjualan Ada + UM Kosong (prioritas cek manual). */
+function togglePenAdaUmKosong(){
+  if(!scanResults) scanResults = {};
+  scanResults.penAdaUmKosong = !scanResults.penAdaUmKosong;
+  scanPage.sumberData = 1;
+  applySumberDataFilters();
+  renderSumberDataTable();
+}
+
+function updatePenAdaUmKosongBtn(filteredCount){
+  const btn = document.getElementById('btnPenAdaUmKosong');
+  if(!btn) return;
+  const on = !!(scanResults && scanResults.penAdaUmKosong);
+  btn.classList.toggle('active', on);
+  if(on){
+    const n = (typeof filteredCount === 'number') ? filteredCount : ((scanResults.sumberData||[]).length);
+    btn.innerHTML = '⚠ Penjualan Ada · UM Kosong <span class="cnt">'+n+'</span>';
+  } else {
+    btn.innerHTML = '⚠ Penjualan Ada · UM Kosong';
+  }
 }
 
 function renderSumberDataTable(){
