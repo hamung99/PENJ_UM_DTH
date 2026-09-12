@@ -2627,12 +2627,16 @@ function renderSumberDataTable(){
   const container = document.getElementById('scanSumberDataTable');
   if(!container) return;
   
-  const data = scanResults.sumberData || [];
+  const allData = scanResults.sumberData || [];
   
-  if(data.length === 0){
+  if(allData.length === 0){
     container.innerHTML = '<div class="scan-empty">Tidak ada data 4 sumber untuk ditampilkan. Klik SCAN DATA terlebih dahulu.</div>';
+    renderPager('pager-sumber-data','sumberData',0);
     return;
   }
+  
+  // Ambil hanya baris untuk halaman aktif (pagination), bukan seluruh data
+  const { rows: data } = pageSlice(allData, 'sumberData');
   
   // Generate tabel dengan 4 sumber — lebar kolom proporsional via colgroup
   let html = '<table class="scan-table-multi">' +
@@ -2666,7 +2670,8 @@ function renderSumberDataTable(){
     '<th class="h-ar">Ket</th>' +
     '</tr></thead><tbody>';
   
-  let no = 1;
+  const startNo = ((scanPage.sumberData||1)-1) * (scanPageSize||SCAN_PAGE_SIZE_DEFAULT) + 1;
+  let no = startNo;
   data.forEach(row => {
     html += '<tr>';
     
@@ -2723,6 +2728,7 @@ function renderSumberDataTable(){
   
   html += '</tbody></table>';
   container.innerHTML = html;
+  renderPager('pager-sumber-data','sumberData',allData.length);
 }
 
 function exportSumberDataExcel(){
@@ -2819,12 +2825,14 @@ function scanGoPage(key, page){
   if(key==='ada') renderScanTable('scanAdaTable',scanResults.ada,true,'ada','pager-ada');
   else if(key==='tidak') renderScanTable('scanTidakTable',scanResults.tidak,false,'tidak','pager-tidak');
   else if(key==='umOnly') renderScanTableUmOnly('scanUmOnlyTable',scanResults.umOnly||[],'umOnly','pager-umonly');
+  else if(key==='sumberData') renderSumberDataTable();
 }
 
 function changeScanPageSize(v){
   scanPageSize=Number(v)||SCAN_PAGE_SIZE_DEFAULT;
-  scanPage={ada:1,tidak:1,umOnly:1};
+  scanPage={ada:1,tidak:1,umOnly:1,sumberData:1};
   renderScanResults();
+  renderSumberDataTable();
 }
 
 function renderScanTable(id,data,withUM,pageKey,pagerId){
