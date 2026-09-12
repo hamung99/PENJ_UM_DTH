@@ -358,6 +358,12 @@
   .scan-summary b{font-size:13px;color:#172033;line-height:1.15}
   .scan-table-wrap{flex:1;overflow:auto;max-height:calc(100vh - 180px);border:1px solid #dce4f0;border-radius:6px}
   .scan-table-wrap-multi{flex:1;overflow:auto;max-height:calc(100vh - 180px);border:1px solid #dce4f0;border-radius:6px}
+  /* Hemat layout/paint baris di luar viewport (tabel panjang) */
+  .scan-table tbody tr,
+  .scan-table-multi tbody tr{
+    content-visibility:auto;
+    contain-intrinsic-size:auto 34px;
+  }
   .scan-table{border-collapse:separate;border-spacing:0;width:100%;min-width:1100px;font-size:12px;table-layout:fixed}
   .scan-table.scan-table-ada{min-width:1180px}
   .scan-table th{background:#1f4e78;color:#fff;padding:7px 6px;position:sticky;top:0;text-align:left;z-index:1;white-space:nowrap}
@@ -1294,8 +1300,11 @@ function normScanIdentity(v){
 
 // Jarak Levenshtein sederhana (jumlah minimal edit: tambah/hapus/ganti huruf)
 // dipakai untuk toleransi typo kecil (mis. "WOTBUONO" vs "WOTBUNO").
-function levenshteinScan(a, b){
+function levenshteinScan(a, b, maxDist){
   const m = a.length, n = b.length;
+  // maxDist opsional: hentikan lebih awal jika jarak pasti melebihi batas
+  const limit = (typeof maxDist === 'number' && maxDist >= 0) ? maxDist : -1;
+  if(limit >= 0 && Math.abs(m - n) > limit) return limit + 1;
   if(m === 0) return n;
   if(n === 0) return m;
   let prev = new Array(n + 1);
@@ -1304,14 +1313,19 @@ function levenshteinScan(a, b){
   for(let i = 1; i <= m; i++){
     curr[0] = i;
     const ca = a.charCodeAt(i - 1);
+    let rowMin = curr[0];
     for(let j = 1; j <= n; j++){
       const cost = ca === b.charCodeAt(j - 1) ? 0 : 1;
-      curr[j] = Math.min(
+      const v = Math.min(
         prev[j] + 1,      // hapus
         curr[j - 1] + 1,  // tambah
         prev[j - 1] + cost // ganti
       );
+      curr[j] = v;
+      if(v < rowMin) rowMin = v;
     }
+    // Early-exit: seluruh baris sudah > limit → jarak final pasti > limit
+    if(limit >= 0 && rowMin > limit) return limit + 1;
     [prev, curr] = [curr, prev];
   }
   return prev[n];
@@ -1324,7 +1338,10 @@ function similarityScan(a, b){
   if(sa === sb) return 1;
   const maxLen = Math.max(sa.length, sb.length);
   if(maxLen === 0) return 1;
-  const dist = levenshteinScan(sa, sb);
+  // Batas jarak agar skor tetap relevan (>= ~0.4). Di luar itu early-exit.
+  const maxDist = Math.max(1, Math.floor(maxLen * 0.6));
+  const dist = levenshteinScan(sa, sb, maxDist);
+  if(dist > maxDist) return 0;
   return 1 - (dist / maxLen);
 }
 
@@ -1364,7 +1381,71 @@ function fakturTypoMatch(f1, f2){
   const a=String(f1||''), b=String(f2||'');
   if(!a || !b || a===b) return false;
   if(Math.abs(a.length - b.length) > 1) return false;
-  return levenshteinScan(a, b) === 1;
+  return levenshteinScan(a, b, 1) === 1;
+}
+
+/* ===== Index typo 1-edit untuk DTH (dibangun sekali saat SCAN) =====
+   Lookup No Faktur Penjualan → kandidat DTH jadi O(1), bukan O(M).
+   Varian: exact + hapus 1 char + ganti 1 char + sisip 1 char. */
+function oneEditVariantsScan(s, alphabet){
+  const out=[];
+  const L=s.length;
+  // hapus 1 karakter
+  for(let i=0;i<L;i++) out.push(s.slice(0,i)+s.slice(i+1));
+  // ganti 1 karakter
+  for(let i=0;i<L;i++){
+    const left=s.slice(0,i), right=s.slice(i+1), orig=s.charAt(i);
+    for(let k=0;k<alphabet.length;k++){
+      const c=alphabet.charAt(k);
+      if(c===orig) continue;
+      out.push(left+c+right);
+    }
+  }
+  // sisip 1 karakter
+  for(let i=0;i<=L;i++){
+    const left=s.slice(0,i), right=s.slice(i);
+    for(let k=0;k<alphabet.length;k++){
+      out.push(left+alphabet.charAt(k)+right);
+    }
+  }
+  return out;
+}
+
+function buildDthTypoIndex(dthRaw){
+  const idx=new Map();
+  const alphabetSet=new Set('0123456789');
+  const items=[];
+  const list=dthRaw||[];
+  for(let i=0;i<list.length;i++){
+    const d=list[i];
+    const f=normScan(d && d.faktur);
+    if(!f) continue;
+    items.push({f,d});
+    for(let j=0;j<f.length;j++) alphabetSet.add(f.charAt(j));
+  }
+  // Jaga-jaga huruf A-Z (No Faktur kadang alfanumerik)
+  const AZ='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  for(let i=0;i<AZ.length;i++) alphabetSet.add(AZ.charAt(i));
+  const alphabet=[...alphabetSet].join('');
+
+  function addKey(key, d){
+    let arr=idx.get(key);
+    if(!arr){ arr=[]; idx.set(key, arr); }
+    // Hindari duplikat objek yang sama di list kandidat
+    if(arr.length===0 || arr[arr.length-1]!==d){
+      // cek cepat: push jika belum ada (list kandidat per key biasanya kecil)
+      for(let t=0;t<arr.length;t++){ if(arr[t]===d) return; }
+      arr.push(d);
+    }
+  }
+
+  for(let i=0;i<items.length;i++){
+    const f=items[i].f, d=items[i].d;
+    addKey(f, d); // exact
+    const variants=oneEditVariantsScan(f, alphabet);
+    for(let v=0;v<variants.length;v++) addKey(variants[v], d);
+  }
+  return idx;
 }
 
 function scanIdentityKey(r){
@@ -1684,38 +1765,38 @@ function scanDthMatchForPenjualan(pen){
     const fk=normScan(pen.faktur);
     if(!fk) return null;
 
-    // Prioritas 1: No Faktur exact.
+    // Prioritas 1: No Faktur exact — O(1)
     if(exactMap && exactMap.has(fk)) return {row:exactMap.get(fk), typo:false};
 
-    const raw=scanResults.dthRawAll || [];
-    if(!raw.length) return null;
+    // Prioritas 2: typo 1-edit via index — O(1). Tanpa full-scan fallback (hindari O(N×M)).
+    const idx=scanResults.dthTypoIndex;
+    const pool=(idx && idx.get(fk)) || null;
+    if(!pool || !pool.length) return null;
 
     const kandidat=[];
     const penTotal=Math.round(scanNum(pen.total));
     const penCust=normScanIdentity(pen.customer);
     const penSales=normScanIdentity(pen.sales);
 
-    for(const d of raw){
+    for(let i=0;i<pool.length;i++){
+      const d=pool[i];
       const df=normScan(d && d.faktur);
-      if(!df || !fakturTypoMatch(fk,df)) continue;
+      if(!df || df===fk) continue;
+      // Verifikasi cepat 1-edit (pool dari index sudah hampir pasti valid)
+      if(!fakturTypoMatch(fk,df)) continue;
 
-      // DTH memakai nama_outlet/salesman.
       const dcust=normScanIdentity(d.nama_outlet || d.customer || d.toko || '');
       const dsales=normScanIdentity(d.salesman || d.sales || '');
       const custScore=similarityScan(penCust,dcust);
       const salesScore=similarityScan(penSales,dsales);
       if(custScore < 0.75 || salesScore < 0.65) continue;
 
-      // Bila DTH punya nominal tagihan, wajib sama. Ini pengaman utama
-      // agar typo No Faktur tidak menghubungkan transaksi yang kebetulan mirip.
       const dthTotal=Math.round(scanNum(d.tagihan ?? d.total ?? d.nominal));
       if(penTotal>0 && dthTotal>0 && penTotal!==dthTotal) continue;
 
       kandidat.push({row:d, typo:true, custScore, salesScore});
     }
 
-    // Hanya terima kandidat tunggal. Jika ada dua kandidat yang sama-sama kuat,
-    // jangan menebak; biarkan tetap "Tidak di DTH" untuk pemeriksaan manual.
     if(kandidat.length===1) return kandidat[0];
 
     if(kandidat.length>1){
@@ -1810,7 +1891,7 @@ function applyScanFilters(){
       });
     });
   }else{
-    pen=(scanResults.penAll||[]).slice();
+    pen=scanResults.penAll||[];
   }
   if(fBayar){
     const nb=normScan(fBayar);
@@ -1830,29 +1911,31 @@ function applyScanFilters(){
       });
     });
   }else{
-    um=(scanResults.umAll||[]).slice();
+    um=scanResults.umAll||[];
   }
 
-  // Indeks kandidat UM berdasarkan No Faktur. Karena satu No Faktur bisa muncul
-  // lebih dari sekali, simpan ARRAY kandidat dan pilih yang identitasnya benar-benar cocok.
-  const umByFaktur=new Map();
-  um.forEach(x=>{
-    const k=normScan(x.faktur);
-    if(!k) return;
-    if(!umByFaktur.has(k)) umByFaktur.set(k,[]);
-    umByFaktur.get(k).push(x);
-  });
-
-  // Indeks kandidat UM berdasarkan Nominal (dibulatkan), khusus untuk fallback
-  // "kemungkinan salah ketik No Faktur" di bawah. Nominal yang sama persis adalah
-  // sinyal kuat, jadi kandidatnya dipersempit dulu lewat nominal sebelum dicek
-  // typo faktur + identitas toko/sales.
-  const umByTotal=new Map();
-  um.forEach(x=>{
-    const t=Math.round(scanNum(x.total));
-    if(!umByTotal.has(t)) umByTotal.set(t,[]);
-    umByTotal.get(t).push(x);
-  });
+  // Indeks UM di-cache per set filter Bulan UM — jangan rebuild tiap applyScanFilters
+  const umIndexKey = (fBulanUM.slice().sort().join('|') || '__ALL__');
+  let umByFaktur = scanResults._umByFaktur;
+  let umByTotal = scanResults._umByTotal;
+  if(scanResults._umIndexKey !== umIndexKey || !umByFaktur || !umByTotal){
+    umByFaktur = new Map();
+    um.forEach(x=>{
+      const k=normScan(x.faktur);
+      if(!k) return;
+      if(!umByFaktur.has(k)) umByFaktur.set(k,[]);
+      umByFaktur.get(k).push(x);
+    });
+    umByTotal = new Map();
+    um.forEach(x=>{
+      const t=Math.round(scanNum(x.total));
+      if(!umByTotal.has(t)) umByTotal.set(t,[]);
+      umByTotal.get(t).push(x);
+    });
+    scanResults._umIndexKey = umIndexKey;
+    scanResults._umByFaktur = umByFaktur;
+    scanResults._umByTotal = umByTotal;
+  }
 
   const _batalSet = getBatalSet();
   const _titipSet = getTitipSet();
@@ -1942,20 +2025,27 @@ function applyScanFilters(){
     });
   }else{
     // Default: seluruh histori Penjualan, bukan hanya bulan UM yang sedang aktif.
-    penForUmOnly=(scanResults.penHistoryAll||scanResults.penAll||[]).slice();
+    penForUmOnly=scanResults.penHistoryAll||scanResults.penAll||[];
   }
   if(fBayar){
     const nb=normScan(fBayar);
     penForUmOnly=penForUmOnly.filter(x=>normScan(x.pembayaran)===nb);
   }
 
-  const penHistoryByFaktur=new Map();
-  penForUmOnly.forEach(x=>{
-    const k=normScan(x.faktur);
-    if(!k) return;
-    if(!penHistoryByFaktur.has(k)) penHistoryByFaktur.set(k,[]);
-    penHistoryByFaktur.get(k).push(x);
-  });
+  // Cache indeks histori Penjualan untuk jalur UM-only (key: bulan+bayar)
+  const penHistKey = (fBulanPen.slice().sort().join('|') || '__ALL__') + '||' + (fBayar || '');
+  let penHistoryByFaktur = scanResults._penHistoryByFaktur;
+  if(scanResults._penHistKey !== penHistKey || !penHistoryByFaktur){
+    penHistoryByFaktur = new Map();
+    penForUmOnly.forEach(x=>{
+      const k=normScan(x.faktur);
+      if(!k) return;
+      if(!penHistoryByFaktur.has(k)) penHistoryByFaktur.set(k,[]);
+      penHistoryByFaktur.get(k).push(x);
+    });
+    scanResults._penHistKey = penHistKey;
+    scanResults._penHistoryByFaktur = penHistoryByFaktur;
+  }
   const umOnlyRaw=um.filter(u=>{
     const kandidat=penHistoryByFaktur.get(normScan(u.faktur))||[];
     return !kandidat.some(p=>sameScanIdentity(p,u));
@@ -2377,10 +2467,13 @@ function scanDataRun(){
       penByMonth,penHistoryByMonth,umByMonth,penKeys,
       dthLoaded:dthDataReady,
       dthFakturSet,dthByFaktur,
-      // Data mentah DTH disimpan khusus untuk fallback typo pada
-      // sub-tab Penjualan-Tidak Ada UM -> Tidak di DTH.
+      // Data mentah DTH + index typo 1-edit (dibangun sekali, lookup O(1))
       dthRawAll:dthRaw,
-      dthCount:dthRaw.length
+      dthTypoIndex:(dthDataReady && dthRaw && dthRaw.length) ? buildDthTypoIndex(dthRaw) : new Map(),
+      dthCount:dthRaw.length,
+      // cache filter indexes (diisi ulang di applyScanFilters)
+      _umIndexKey:null, _umByFaktur:null, _umByTotal:null,
+      _penHistKey:null, _penHistoryByFaktur:null
     };
     scanPage={ada:1,tidak:1,umOnly:1,sumberData:1};
     try{ populateSumberDataList(); }catch(e){ console.warn('populateSumberDataList gagal, Sumber Data dilewati', e); scanResults.sumberData=[]; }
@@ -2518,9 +2611,9 @@ function readSumberDataAR(){
 }
 
 function populateSumberDataList(){
-  const penRaw = (scanResults.penRawAll || []).slice();
-  const umRaw  = (scanResults.umRawAll || []).slice();
-  const dthRaw = (scanResults.dthRawAll || []).slice();
+  const penRaw = scanResults.penRawAll || [];
+  const umRaw  = scanResults.umRawAll || [];
+  const dthRaw = scanResults.dthRawAll || [];
   const arRaw  = readSumberDataAR();
 
   const norm = v => String(v == null ? '' : v).trim().toLowerCase().replace(/\s+/g,' ');
