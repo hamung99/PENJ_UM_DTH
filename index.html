@@ -196,11 +196,13 @@
   #btnCariKandidatBatal:hover{background:#16304f}
   #btnCariKandidatBatal:disabled{opacity:.55;cursor:wait}
   #btnCariKandidatBatal .ico{font-size:12px;line-height:1}
-  .kandidat-bar-row input[type=search]{
-    flex:0 1 200px;min-width:130px;appearance:none;border:1px solid #94a3b8;background:#fff;
+  .kandidat-bar-row input[type=search],
+  .scan-sub-toolbar input[type=search]{
+    flex:0 1 220px;min-width:150px;appearance:none;border:1px solid #94a3b8;background:#fff;
     color:#1e293b;padding:4px 10px;border-radius:6px;font-size:11.5px;font-weight:500;height:28px;
   }
-  .kandidat-bar-row input[type=search]:focus{outline:none;border-color:#1e3a5f;box-shadow:0 0 0 2px rgba(30,58,95,.15)}
+  .kandidat-bar-row input[type=search]:focus,
+  .scan-sub-toolbar input[type=search]:focus{outline:none;border-color:#1e3a5f;box-shadow:0 0 0 2px rgba(30,58,95,.15)}
   .kandidat-bar-hint{font-size:11.5px;color:#475569;line-height:1.4}
   .kandidat-bar-hint b{color:#1e3a5f}
   .kandidat-bar-row .btn-kandidat-reset{
@@ -515,7 +517,8 @@
   html[data-theme="dark"] .scan-tabs button:hover{background:#1e3a5f;border-color:#60a5fa}
   html[data-theme="dark"] #btnScanData{background:#1e293b;color:#e2e8f0;border-color:#475569}
   html[data-theme="dark"] .scan-filters select,.scan-month-btn,.kandidat-bar-row select,.scan-sub-toolbar select,
-  html[data-theme="dark"] .kandidat-bar-row input[type=search]{background:#1e293b;color:#e2e8f0;border-color:#475569}
+  html[data-theme="dark"] .kandidat-bar-row input[type=search],
+  html[data-theme="dark"] .scan-sub-toolbar input[type=search]{background:#1e293b;color:#e2e8f0;border-color:#475569}
   html[data-theme="dark"] .scan-summary .card{background:#1e293b;border-color:#334155}
   html[data-theme="dark"] .scan-summary small{color:#94a3b8}
   html[data-theme="dark"] .scan-summary b{color:#f1f5f9}
@@ -553,6 +556,7 @@
   html[data-theme="dark"] .scan-sub-toolbar select,
   html[data-theme="dark"] .kandidat-bar-row select,
   html[data-theme="dark"] .kandidat-bar-row input[type=search],
+  html[data-theme="dark"] .scan-sub-toolbar input[type=search],
   html[data-theme="dark"] .scan-filters .btn-reset{background:#1e293b!important;color:#e2e8f0!important;border-color:#475569!important}
   html[data-theme="dark"] .kandidat-bulk{background:#450a0a;border-color:#7f1d1d;color:#fecaca}
   html[data-theme="dark"] .kandidat-nol-bar{background:#431407;border-color:#9a3412;color:#fed7aa}
@@ -862,6 +866,9 @@
       </div>
 
       <div class="scan-panel" id="scan-sumber-data">
+        <div class="scan-sub-toolbar">
+          <input type="search" id="fltCariSumberData" placeholder="🔍 Cari: No Faktur / Customer / Toko / Alamat…" oninput="applyScanFilters()" autocomplete="off">
+        </div>
         <div id="scanSumberDataTable" class="scan-table-wrap-multi"><div class="scan-empty">Klik SCAN DATA untuk membaca 4 Sumber Data (Penjualan, Uang Masuk, DTH, Rekap AR).</div></div>
         <div class="scan-pager" id="pager-sumber-data" style="display:none"></div>
       </div>
@@ -1422,6 +1429,7 @@ function switchScanSubTab(btn, targetId){
   if(metaExp) metaExp.style.display = (targetId === 'scan-sumber-data') ? 'flex' : 'none';
   // Render tabel 4 sumber data jika tab dipilih
   if(targetId === 'scan-sumber-data' && scanResults.scanned) {
+    applySumberDataFilters();
     renderSumberDataTable();
   }
 }
@@ -1793,7 +1801,7 @@ function populateScanFilterOptions(){
 }
 
 function resetScanFilters(){
-  ['fltPembayaran','fltBulanUM','fltCariKandidat',
+  ['fltPembayaran','fltBulanUM','fltCariKandidat','fltCariSumberData',
    'fltStatusJT','fltSalesTidak','fltDiDTH','fltProdukTidak',
    'fltSalesAda','fltJenisUmAda','fltProdukAda','fltStatusAda','fltSalesUmOnly','fltJenisUmOnly'
   ].forEach(id=>{
@@ -2228,10 +2236,14 @@ function applyScanFilters(){
   scanResults.tidak=tidakFiltered;
   scanResults.tidakAll=tidak;
   scanResults.umOnly=umOnly;
-  scanPage={ada:1,tidak:1,umOnly:1};
+  scanPage={ada:1,tidak:1,umOnly:1,sumberData:1};
   renderScanResults();
   updateKandidatBulkBar();
   updateNolBar();
+  applySumberDataFilters();
+  if(document.getElementById('scan-sumber-data') && document.getElementById('scan-sumber-data').classList.contains('active')){
+    renderSumberDataTable();
+  }
   try{ window.applyBatalHighlightToPenjualanIframe && window.applyBatalHighlightToPenjualanIframe(); }catch(e){}
 }
 
@@ -2724,7 +2736,50 @@ function populateSumberDataList(){
   dthIdx.noFakturRows.forEach(noFakturPushDth);
   arIdx.noFakturRows.forEach(noFakturPushAr);
 
-  scanResults.sumberData = rows.sort((a,b)=>(b.sortDate.getTime()||0)-(a.sortDate.getTime()||0));
+  scanResults.sumberDataAll = rows.sort((a,b)=>(b.sortDate.getTime()||0)-(a.sortDate.getTime()||0));
+  applySumberDataFilters();
+}
+
+/**
+ * Terapkan filter Bulan Penjualan / Jenis Pembayaran / Bulan UM / kotak pencarian
+ * ke tabel Sumber Data. Bulan Penjualan dicocokkan ke tanggal Penjualan baris,
+ * Bulan UM dicocokkan ke tanggal Uang Masuk baris (independen dari Bulan Penjualan),
+ * supaya perilakunya konsisten dengan filter di sub-tab lain.
+ */
+function applySumberDataFilters(){
+  const all = scanResults.sumberDataAll || [];
+  if(!all.length){ scanResults.sumberData = []; return; }
+
+  const fBulanPen=[...(document.getElementById('fltBulanPenj')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
+  const fBayar=(document.getElementById('fltPembayaran')||{}).value||'';
+  const fBulanUM=[...(document.getElementById('fltBulanUM')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
+  const fCari=String((document.getElementById('fltCariSumberData')||{}).value||'').trim().toLowerCase();
+
+  let out = all;
+
+  if(fBulanPen.length){
+    const set = new Set(fBulanPen);
+    out = out.filter(r => r.tanggal && set.has(monthKeyFromDate(r.tanggal)));
+  }
+  if(fBayar){
+    const nb = normScan(fBayar);
+    out = out.filter(r => normScan(r.pembayaran) === nb);
+  }
+  if(fBulanUM.length){
+    const set = new Set(fBulanUM);
+    out = out.filter(r => r.um && r.um.tanggal && set.has(monthKeyFromDate(r.um.tanggal)));
+  }
+  if(fCari){
+    out = out.filter(r=>{
+      const hay = [
+        r.noFaktur, r.customer, r.alamat, r.sales,
+        r.um && r.um.keterangan, r.dth && r.dth.keterangan, r.ar && r.ar.keterangan
+      ].map(v=>String(v||'').toLowerCase()).join(' ');
+      return hay.includes(fCari);
+    });
+  }
+
+  scanResults.sumberData = out;
 }
 
 function renderSumberDataTable(){
