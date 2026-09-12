@@ -319,27 +319,27 @@
   .scan-table tfoot td{font-weight:700;background:#fff3cd}
   
   /* ===== TABEL 4 SUMBER DATA ===== */
-  .scan-table-multi{border-collapse:collapse;width:100%;font-size:11px;table-layout:fixed;min-width:1460px}
-  .scan-table-multi th{padding:6px 5px;position:sticky;top:0;text-align:left;z-index:10;white-space:nowrap;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis}
-  .scan-table-multi td{padding:4px 5px;border-bottom:1px solid #e2e8f0;white-space:nowrap;vertical-align:middle;overflow:hidden;text-overflow:ellipsis}
+  .scan-table-multi{border-collapse:collapse;width:100%;font-size:11px;table-layout:fixed;min-width:1280px}
+  .scan-table-multi th{padding:5px 4px;position:sticky;top:0;text-align:left;z-index:10;white-space:nowrap;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis}
+  .scan-table-multi td{padding:4px 4px;border-bottom:1px solid #e2e8f0;white-space:nowrap;vertical-align:middle;overflow:hidden;text-overflow:ellipsis}
   .scan-table-multi td.num{text-align:right;font-variant-numeric:tabular-nums}
 
-  /* Lebar proporsional per kolom (15 kolom data) */
-  .scan-table-multi col.c-no{width:36px}
-  .scan-table-multi col.c-tgl{width:78px}
-  .scan-table-multi col.c-faktur{width:118px}
-  .scan-table-multi col.c-sales{width:90px}
-  .scan-table-multi col.c-nom{width:100px}
-  .scan-table-multi col.c-bayar{width:88px}
-  .scan-table-multi col.c-cust{width:120px}
-  .scan-table-multi col.c-alamat{width:130px}
-  .scan-table-multi col.c-um-tgl{width:78px}
-  .scan-table-multi col.c-um-nom{width:100px}
-  .scan-table-multi col.c-um-ket{width:120px}
-  .scan-table-multi col.c-dth-tgl{width:78px}
-  .scan-table-multi col.c-dth-ket{width:120px}
-  .scan-table-multi col.c-ar-tgl{width:78px}
-  .scan-table-multi col.c-ar-ket{width:120px}
+  /* Lebar proporsional — Sales & Nominal diperketat */
+  .scan-table-multi col.c-no{width:32px}
+  .scan-table-multi col.c-tgl{width:72px}
+  .scan-table-multi col.c-faktur{width:112px}
+  .scan-table-multi col.c-sales{width:64px}
+  .scan-table-multi col.c-nom{width:88px}
+  .scan-table-multi col.c-bayar{width:72px}
+  .scan-table-multi col.c-cust{width:110px}
+  .scan-table-multi col.c-alamat{width:120px}
+  .scan-table-multi col.c-um-tgl{width:72px}
+  .scan-table-multi col.c-um-nom{width:88px}
+  .scan-table-multi col.c-um-ket{width:110px}
+  .scan-table-multi col.c-dth-tgl{width:72px}
+  .scan-table-multi col.c-dth-ket{width:110px}
+  .scan-table-multi col.c-ar-tgl{width:72px}
+  .scan-table-multi col.c-ar-ket{width:110px}
 
   /* Header grup (baris 1: colspan) rata tengah */
   .scan-table-multi thead tr:first-child th{text-align:center;letter-spacing:.02em}
@@ -529,7 +529,11 @@
   html[data-theme="dark"] .scan-table tbody tr:hover{background:#1e3a5f!important}
   html[data-theme="dark"] .scan-table tfoot td{background:#422006!important;color:#fef3c7!important}
   html[data-theme="dark"] .scan-table-multi{background:#0f172a!important;color:#e2e8f0!important}
-  html[data-theme="dark"] .scan-table-multi th{background:#1e3a5f!important;color:#fff!important;border-color:#1e3a5f}
+  /* Jangan paksa semua th jadi biru — pertahankan warna grup header */
+  html[data-theme="dark"] .scan-table-multi th.h-pen{background:#3b7ab5!important;color:#fff!important;border-color:#2d5f8a}
+  html[data-theme="dark"] .scan-table-multi th.h-um{background:#a87a96!important;color:#fff!important;border-color:#8a6078}
+  html[data-theme="dark"] .scan-table-multi th.h-dth{background:#c98e2e!important;color:#1f2733!important;border-color:#a87420}
+  html[data-theme="dark"] .scan-table-multi th.h-ar{background:#c9a83a!important;color:#1f2733!important;border-color:#a88c28}
   html[data-theme="dark"] .scan-table-multi td{border-bottom-color:#334155!important;color:#e2e8f0!important}
   html[data-theme="dark"] .scan-table-multi td.pen-no,.scan-table-multi td.pen-tgl,.scan-table-multi td.pen-faktur,.scan-table-multi td.pen-sales,.scan-table-multi td.pen-nom,.scan-table-multi td.pen-bayar,.scan-table-multi td.pen-cust,.scan-table-multi td.pen-alamat{background:#1a2f4a!important}
   html[data-theme="dark"] .scan-table-multi td.um-tgl,.scan-table-multi td.um-nom,.scan-table-multi td.um-ket{background:#3a2a35!important}
