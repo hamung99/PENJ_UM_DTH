@@ -3365,11 +3365,19 @@ function openFakturModal(pageKey, idx){
           titip: {bg:'#fef3c7', fg:'#b45309', bd:'#fcd34d'},
           lunas: {bg:'#dcfce7', fg:'#15803d', bd:'#86efac'}
         };
+        // Jika arPos masih kosong, gunakan fallback dari nominal/sisa atau tandai sebagai BELUM LUNAS
+        if(!arPos && r.ar.nominal && r.ar.sisa!==null){
+          const nom = Number(r.ar.nominal)||0;
+          const sisa = Number(r.ar.sisa);
+          if(sisa<=0){ arPos='SUDAH LUNAS'; arPosCls='lunas'; }
+          else if(nom>0 && sisa<nom){ arPos='BAYAR TITIP'; arPosCls='titip'; }
+          else { arPos='BELUM LUNAS'; arPosCls='belum'; }
+        } else if(!arPos){
+          arPos = 'BELUM LUNAS'; arPosCls = 'belum'; // Default fallback
+        }
         const pc = posColors[arPosCls] || posColors.belum;
         html += '<div><label>Tgl AR</label><b>'+escScan(formatScanDate(r.ar.tanggal))+'</b></div>';
-        if(arPos){
-          html += '<div><label>Posisi di Rekap AR</label><b><span style="display:inline-block;background:'+pc.bg+';color:'+pc.fg+';border:1px solid '+pc.bd+';padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.02em">'+escScan(arPos)+'</span></b></div>';
-        }
+        html += '<div><label>Posisi di Rekap AR</label><b><span style="display:inline-block;background:'+pc.bg+';color:'+pc.fg+';border:1px solid '+pc.bd+';padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.02em">'+escScan(arPos)+'</span></b></div>';
         if(r.ar.sisa!=null){
           html += '<div><label>Sisa AR</label><b>'+rupiahScan(r.ar.sisa)+'</b></div>';
         }
