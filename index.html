@@ -160,9 +160,10 @@
   .scan-wrap{flex:1;min-height:0;display:flex;flex-direction:column;background:#fff;padding:10px 14px 12px}
   .scan-toolbar{display:flex;gap:6px;justify-content:center;align-items:center;margin:0 0 10px;flex-wrap:wrap}
   .scan-action{display:flex;align-items:center;gap:6px}
-  #btnScanData{appearance:none;border:1px solid #94a3b8;background:#fff;color:#1e293b;padding:5px 14px;min-width:110px;font-size:12px;font-weight:600;cursor:pointer;border-radius:6px;line-height:1.25}
-  #btnScanData:hover{background:#f1f5f9}
+  #btnScanData{appearance:none;border:1px solid #1e3a5f;background:#1e3a5f;color:#fff;padding:5px 14px;min-width:110px;height:32px;font-size:12px;font-weight:700;cursor:pointer;border-radius:6px;line-height:1.25;white-space:nowrap}
+  #btnScanData:hover{background:#16304f;border-color:#16304f}
   #btnScanData:disabled{opacity:.55;cursor:wait}
+  #metaExportWrap #btnScanData{align-self:flex-end}
   .kandidat-bar{
     margin:0 0 8px;display:flex;flex-direction:column;gap:6px;
   }
@@ -292,6 +293,30 @@
   #scan-sumber-data > .scan-sub-toolbar{display:none}
   #metaExportWrap{align-items:flex-end;margin-left:auto;flex-shrink:0;display:flex;gap:8px;flex-wrap:wrap}
   #metaExportWrap .btn-export-excel{height:32px;padding:5px 14px;font-size:12px;white-space:nowrap}
+  .scan-gear-wrap{position:relative;display:inline-flex;align-items:flex-end}
+  .btn-scan-gear{
+    appearance:none;width:32px;height:32px;padding:0;border-radius:6px;cursor:pointer;
+    border:1px solid #94a3b8;background:#fff;color:#334155;font-size:16px;line-height:1;
+    display:inline-flex;align-items:center;justify-content:center;
+    transition:background .15s,border-color .15s,box-shadow .15s;
+  }
+  .btn-scan-gear:hover{background:#f1f5f9;border-color:#64748b}
+  .btn-scan-gear.open{background:#1e3a5f;color:#fff;border-color:#1e3a5f}
+  .scan-gear-menu{
+    display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:1200;
+    min-width:180px;padding:8px;background:#fff;border:1px solid #dce4f0;border-radius:8px;
+    box-shadow:0 8px 24px rgba(15,23,42,.16);
+  }
+  .scan-gear-menu.open{display:block}
+  .scan-gear-menu .btn-export-excel{width:100%;justify-content:flex-start}
+  html[data-theme="dark"] .btn-scan-gear{
+    background:#1e293b!important;color:#e2e8f0!important;border-color:#475569!important;
+  }
+  html[data-theme="dark"] .btn-scan-gear:hover{background:#334155!important}
+  html[data-theme="dark"] .btn-scan-gear.open{background:#1e3a5f!important;color:#93c5fd!important;border-color:#334155!important}
+  html[data-theme="dark"] .scan-gear-menu{
+    background:#1e293b!important;border-color:#334155!important;color:#e2e8f0!important;
+  }
   .btn-pen-um-kosong{
     appearance:none;height:32px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;
     border-radius:6px;white-space:nowrap;line-height:1.25;
@@ -387,21 +412,21 @@
   .scan-table-multi thead tr:first-child th{text-align:center;letter-spacing:.02em;top:0;height:26px;box-sizing:border-box;z-index:11}
   .scan-table-multi thead tr:nth-child(2) th{top:26px;z-index:10;font-size:10px;letter-spacing:0;line-height:1.2;padding:5px 3px}
 
-  /* Header Penjualan (biru) */
-  .scan-table-multi th.h-pen{background:#4A8BC2;color:#fff}
-  .scan-table-multi td.pen-no,.scan-table-multi td.pen-tgl,.scan-table-multi td.pen-faktur,.scan-table-multi td.pen-sales,.scan-table-multi td.pen-nom,.scan-table-multi td.pen-bayar,.scan-table-multi td.pen-cust,.scan-table-multi td.pen-alamat{background:#E8F1F8}
+  /* Header Penjualan (biru muda) */
+  .scan-table-multi th.h-pen{background:#5B9BD5;color:#fff}
+  .scan-table-multi td.pen-no,.scan-table-multi td.pen-tgl,.scan-table-multi td.pen-faktur,.scan-table-multi td.pen-sales,.scan-table-multi td.pen-nom,.scan-table-multi td.pen-bayar,.scan-table-multi td.pen-cust,.scan-table-multi td.pen-alamat{background:#E7F0F8}
   
-  /* Header Uang Masuk (mauve/dusty rose) */
-  .scan-table-multi th.h-um{background:#C48BA8;color:#fff}
-  .scan-table-multi td.um-tgl,.scan-table-multi td.um-nom,.scan-table-multi td.um-ket{background:#F6EAF0}
+  /* Header Uang Masuk (pink/salmon) */
+  .scan-table-multi th.h-um{background:#D9A8C4;color:#fff}
+  .scan-table-multi td.um-tgl,.scan-table-multi td.um-nom,.scan-table-multi td.um-ket{background:#F5E5ED}
   
-  /* Header DTH (oranye) */
-  .scan-table-multi th.h-dth{background:#F59E0B;color:#fff}
-  .scan-table-multi td.dth-tgl,.scan-table-multi td.dth-ket{background:#FEF3E0}
+  /* Header DTH (orange) */
+  .scan-table-multi th.h-dth{background:#F8B84F;color:#1f2733}
+  .scan-table-multi td.dth-tgl,.scan-table-multi td.dth-ket{background:#FEF2E5}
   
-  /* Header Rekap AR (teal) */
-  .scan-table-multi th.h-ar{background:#14B8A6;color:#fff}
-  .scan-table-multi td.ar-tgl,.scan-table-multi td.ar-ket{background:#E6FAF7}
+  /* Header Rekap AR (kuning) */
+  .scan-table-multi th.h-ar{background:#FFD966;color:#1f2733}
+  .scan-table-multi td.ar-tgl,.scan-table-multi td.ar-ket{background:#FFFAEB}
   
   .scan-empty{text-align:center;color:#64748b;padding:28px 12px;font-size:13px}
   /* Stempel miring hanya untuk konteks non-tabel; di tabel pakai pill ringkas */
@@ -506,7 +531,8 @@
   html[data-theme="dark"] .scan-tabs button{background:#1e293b;color:#cbd5e1;border-color:#475569}
   html[data-theme="dark"] .scan-tabs button.active{background:#1e3a5f;color:#93c5fd;border-color:#334155}
   html[data-theme="dark"] .scan-tabs button:hover{background:#1e3a5f;border-color:#60a5fa}
-  html[data-theme="dark"] #btnScanData{background:#1e293b;color:#e2e8f0;border-color:#475569}
+  html[data-theme="dark"] #btnScanData{background:#1e3a5f;color:#93c5fd;border-color:#334155}
+  html[data-theme="dark"] #btnScanData:hover{background:#254a75;border-color:#3b5f8a}
   html[data-theme="dark"] .scan-filters select,
   html[data-theme="dark"] .scan-month-btn,
   html[data-theme="dark"] .kandidat-bar-row select,
@@ -548,14 +574,14 @@
   html[data-theme="dark"] .scan-table-multi{background:#0f172a!important;color:#e2e8f0!important}
   /* Jangan paksa semua th jadi biru — pertahankan warna grup header */
   html[data-theme="dark"] .scan-table-multi th.h-pen{background:#3b7ab5!important;color:#fff!important;border-color:#2d5f8a}
-  html[data-theme="dark"] .scan-table-multi th.h-um{background:#9a6b85!important;color:#fff!important;border-color:#7a5268}
-  html[data-theme="dark"] .scan-table-multi th.h-dth{background:#d97706!important;color:#fff!important;border-color:#b45309}
-  html[data-theme="dark"] .scan-table-multi th.h-ar{background:#0d9488!important;color:#fff!important;border-color:#0f766e}
+  html[data-theme="dark"] .scan-table-multi th.h-um{background:#a87a96!important;color:#fff!important;border-color:#8a6078}
+  html[data-theme="dark"] .scan-table-multi th.h-dth{background:#c98e2e!important;color:#1f2733!important;border-color:#a87420}
+  html[data-theme="dark"] .scan-table-multi th.h-ar{background:#c9a83a!important;color:#1f2733!important;border-color:#a88c28}
   html[data-theme="dark"] .scan-table-multi td{border-bottom-color:#334155!important;color:#e2e8f0!important}
   html[data-theme="dark"] .scan-table-multi td.pen-no,.scan-table-multi td.pen-tgl,.scan-table-multi td.pen-faktur,.scan-table-multi td.pen-sales,.scan-table-multi td.pen-nom,.scan-table-multi td.pen-bayar,.scan-table-multi td.pen-cust,.scan-table-multi td.pen-alamat{background:#1a2f4a!important}
   html[data-theme="dark"] .scan-table-multi td.um-tgl,.scan-table-multi td.um-nom,.scan-table-multi td.um-ket{background:#3a2a35!important}
-  html[data-theme="dark"] .scan-table-multi td.dth-tgl,.scan-table-multi td.dth-ket{background:#3a2a12!important}
-  html[data-theme="dark"] .scan-table-multi td.ar-tgl,.scan-table-multi td.ar-ket{background:#12352f!important}
+  html[data-theme="dark"] .scan-table-multi td.dth-tgl,.scan-table-multi td.dth-ket{background:#3a2f1a!important}
+  html[data-theme="dark"] .scan-table-multi td.ar-tgl,.scan-table-multi td.ar-ket{background:#3a3a1a!important}
   html[data-theme="dark"] .scan-table-multi tbody tr:hover{background:#1e3a5f!important}
   html[data-theme="dark"] .scan-empty{color:#94a3b8}
   html[data-theme="dark"] .scan-faktur-link{color:#93c5fd!important}
@@ -712,17 +738,6 @@
   </div>
   <div class="app-frame-wrap" id="frame-scandata">
     <div class="scan-wrap">
-      <div class="scan-toolbar">
-        <div class="scan-action">
-          <button type="button" id="btnScanData" onclick="scanDataRun()">SCAN DATA</button>
-        </div>
-        <div class="scan-tabs" id="scanSubTabs">
-          <button type="button" class="active" onclick="switchScanSubTab(this,'scan-sumber-data')">
-            📊 Sumber Data
-          </button>
-        </div>
-      </div>
-
       <div class="scan-meta-row" id="scanMetaRow">
         <div class="scan-filters" id="scanFilters">
           <div class="fg">
@@ -770,10 +785,16 @@
         </div>
         <div class="fg fg-btn" id="metaExportWrap" style="display:flex">
           <label>&nbsp;</label>
+          <button type="button" id="btnScanData" onclick="scanDataRun()">SCAN DATA</button>
           <button type="button" class="btn-pen-um-kosong" id="btnPenAdaUmKosong" onclick="togglePenAdaUmKosong()" title="Tampilkan hanya Penjualan yang belum ada di Uang Masuk — prioritas cek manual">
             ⚠ Penjualan Ada · UM Kosong
           </button>
-          <button type="button" class="btn-export-excel" id="btnExportSumberData" onclick="exportSumberDataExcel()">⬇️ Download Excel</button>
+          <div class="scan-gear-wrap" id="scanGearWrap">
+            <button type="button" class="btn-scan-gear" id="btnScanGear" onclick="toggleScanGearMenu(event)" title="Opsi" aria-label="Opsi">⚙️</button>
+            <div class="scan-gear-menu" id="scanGearMenu" onclick="event.stopPropagation()">
+              <button type="button" class="btn-export-excel" id="btnExportSumberData" onclick="exportSumberDataExcel(); closeScanGearMenu();">⬇️ Download Excel</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1122,6 +1143,29 @@ function switchScanSubTab(btn, targetId){
     renderSumberDataTable();
   }
 }
+
+function toggleScanGearMenu(ev){
+  if(ev){ ev.preventDefault(); ev.stopPropagation(); }
+  const btn = document.getElementById('btnScanGear');
+  const menu = document.getElementById('scanGearMenu');
+  if(!btn || !menu) return;
+  const open = !menu.classList.contains('open');
+  closeScanGearMenu();
+  if(open){
+    menu.classList.add('open');
+    btn.classList.add('open');
+  }
+}
+function closeScanGearMenu(){
+  const btn = document.getElementById('btnScanGear');
+  const menu = document.getElementById('scanGearMenu');
+  if(menu) menu.classList.remove('open');
+  if(btn) btn.classList.remove('open');
+}
+document.addEventListener('click', function(e){
+  const wrap = document.getElementById('scanGearWrap');
+  if(wrap && !wrap.contains(e.target)) closeScanGearMenu();
+});
 
 
 /* __B64_PENJUALAN__ dan __B64_UANGMASUK__ akan digantikan dengan data base64
