@@ -2687,6 +2687,9 @@ function populateSumberDataList(){
     penHits.forEach(x=>{ if(x.produk) penProdSet.add(String(x.produk).trim()); });
     const penProdList = [...penProdSet];
     const penProdKat = produkKategoriFromSet(penProdSet);
+    // Faktur Penjualan dengan Nominal Rp 0 dianggap transaksi BATAL —
+    // dikeluarkan total dari tabel Sumber Data & dari semua perhitungan/total.
+    if(p && !penNom) return;
     rows.push({
       rowType: p?'gabungan':(umHits.length?'um-only':(dth?'dth-only':'ar-only')),
       tanggal:p?.tanggal||umHits[0]?.tanggal||dth?.tanggal||ar?.tanggal||'',
@@ -2728,7 +2731,7 @@ function populateSumberDataList(){
     um:null,dth:null,ar:{tanggal:r.tanggal||'',keterangan:[r.customer,r.alamat,r.sales,r.nominal!=null?rupiahScan(r.nominal):'',r.keterangan].filter(Boolean).join(' · '),nominal:num(r.nominal)},
     sortDate:parseScanDate(r.tanggal)||new Date(0)
   });
-  penIdx.noFakturRows.forEach(noFakturPushPen);
+  penIdx.noFakturRows.forEach(r=>{ if(num(r.total)) noFakturPushPen(r); });
   umIdx.noFakturRows.forEach(noFakturPushUm);
   dthIdx.noFakturRows.forEach(noFakturPushDth);
   arIdx.noFakturRows.forEach(noFakturPushAr);
