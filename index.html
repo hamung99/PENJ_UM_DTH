@@ -767,6 +767,15 @@
             </select>
           </div>
           <div class="fg">
+            <label for="fltSumberKondisi">Kondisi Data</label>
+            <select id="fltSumberKondisi" onchange="applyScanFilters()" title="Filter kombinasi Penjualan vs Uang Masuk">
+              <option value="">Semua kondisi</option>
+              <option value="pen-ada-um-kosong">Penjualan Ada · UM Kosong</option>
+              <option value="pen-ada-um-ada">Penjualan Ada · UM Ada</option>
+              <option value="pen-kosong-um-ada">Penjualan Kosong · UM Ada</option>
+            </select>
+          </div>
+          <div class="fg">
             <label for="fltBulanUmBtn">Bulan UM</label>
             <div class="scan-month-dropdown" id="scanMonthUmDropdown">
               <button type="button" class="scan-month-btn" id="fltBulanUmBtn" onclick="toggleScanUmMonthDropdown(event)">Semua bulan UM</button>
@@ -1836,7 +1845,7 @@ function populateScanFilterOptions(){
 }
 
 function resetScanFilters(){
-  ['fltPembayaran','fltSales','fltBulanUM','fltCariKandidat','fltCariSumberData','fltCariScan',
+  ['fltPembayaran','fltSales','fltSumberKondisi','fltBulanUM','fltCariKandidat','fltCariSumberData','fltCariScan',
    'fltStatusJT','fltSalesTidak','fltDiDTH','fltProdukTidak',
    'fltSalesAda','fltJenisUmAda','fltProdukAda','fltStatusAda','fltSalesUmOnly','fltJenisUmOnly'
   ].forEach(id=>{
@@ -2842,6 +2851,7 @@ function applySumberDataFilters(){
   const fBulanPen=[...(document.getElementById('fltBulanPenj')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
   const fBayar=(document.getElementById('fltPembayaran')||{}).value||'';
   const fSales=(document.getElementById('fltSales')||{}).value||'';
+  const fKondisi=(document.getElementById('fltSumberKondisi')||{}).value||'';
   const fBulanUM=[...(document.getElementById('fltBulanUM')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
   const fCari=String(
     (document.getElementById('fltCariScan')||{}).value ||
@@ -2862,6 +2872,17 @@ function applySumberDataFilters(){
   if(fSales){
     const ns = normScan(fSales);
     out = out.filter(r => normScan(r.sales) === ns);
+  }
+  // Kondisi: Penjualan vs Uang Masuk. DTH & Rekap AR tidak dibatasi (boleh ada/tidak).
+  if(fKondisi){
+    out = out.filter(r=>{
+      const hasPen = r.rowType === 'gabungan' || !!(r.noFaktur && (r.nominalFaktur || r.pembayaran || r.customer || r.alamat || r.sales));
+      const hasUm = !!r.um;
+      if(fKondisi === 'pen-ada-um-kosong') return hasPen && !hasUm;
+      if(fKondisi === 'pen-ada-um-ada') return hasPen && hasUm;
+      if(fKondisi === 'pen-kosong-um-ada') return !hasPen && hasUm;
+      return true;
+    });
   }
   if(fBulanUM.length){
     const set = new Set(fBulanUM);
