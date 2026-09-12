@@ -2582,12 +2582,14 @@ function readSumberDataAR(){
     };
     const mapObj=o=>({
       faktur:String(pick(o,['No_Faktur','No Faktur','No. Faktur','no_faktur','faktur','invoice'])||'').trim(),
-      tanggal:pick(o,['Tanggal','Tanggal_AR','Tgl','Tanggal Bayar','Tanggal Transaksi','tanggal']),
+      tanggal:pick(o,['Tanggal','Tanggal_AR','Tgl Faktur','Tgl','Tanggal Bayar','Tanggal Transaksi','tanggal']),
       sales:String(pick(o,['Sales','Salesman','sales','salesman'])||'').trim(),
       customer:String(pick(o,['Customer','Nama_Toko','Nama Toko','Toko','Outlet','customer'])||'').trim(),
       alamat:String(pick(o,['Alamat','address','alamat'])||'').trim(),
-      nominal:pick(o,['Nominal','Total','Tagihan','Sisa','Jumlah','nominal','total','tagihan']),
-      keterangan:String(pick(o,['Keterangan','Ket','Status','keterangan','ket'])||'').trim()
+      nominal:pick(o,['Nominal','Total','Tagihan','Jumlah','nominal','total','tagihan']),
+      sisa:pick(o,['Sisa','Sisa Tagihan','Sisa Nominal','sisa']),
+      status:String(pick(o,['Status','STATUS','Status AR','status_ar','status'])||'').trim(),
+      keterangan:String(pick(o,['Keterangan','Ket','keterangan','ket'])||'').trim()
     });
 
     // 2) Coba array data yang lazim dipakai aplikasi AR.
@@ -2612,12 +2614,14 @@ function readSumberDataAR(){
       const headerCells=[...trs[0].querySelectorAll('th,td')].map(x=>String(x.textContent||'').trim());
       const idx={
         faktur:headerCells.findIndex(h=>/no\.?\s*faktur|invoice/i.test(h)),
-        tanggal:headerCells.findIndex(h=>/tanggal|tgl/i.test(h)),
+        tanggal:headerCells.findIndex(h=>/tgl\s*faktur|tanggal\s*faktur|^tanggal$|^tgl$/i.test(h)),
         sales:headerCells.findIndex(h=>/sales|salesman/i.test(h)),
         customer:headerCells.findIndex(h=>/customer|toko|outlet|nama/i.test(h)),
         alamat:headerCells.findIndex(h=>/alamat|address/i.test(h)),
-        nominal:headerCells.findIndex(h=>/nominal|total|tagihan|jumlah|sisa/i.test(h)),
-        ket:headerCells.findIndex(h=>/keterangan|ket|status/i.test(h))
+        nominal:headerCells.findIndex(h=>/^nominal$|total|tagihan|jumlah/i.test(h) && !/sisa/i.test(h)),
+        sisa:headerCells.findIndex(h=>/^sisa$|sisa\s*tagihan|sisa\s*nominal/i.test(h)),
+        status:headerCells.findIndex(h=>/^status$|status\s*ar/i.test(h)),
+        ket:headerCells.findIndex(h=>/keterangan|^ket$/i.test(h))
       };
       if(idx.faktur<0 && idx.customer<0 && idx.nominal<0) continue;
       const out=[];
@@ -2625,7 +2629,7 @@ function readSumberDataAR(){
         const c=[...tr.querySelectorAll('td')].map(x=>String(x.textContent||'').trim());
         if(!c.length) return;
         const val=i=>i>=0?c[i]:'';
-        const r={faktur:val(idx.faktur),tanggal:val(idx.tanggal),sales:val(idx.sales),customer:val(idx.customer),alamat:val(idx.alamat),nominal:val(idx.nominal),keterangan:val(idx.ket)};
+        const r={faktur:val(idx.faktur),tanggal:val(idx.tanggal),sales:val(idx.sales),customer:val(idx.customer),alamat:val(idx.alamat),nominal:val(idx.nominal),sisa:val(idx.sisa),status:val(idx.status),keterangan:val(idx.ket)};
         if(r.faktur||r.customer||r.alamat||r.nominal) out.push(r);
       });
       if(out.length) return out;
@@ -2703,7 +2707,7 @@ function populateSumberDataList(){
       produkList:penProdList,
       um:umHits.length?{tanggal:umHits[0].tanggal||'',nominal:umTotal,keterangan:umHits.map(x=>[x.customer,x.alamat,x.sales,x.jenis].filter(Boolean).join(' · ')).filter(Boolean).join(' | '),count:umHits.length}:null,
       dth:dth?{tanggal:dth.tanggal||dth.tanggal_dropping||'',keterangan:[dth.faktur,dth.nama_outlet,dth.salesman,dth.tagihan!=null?rupiahScan(dth.tagihan):'',dth.ket].filter(Boolean).join(' · '),nominal:num(dth.tagihan)}:null,
-      ar:ar?{tanggal:ar.tanggal||'',keterangan:[ar.faktur,ar.customer,ar.alamat,ar.sales,ar.nominal!=null?rupiahScan(ar.nominal):'',ar.keterangan].filter(Boolean).join(' · '),nominal:num(ar.nominal)}:null,
+      ar:ar?{tanggal:ar.tanggal||'',keterangan:[ar.faktur,ar.customer,ar.alamat,ar.sales,ar.nominal!=null?rupiahScan(ar.nominal):'',ar.keterangan].filter(Boolean).join(' · '),nominal:num(ar.nominal),sisa:ar.sisa!=null&&ar.sisa!==''?num(ar.sisa):null,status:String(ar.status||'').trim()}:null,
       sortDate:parseScanDate(p?.tanggal||umHits[0]?.tanggal||dth?.tanggal||ar?.tanggal)||new Date(0)
     });
   });
@@ -2728,7 +2732,7 @@ function populateSumberDataList(){
   });
   const noFakturPushAr = r => rows.push({
     rowType:'ar-only',tanggal:'',noFaktur:'',sales:'',nominalFaktur:0,pembayaran:'',customer:'',alamat:'',
-    um:null,dth:null,ar:{tanggal:r.tanggal||'',keterangan:[r.customer,r.alamat,r.sales,r.nominal!=null?rupiahScan(r.nominal):'',r.keterangan].filter(Boolean).join(' · '),nominal:num(r.nominal)},
+    um:null,dth:null,ar:{tanggal:r.tanggal||'',keterangan:[r.customer,r.alamat,r.sales,r.nominal!=null?rupiahScan(r.nominal):'',r.keterangan].filter(Boolean).join(' · '),nominal:num(r.nominal),sisa:r.sisa!=null&&r.sisa!==''?num(r.sisa):null,status:String(r.status||'').trim()},
     sortDate:parseScanDate(r.tanggal)||new Date(0)
   });
   penIdx.noFakturRows.forEach(r=>{ if(num(r.total)) noFakturPushPen(r); });
@@ -3337,7 +3341,41 @@ function openFakturModal(pageKey, idx){
         html += '<div style="grid-column:1/-1"><label>Keterangan DTH</label><b>'+escScan(r.dth.keterangan||'-')+'</b></div>';
       }
       if(r.ar){
+        // Normalisasi posisi di Rekap AR: BELUM LUNAS / BAYAR TITIP / SUDAH LUNAS
+        // Sumber: kolom STATUS Rekap AR, fallback sisa vs nominal, lalu teks keterangan.
+        const rawSt = String(r.ar.status||'').trim();
+        const ketSt = String(r.ar.keterangan||'').trim();
+        const stUp = (rawSt || ketSt).toUpperCase().replace(/\s+/g,' ');
+        let arPos = '';
+        let arPosCls = '';
+        if(/BELUM\s*LUNAS|BELUM\s*BAYAR|UNPAID/i.test(stUp)){ arPos='BELUM LUNAS'; arPosCls='belum'; }
+        else if(/BAYAR\s*TITIP|\bTITIP\b|PARTIAL|SEBAGIAN/i.test(stUp)){ arPos='BAYAR TITIP'; arPosCls='titip'; }
+        else if(/SUDAH\s*LUNAS|\bLUNAS\b|\bPAID\b/i.test(stUp) && !/BELUM/i.test(stUp)){ arPos='SUDAH LUNAS'; arPosCls='lunas'; }
+        else if(r.ar.sisa!=null){
+          const nom = Number(r.ar.nominal)||0;
+          const sisa = Number(r.ar.sisa);
+          if(sisa<=0){ arPos='SUDAH LUNAS'; arPosCls='lunas'; }
+          else if(nom>0 && sisa<nom){ arPos='BAYAR TITIP'; arPosCls='titip'; }
+          else { arPos='BELUM LUNAS'; arPosCls='belum'; }
+        } else if(rawSt){
+          arPos = rawSt; arPosCls = 'belum';
+        }
+        const posColors = {
+          belum: {bg:'#fee2e2', fg:'#b91c1c', bd:'#fca5a5'},
+          titip: {bg:'#fef3c7', fg:'#b45309', bd:'#fcd34d'},
+          lunas: {bg:'#dcfce7', fg:'#15803d', bd:'#86efac'}
+        };
+        const pc = posColors[arPosCls] || posColors.belum;
         html += '<div><label>Tgl AR</label><b>'+escScan(formatScanDate(r.ar.tanggal))+'</b></div>';
+        if(arPos){
+          html += '<div><label>Posisi di Rekap AR</label><b><span style="display:inline-block;background:'+pc.bg+';color:'+pc.fg+';border:1px solid '+pc.bd+';padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.02em">'+escScan(arPos)+'</span></b></div>';
+        }
+        if(r.ar.sisa!=null){
+          html += '<div><label>Sisa AR</label><b>'+rupiahScan(r.ar.sisa)+'</b></div>';
+        }
+        if(r.ar.nominal!=null && r.ar.nominal!==''){
+          html += '<div><label>Nominal AR</label><b>'+rupiahScan(r.ar.nominal)+'</b></div>';
+        }
         html += '<div style="grid-column:1/-1"><label>Keterangan AR</label><b>'+escScan(r.ar.keterangan||'-')+'</b></div>';
       }
       html += '</div>';
