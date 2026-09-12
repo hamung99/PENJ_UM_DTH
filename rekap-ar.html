@@ -2198,6 +2198,7 @@ initTheme();
 // Dipanggil dari index.html (populateSumberDataList) lewat iframe#iframe-rekap-ar.
 window.__SCAN_GET_AR = function(){
   try {
+    const STATUS_TEXT = {belum:'BELUM LUNAS', titip:'BAYAR TITIP', lunas:'SUDAH LUNAS'};
     return allRows().map(function(r){
       const d = excelSerialToDate(r.tglFaktur);
       const tanggal = d ? fmtDateFromDateObj(d) : '';
@@ -2208,6 +2209,8 @@ window.__SCAN_GET_AR = function(){
         alamat: r.alamat || '',
         sales: r.sales || '',
         nominal: r.nominal || 0,
+        sisa: (typeof r.sisaRiil === 'number') ? r.sisaRiil : null,
+        status: STATUS_TEXT[r.kategori] || '',
         keterangan: r.keterangan || ''
       };
     });
