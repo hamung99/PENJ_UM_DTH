@@ -493,54 +493,6 @@
     #scanFakturModal .sfm-box{max-height:94vh}
   }
 
-  /* ===== ANALISA DTH ↔ UANG MASUK ===== */
-  .dthu-wrap{flex:1;min-height:0;overflow:auto;background:#f6f8fc;padding:10px 12px 14px;color:#172033;font-family:'Segoe UI',Arial,sans-serif}
-  .dthu-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
-  .dthu-title{font-size:15px;font-weight:800;color:#1f4e78;line-height:1.2}
-  .dthu-subtitle{font-size:10.5px;color:#64748b;margin-top:2px}
-  .dthu-refresh,.dthu-reset{border:1px solid #cbd5e1;background:#fff;color:#334155;border-radius:6px;padding:5px 9px;font-size:10.5px;font-weight:700;cursor:pointer}
-  .dthu-refresh:hover,.dthu-reset:hover{background:#f1f5f9}
-
-  /* Kartu dibuat tipis dan langsung satu level — tidak ada card di dalam card. */
-  .dthu-summary{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px;margin-bottom:8px}
-  .dthu-card{min-width:0;background:#fff;border:1px solid #dbe3ed;border-left:3px solid #94a3b8;border-radius:6px;padding:6px 8px;box-shadow:none;height:58px;box-sizing:border-box}
-  .dthu-card span{display:block;font-size:9.5px;color:#64748b;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .dthu-card b{display:block;font-size:14px;line-height:1.15;margin-top:3px;color:#172033;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .dthu-card small{display:block;font-size:9px;color:#94a3b8;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .dthu-card.total{border-left-color:#1f4e78}.dthu-card.total b{color:#1f4e78}
-  .dthu-card.paid{border-left-color:#16a34a}.dthu-card.paid b{color:#15803d}
-  .dthu-card.unpaid{border-left-color:#dc2626}.dthu-card.unpaid b{color:#b91c1c}
-  .dthu-card.partial{border-left-color:#d97706}.dthu-card.partial b{color:#b45309}
-  .dthu-card.collect{border-left-color:#2563eb}.dthu-card.collect b{color:#1d4ed8}
-  .dthu-card.um{border-left-color:#0891b2}.dthu-card.um b{color:#0e7490}
-  .dthu-card.umcount{border-left-color:#7c3aed}.dthu-card.umcount b{color:#6d28d9}
-  .dthu-card.remaining{border-left-color:#ea580c}.dthu-card.remaining b{color:#c2410c}
-
-  /* Filter sengaja diletakkan SETELAH cards. BUKAN card/container: hanya baris kontrol filter. */
-  .dthu-filter-bar{background:transparent;border:0;border-radius:0;padding:0;margin:2px 0 8px;display:flex;align-items:end;gap:7px;flex-wrap:wrap;box-shadow:none}
-  .dthu-field{min-width:145px;flex:1 1 150px}
-  .dthu-field label{display:block;font-size:9.5px;color:#64748b;font-weight:700;margin:0 0 3px 1px}
-  .dthu-field select,.dthu-field input{width:100%;height:29px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#334155;padding:0 7px;font-size:10.5px;outline:none;box-sizing:border-box}
-  .dthu-field select:focus,.dthu-field input:focus{border-color:#7aa7d7;box-shadow:0 0 0 2px rgba(37,81,142,.08)}
-  .dthu-field-search{min-width:200px;flex:1 1 220px}
-  .dthu-reset{height:29px;flex:0 0 auto}
-
-  .dthu-table-box{background:#fff;border:1px solid #dbe3ed;border-radius:6px;overflow:hidden;box-shadow:none}
-  .dthu-table-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 9px;border-bottom:1px solid #e5eaf1;background:#f8fafc;font-size:11px;color:#1f4e78}
-  .dthu-table-head span{font-size:9.5px;color:#64748b;font-weight:500}
-  .dthu-table-scroll{overflow:auto;max-height:calc(100vh - 225px);min-height:180px}
-  .dthu-table{width:100%;border-collapse:collapse;min-width:1040px;font-size:10.5px}
-  .dthu-table th{position:sticky;top:0;z-index:2;background:#1f4e78;color:#fff;text-align:left;padding:7px 7px;border-right:1px solid rgba(255,255,255,.16);white-space:nowrap;font-weight:700}
-  .dthu-table td{padding:6px 7px;border-bottom:1px solid #e5eaf1;color:#273449;white-space:nowrap}
-  .dthu-table tbody tr:hover{background:#f8fbff}
-  .dthu-table .num{text-align:right;font-variant-numeric:tabular-nums}
-  .dthu-table .sisa{font-weight:800}
-  .dthu-badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 6px;font-size:9px;font-weight:800;border:1px solid transparent}
-  .dthu-badge.paid{background:#dcfce7;color:#15803d;border-color:#86efac}.dthu-badge.unpaid{background:#fee2e2;color:#b91c1c;border-color:#fca5a5}.dthu-badge.partial{background:#fef3c7;color:#b45309;border-color:#fcd34d}.dthu-badge.collect{background:#dbeafe;color:#1d4ed8;border-color:#93c5fd}
-  .dthu-empty{display:flex;align-items:center;justify-content:center;min-height:180px;color:#94a3b8;font-size:11px}
-  .dthu-note{font-size:9.5px;color:#64748b;margin-top:6px;line-height:1.4}
-  @media(max-width:1200px){.dthu-summary{grid-template-columns:repeat(4,minmax(0,1fr))}.dthu-table-scroll{max-height:calc(100vh - 270px)}}
-  @media(max-width:700px){.dthu-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.dthu-field{min-width:100%;flex-basis:100%}}
 
   /* ===== THEME: LIGHT (default) / DARK ===== */
   html[data-theme="dark"]{
@@ -620,17 +572,6 @@
   html[data-theme="dark"] .scan-filters .btn-reset{background:#1e293b!important;color:#e2e8f0!important;border-color:#475569!important}
   html[data-theme="dark"] .kandidat-bulk{background:#450a0a;border-color:#7f1d1d;color:#fecaca}
   html[data-theme="dark"] .kandidat-nol-bar{background:#431407;border-color:#9a3412;color:#fed7aa}
-  html[data-theme="dark"] .dthu-wrap{background:#0f172a;color:#e2e8f0}
-  html[data-theme="dark"] .dthu-title{color:#93c5fd}
-  html[data-theme="dark"] .dthu-card{background:#1e293b;border-color:#334155}
-  html[data-theme="dark"] .dthu-card span{color:#94a3b8}
-  html[data-theme="dark"] .dthu-card b{color:#f1f5f9}
-  html[data-theme="dark"] .dthu-field select,html[data-theme="dark"] .dthu-field input,.dthu-refresh,.dthu-reset{background:#1e293b;color:#e2e8f0;border-color:#475569}
-  html[data-theme="dark"] .dthu-table-box{background:#1e293b;border-color:#334155}
-  html[data-theme="dark"] .dthu-table-head{background:#0f172a;border-bottom-color:#334155;color:#93c5fd}
-  html[data-theme="dark"] .dthu-table th{background:#1e3a5f}
-  html[data-theme="dark"] .dthu-table td{border-bottom-color:#334155;color:#e2e8f0}
-  html[data-theme="dark"] .dthu-table tbody tr:hover{background:#1e3a5f}
   html[data-theme="dark"] #backupMenuPanel{background:#1e293b;color:#e2e8f0}
   html[data-theme="dark"] #backupMenuPanel button{background:#0f172a;color:#e2e8f0;border-color:#475569}
   html[data-theme="dark"] #backupMenuPanel button.primary{background:#2563eb;border-color:#2563eb;color:#fff}
@@ -707,9 +648,6 @@
     </button>
     <button type="button" data-target="frame-dth" onclick="switchTab(this,'frame-dth')">
       <span class="icon">📊</span>Rekap DTH
-    </button>
-    <button type="button" data-target="frame-analisa-dth-um" onclick="switchTab(this,'frame-analisa-dth-um')">
-      <span class="icon">🔗</span>Analisa DTH_UM
     </button>
     <button type="button" data-target="frame-rekap-ar" onclick="switchTab(this,'frame-rekap-ar')">
       <span class="icon">🗂️</span>Rekap AR
@@ -854,45 +792,6 @@
     <iframe id="iframe-dth" title="DTH Dashboard - Droping Harian" style="display:none"></iframe>
   </div>
 
-  <div class="app-frame-wrap" id="frame-analisa-dth-um">
-    <div class="dthu-wrap">
-      <div class="dthu-head">
-        <div>
-          <div class="dthu-title">🔗 Analisa DTH_UM</div>
-          <div class="dthu-subtitle">DTH ↔ Uang Masuk — fokus proses tagihan</div>
-        </div>
-        <button type="button" class="dthu-refresh" onclick="refreshDthUmAnalysis()">↻ Muat Ulang</button>
-      </div>
-
-      <!-- SUMMARY: semua kartu satu level, tipis, tanpa card bersarang -->
-      <div class="dthu-summary">
-        <div class="dthu-card total"><span>Total DTH</span><b id="dthuSumTotal">Rp 0</b><small id="dthuSumTotalMeta">0 faktur</small></div>
-        <div class="dthu-card paid"><span>🟢 Sudah Bayar</span><b id="dthuSumPaid">0</b><small id="dthuSumPaidMeta">Rp 0</small></div>
-        <div class="dthu-card unpaid"><span>🔴 Belum Bayar</span><b id="dthuSumUnpaid">0</b><small id="dthuSumUnpaidMeta">Rp 0</small></div>
-        <div class="dthu-card partial"><span>🟡 Titip / Kurang</span><b id="dthuSumPartial">0</b><small id="dthuSumPartialMeta">Rp 0</small></div>
-        <div class="dthu-card collect"><span>🔵 Tagih Lagi</span><b id="dthuSumCollect">0</b><small id="dthuSumCollectMeta">Rp 0</small></div>
-        <div class="dthu-card um"><span>💰 Total Uang Masuk</span><b id="dthuSumUm">Rp 0</b><small id="dthuSumUmMeta">0 faktur UM</small></div>
-        <div class="dthu-card umcount"><span>💰 Faktur Ada UM</span><b id="dthuSumUmCount">0</b><small id="dthuSumUmCountMeta">dari hasil filter</small></div>
-        <div class="dthu-card remaining"><span>⚠ Sisa Tagihan</span><b id="dthuSumSisa">Rp 0</b><small id="dthuSumSisaMeta">0 faktur</small></div>
-      </div>
-
-      <!-- FILTER DI BAWAH CARDS -->
-      <div class="dthu-filter-bar">
-        <div class="dthu-field dthu-field-search"><label for="dthuFltSearch">Cari No Faktur / Toko</label><input type="text" id="dthuFltSearch" placeholder="Ketik no faktur atau nama toko…" oninput="applyDthUmFilters()"></div>
-        <div class="dthu-field"><label for="dthuFltBulan">Bulan</label><select id="dthuFltBulan" onchange="applyDthUmFilters()"><option value="">Semua Bulan</option></select></div>
-        <div class="dthu-field"><label for="dthuFltTanggal">Tanggal DTH</label><select id="dthuFltTanggal" onchange="applyDthUmFilters()"><option value="">Semua Tanggal</option></select></div>
-        <div class="dthu-field"><label for="dthuFltSales">Sales</label><select id="dthuFltSales" onchange="applyDthUmFilters()"><option value="">Semua Sales</option></select></div>
-        <div class="dthu-field"><label for="dthuFltStatus">Status</label><select id="dthuFltStatus" onchange="applyDthUmFilters()"><option value="">Semua Status</option><option value="paid">🟢 Sudah Bayar</option><option value="unpaid">🔴 Belum Bayar</option><option value="partial">🟡 Titip / Kurang Bayar</option><option value="collect">🔵 Tagih Lagi</option></select></div>
-        <button type="button" class="dthu-reset" onclick="resetDthUmFilters()">Reset</button>
-      </div>
-
-      <div class="dthu-table-box">
-        <div class="dthu-table-head"><b>Rincian Tagihan ↔ Uang Masuk</b><span id="dthuResultInfo">Menunggu data DTH &amp; Uang Masuk…</span></div>
-        <div id="dthuAnalysisTable" class="dthu-table-scroll"><div class="dthu-empty">Memuat analisa DTH ↔ Uang Masuk…</div></div>
-      </div>
-      <div class="dthu-note">Jatuh tempo: <b>Tgl DTH + 12 hari</b>. Jika masih ada sisa setelah jatuh tempo → <b>🔵 Tagih Lagi</b>. Uang Masuk dicocokkan berdasarkan <b>No Faktur</b>. Filter tanggal, sales, atau status akan menghitung ulang seluruh kartu sehingga nilai <b>Tagihan dan Uang Masuk</b> terlihat untuk hasil filter yang sama.</div>
-    </div>
-  </div>
 
   <div class="app-frame-wrap" id="frame-rekap-ar">
     <iframe id="iframe-rekap-ar" title="Rekap AR Minyak &amp; Rupa Rupa"></iframe>
@@ -1085,11 +984,7 @@ function switchTab(btn, targetId){
   var tgt = document.getElementById(targetId);
   if (tgt) tgt.classList.add('active');
   // Lazy-load DTH on first activation
-  if (targetId === 'frame-dth' || targetId === 'frame-analisa-dth-um') ensureDthLoaded();
-  if (targetId === 'frame-analisa-dth-um') {
-    setTimeout(refreshDthUmAnalysis, 120);
-    setTimeout(refreshDthUmAnalysis, 650);
-  }
+  if (targetId === 'frame-dth') ensureDthLoaded();
   // Tampilkan/sembunyikan MENU parent hanya untuk tab Penjualan & Uang Masuk
   updateParentMenuVisibility(targetId);
   closeParentMenu();
@@ -1213,172 +1108,6 @@ window.addEventListener('message', function(e){
   if (e.data && e.data.type === '__close_parent_menu') closeParentMenu();
 });
 
-
-/* ===== ANALISA DTH ↔ UANG MASUK : proses tagihan ===== */
-var dthUmRows = [];
-var dthUmReady = false;
-
-function dthuNorm(v){ return String(v ?? '').trim().toUpperCase().replace(/\s+/g,''); }
-function dthuEsc(v){ return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
-function dthuRp(v){ return 'Rp '+Math.round(Number(v)||0).toLocaleString('id-ID'); }
-function dthuDate(v){
-  if(v===null||v===undefined||v==='') return null;
-  if(v instanceof Date) return isNaN(v.getTime())?null:v;
-  if(typeof v==='number' && isFinite(v) && v>40000 && v<60000) return new Date(Date.UTC(1899,11,30)+v*86400000);
-  var s=String(v).trim();
-  var m=s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/);
-  if(m){ var y=Number(m[3]); if(y<100)y+=2000; var dt=new Date(y,Number(m[2])-1,Number(m[1])); return isNaN(dt.getTime())?null:dt; }
-  var dt2=new Date(s); return isNaN(dt2.getTime())?null:dt2;
-}
-function dthuDateKey(v){ var d=dthuDate(v); return d ? d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0') : ''; }
-function dthuMonthKey(v){ var d=dthuDate(v); return d ? d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0') : ''; }
-function dthuDateLabel(v){ var d=dthuDate(v); return d ? String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear() : String(v||''); }
-function dthuMonthLabel(k){ if(!k)return ''; var p=k.split('-'); var names=['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']; return (names[Number(p[1])]||p[1])+' '+p[0]; }
-function dthuDueDate(v){ var d=dthuDate(v); if(!d)return null; var x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()+12); return x; }
-function dthuIsOverdue(v){ var due=dthuDueDate(v); if(!due)return false; var now=new Date(); var today=new Date(now.getFullYear(),now.getMonth(),now.getDate()); return today>due; }
-function dthuStatus(row){
-  var f=dthuNorm(row.faktur);
-  var lunasSet = typeof getLunasSet==='function' ? getLunasSet() : new Set();
-  var titipSet = typeof getTitipSet==='function' ? getTitipSet() : new Set();
-  if(lunasSet.has(f) || row.um >= row.dth) return {key:'paid',label:'🟢 Sudah Bayar'};
-  if(titipSet.has(f)) return {key:dthuIsOverdue(row.tglDth)&&row.sisa>0?'collect':'partial',label:dthuIsOverdue(row.tglDth)&&row.sisa>0?'🔵 Tagih Lagi':'🟡 Titip / Kurang Bayar'};
-  if(row.um > 0 && row.um < row.dth) return {key:dthuIsOverdue(row.tglDth)?'collect':'partial',label:dthuIsOverdue(row.tglDth)?'🔵 Tagih Lagi':'🟡 Titip / Kurang Bayar'};
-  if(dthuIsOverdue(row.tglDth)) return {key:'collect',label:'🔵 Tagih Lagi'};
-  return {key:'unpaid',label:'🔴 Belum Bayar'};
-}
-function dthuGetSources(){
-  try{
-    ensureDthLoaded();
-    var ui=document.getElementById('iframe-uangmasuk'), di=document.getElementById('iframe-dth');
-    var uw=ui&&ui.contentWindow, dw=di&&di.contentWindow;
-    if(!uw || typeof uw.__SCAN_GET_UANGMASUK!=='function') return null;
-    if(!dw || typeof dw.__SCAN_GET_DTH!=='function') return null;
-    return {dth:dw.__SCAN_GET_DTH()||[],um:uw.__SCAN_GET_UANGMASUK()||[]};
-  }catch(e){ return null; }
-}
-function buildDthUmAnalysis(){
-  var src=dthuGetSources();
-  if(!src){
-    dthUmReady=false;
-    var box=document.getElementById('dthuAnalysisTable'); if(box)box.innerHTML='<div class="dthu-empty">Data DTH / Uang Masuk belum siap. Coba <b style="margin-left:4px">Muat Ulang</b>.</div>';
-    return false;
-  }
-  var umMap=new Map(), umDateMap=new Map();
-  src.um.forEach(function(x){
-    var f=dthuNorm(x.faktur); if(!f)return;
-    var val=Number(x.total)||0;
-    umMap.set(f,(umMap.get(f)||0)+val);
-    if(val>0){
-      var oldDate=umDateMap.get(f), curDate=dthuDate(x.tanggal);
-      if(!oldDate || (curDate && curDate.getTime()>oldDate.getTime())) umDateMap.set(f,curDate);
-    }
-  });
-  var dthMap=new Map();
-  src.dth.forEach(function(x){
-    var f=dthuNorm(x.faktur); if(!f || (typeof isBatal==='function' && isBatal(f))) return;
-    if(!dthMap.has(f)) dthMap.set(f,{faktur:String(x.faktur||'').trim(),tglDth:x.tanggal||'',toko:x.nama_outlet||'',sales:x.salesman||'',dth:0,um:0});
-    dthMap.get(f).dth += Number(x.tagihan)||0;
-    if(!dthMap.get(f).tglDth && x.tanggal) dthMap.get(f).tglDth=x.tanggal;
-    if(!dthMap.get(f).toko && x.nama_outlet) dthMap.get(f).toko=x.nama_outlet;
-    if(!dthMap.get(f).sales && x.salesman) dthMap.get(f).sales=x.salesman;
-  });
-  dthUmRows=Array.from(dthMap.values()).map(function(r){
-    r.um=umMap.get(dthuNorm(r.faktur))||0;
-    r.sisa=Math.max(0,r.dth-r.um);
-    r.umDate=umDateMap.get(dthuNorm(r.faktur))||null;
-    r.status=dthuStatus(r);
-    r.month=dthuMonthKey(r.tglDth); r.dateKey=dthuDateKey(r.tglDth); r.overdue=dthuIsOverdue(r.tglDth);
-    return r;
-  }).sort(function(a,b){ return (dthuDate(a.tglDth)?.getTime()||0)-(dthuDate(b.tglDth)?.getTime()||0) || a.faktur.localeCompare(b.faktur); });
-  dthUmReady=true; populateDthUmFilters(); applyDthUmFilters(); return true;
-}
-function populateDthUmFilters(){
-  var b=document.getElementById('dthuFltBulan'),t=document.getElementById('dthuFltTanggal'),s=document.getElementById('dthuFltSales'); if(!b||!t||!s)return;
-  var cb=b.value,ct=t.value,cs=s.value;
-  var months=[...new Set(dthUmRows.map(function(r){return r.month;}).filter(Boolean))].sort().reverse();
-  var dates=[...new Set(dthUmRows.map(function(r){return r.dateKey;}).filter(Boolean))].sort().reverse();
-  var sales=[...new Set(dthUmRows.map(function(r){return String(r.sales||'').trim();}).filter(Boolean))].sort(function(a,b){return a.localeCompare(b);});
-  b.innerHTML='<option value="">Semua Bulan</option>'+months.map(function(k){return '<option value="'+dthuEsc(k)+'">'+dthuEsc(dthuMonthLabel(k))+'</option>';}).join('');
-  t.innerHTML='<option value="">Semua Tanggal</option>'+dates.map(function(k){return '<option value="'+dthuEsc(k)+'">'+dthuEsc(dthuDateLabel(k))+'</option>';}).join('');
-  s.innerHTML='<option value="">Semua Sales</option>'+sales.map(function(x){return '<option value="'+dthuEsc(x)+'">'+dthuEsc(x)+'</option>';}).join('');
-  if(cb && months.includes(cb))b.value=cb; if(ct && dates.includes(ct))t.value=ct; if(cs && sales.includes(cs))s.value=cs;
-  // Bila belum pernah memilih bulan, fokus otomatis ke bulan DTH terbaru.
-  if(!cb && months.length) b.value=months[0];
-}
-function applyDthUmFilters(){
-  var b=(document.getElementById('dthuFltBulan')||{}).value||'';
-  var t=(document.getElementById('dthuFltTanggal')||{}).value||'';
-  var s=(document.getElementById('dthuFltSales')||{}).value||'';
-  var st=(document.getElementById('dthuFltStatus')||{}).value||'';
-  var q=String((document.getElementById('dthuFltSearch')||{}).value||'').trim().toLowerCase();
-  var rows=dthUmRows.filter(function(r){
-    if(b&&r.month!==b) return false;
-    if(t&&r.dateKey!==t) return false;
-    if(s&&String(r.sales||'')!==s) return false;
-    if(st&&r.status.key!==st) return false;
-    if(q){
-      var faktur=String(r.faktur||'').toLowerCase();
-      var toko=String(r.toko||'').toLowerCase();
-      if(faktur.indexOf(q)===-1 && toko.indexOf(q)===-1) return false;
-    }
-    return true;
-  });
-  renderDthUmAnalysis(rows);
-}
-function resetDthUmFilters(){ ['dthuFltBulan','dthuFltTanggal','dthuFltSales','dthuFltStatus','dthuFltSearch'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';}); applyDthUmFilters(); }
-function renderDthUmAnalysis(rows){
-  var total=rows.reduce(function(n,r){return n+r.dth;},0);
-  var totalUm=rows.reduce(function(n,r){return n+r.um;},0);
-  var umRows=rows.filter(function(r){return r.um>0;});
-  var totalSisa=rows.reduce(function(n,r){return n+r.sisa;},0);
-  var sisaRows=rows.filter(function(r){return r.sisa>0;});
-  var cfg={paid:['dthuSumPaid','dthuSumPaidMeta'],unpaid:['dthuSumUnpaid','dthuSumUnpaidMeta'],partial:['dthuSumPartial','dthuSumPartialMeta'],collect:['dthuSumCollect','dthuSumCollectMeta']};
-  var el=document.getElementById('dthuSumTotal'); if(el)el.textContent=dthuRp(total);
-  el=document.getElementById('dthuSumTotalMeta'); if(el)el.textContent=rows.length.toLocaleString('id-ID')+' faktur';
-  Object.keys(cfg).forEach(function(k){
-    var rr=rows.filter(function(r){return r.status.key===k;});
-    /*
-       Kartu TAGIH LAGI harus menunjukkan seluruh tagihan yang masih mempunyai
-       sisa pada hasil filter aktif (bulan/tanggal/sales/status), bukan hanya
-       faktur yang secara kalender sudah melewati DTH+12 hari.
-       Logika status pada tabel tetap memakai jatuh tempo untuk membedakan
-       BELUM BAYAR vs TAGIH LAGI.
-    */
-    if(k==='collect'){
-      rr=rows.filter(function(r){return r.sisa>0;});
-      var a=document.getElementById(cfg[k][0]),m=document.getElementById(cfg[k][1]);
-      if(a)a.textContent=rr.length.toLocaleString('id-ID');
-      if(m)m.textContent=dthuRp(rr.reduce(function(n,r){return n+r.sisa;},0));
-    }else{
-      var a=document.getElementById(cfg[k][0]),m=document.getElementById(cfg[k][1]);
-      if(a)a.textContent=rr.length.toLocaleString('id-ID');
-      if(m)m.textContent=dthuRp(rr.reduce(function(n,r){return n+r.dth;},0));
-    }
-  });
-  el=document.getElementById('dthuSumUm'); if(el)el.textContent=dthuRp(totalUm);
-  el=document.getElementById('dthuSumUmMeta'); if(el)el.textContent=umRows.length.toLocaleString('id-ID')+' faktur UM';
-  el=document.getElementById('dthuSumUmCount'); if(el)el.textContent=umRows.length.toLocaleString('id-ID');
-  el=document.getElementById('dthuSumUmCountMeta'); if(el)el.textContent=rows.length.toLocaleString('id-ID')+' faktur DTH';
-  el=document.getElementById('dthuSumSisa'); if(el)el.textContent=dthuRp(totalSisa);
-  el=document.getElementById('dthuSumSisaMeta'); if(el)el.textContent=sisaRows.length.toLocaleString('id-ID')+' faktur';
-  var info=document.getElementById('dthuResultInfo');
-  if(info)info.textContent='Menampilkan '+rows.length.toLocaleString('id-ID')+' faktur dari '+dthUmRows.length.toLocaleString('id-ID')+' DTH • UM '+dthuRp(totalUm)+' • Sisa '+dthuRp(totalSisa);
-  var box=document.getElementById('dthuAnalysisTable'); if(!box)return;
-  if(!rows.length){box.innerHTML='<div class="dthu-empty">Tidak ada data sesuai filter.</div>';return;}
-  box.innerHTML='<table class="dthu-table"><thead><tr><th>Tgl DTH</th><th>No Faktur</th><th>Toko</th><th>Sales</th><th class="num">Nominal DTH</th><th>Tgl UM</th><th class="num">Nominal UM</th><th class="num">Sisa</th><th>Status</th></tr></thead><tbody>'+rows.map(function(r){
-    var umDate=r.umDate ? dthuDateLabel(r.umDate) : '-';
-    return '<tr><td>'+dthuEsc(dthuDateLabel(r.tglDth))+'</td><td><b>'+dthuEsc(r.faktur)+'</b></td><td>'+dthuEsc(r.toko)+'</td><td>'+dthuEsc(r.sales)+'</td><td class="num">'+dthuRp(r.dth)+'</td><td>'+dthuEsc(umDate)+'</td><td class="num">'+dthuRp(r.um)+'</td><td class="num sisa">'+dthuRp(r.sisa)+'</td><td><span class="dthu-badge '+r.status.key+'">'+dthuEsc(r.status.label)+'</span></td></tr>';
-  }).join('')+'</tbody></table>';
-}
-function refreshDthUmAnalysis(){
-  var tries=0; function go(){ tries++; if(buildDthUmAnalysis())return; if(tries<15)setTimeout(go,250); }
-  go();
-}
-window.addEventListener('storage',function(e){
-  if(e && (e.key==='__rekap_batal_v1__'||e.key==='__rekap_titip_v1__'||e.key==='__rekap_lunas_v1__')){
-    if(dthUmReady) { dthUmRows.forEach(function(r){r.status=dthuStatus(r);}); applyDthUmFilters(); }
-  }
-});
 
 function switchScanSubTab(btn, targetId){
   document.querySelectorAll('#scanSubTabs button').forEach(b => b.classList.remove('active'));
