@@ -2551,224 +2551,225 @@ function renderScanResults(){
 }
 
 /* ===== FUNGSI SUMBER DATA (KHUSUS SUB-TAB 📊 SUMBER DATA) =====
-   Tujuan: menyatukan 4 sumber dalam SATU BARIS transaksi agar proses cek cepat.
+   KHUSUS sub-tab ini: buat indeks 4 sumber terlebih dahulu, lalu satukan.
+   Sumber yang tidak mempunyai pasangan Penjualan tetap ditampilkan.
    Tidak mengubah logika sub-tab Scan Data lainnya.
 */
-function populateSumberDataList(){
-  const penRaw = scanResults.penRawAll || [];
-  const umRaw  = scanResults.umRawAll || [];
-  const dthRaw = scanResults.dthRawAll || [];
-  let arRaw = [];
-
-  // Rekap AR tetap dibaca melalui jembatan yang sudah ada.
+function readSumberDataAR(){
+  const frame=document.getElementById('iframe-rekap-ar');
+  if(!frame) return [];
   try{
-    const arFrame = document.getElementById('iframe-rekap-ar');
-    if(arFrame && arFrame.contentWindow && typeof arFrame.contentWindow.__SCAN_GET_AR === 'function'){
-      arRaw = arFrame.contentWindow.__SCAN_GET_AR() || [];
+    const w=frame.contentWindow;
+    // 1) Pakai bridge bila suatu saat Rekap AR sudah memilikinya.
+    if(w && typeof w.__SCAN_GET_AR==='function'){
+      const x=w.__SCAN_GET_AR();
+      if(Array.isArray(x)) return x;
     }
-  }catch(e){ arRaw = []; }
 
-  const norm = v => String(v == null ? '' : v).trim().toLowerCase()
-    .replace(/\s+/g,' ');
+    const normKey=v=>String(v==null?'':v).toLowerCase().replace(/[^a-z0-9]/g,'');
+    const pick=(o,aliases)=>{
+      if(!o || typeof o!=='object') return '';
+      const keys=Object.keys(o);
+      for(const a of aliases){
+        const ak=normKey(a);
+        const k=keys.find(k=>normKey(k)===ak);
+        if(k!=null && o[k]!=null && String(o[k]).trim()!=='') return o[k];
+      }
+      return '';
+    };
+    const mapObj=o=>({
+      faktur:String(pick(o,['No_Faktur','No Faktur','No. Faktur','no_faktur','faktur','invoice'])||'').trim(),
+      tanggal:pick(o,['Tanggal','Tanggal_AR','Tgl','Tanggal Bayar','Tanggal Transaksi','tanggal']),
+      sales:String(pick(o,['Sales','Salesman','sales','salesman'])||'').trim(),
+      customer:String(pick(o,['Customer','Nama_Toko','Nama Toko','Toko','Outlet','customer'])||'').trim(),
+      alamat:String(pick(o,['Alamat','address','alamat'])||'').trim(),
+      nominal:pick(o,['Nominal','Total','Tagihan','Sisa','Jumlah','nominal','total','tagihan']),
+      keterangan:String(pick(o,['Keterangan','Ket','Status','keterangan','ket'])||'').trim()
+    });
+
+    // 2) Coba array data yang lazim dipakai aplikasi AR.
+    const names=['allData','records','arData','dataAR','filteredData','rows','data'];
+    for(const name of names){
+      try{
+        const a=w[name];
+        if(Array.isArray(a) && a.length && a.some(x=>x && typeof x==='object')){
+          const out=a.map(mapObj).filter(x=>x.faktur||x.customer||x.alamat||x.nominal!=null);
+          if(out.length) return out;
+        }
+      }catch(e){}
+    }
+
+    // 3) Fallback terakhir: baca tabel Rekap AR langsung dari iframe same-origin.
+    const doc=frame.contentDocument || w.document;
+    if(!doc) return [];
+    const tables=[...doc.querySelectorAll('table')];
+    for(const table of tables){
+      const trs=[...table.querySelectorAll('tr')];
+      if(trs.length<2) continue;
+      const headerCells=[...trs[0].querySelectorAll('th,td')].map(x=>String(x.textContent||'').trim());
+      const idx={
+        faktur:headerCells.findIndex(h=>/no\.?\s*faktur|invoice/i.test(h)),
+        tanggal:headerCells.findIndex(h=>/tanggal|tgl/i.test(h)),
+        sales:headerCells.findIndex(h=>/sales|salesman/i.test(h)),
+        customer:headerCells.findIndex(h=>/customer|toko|outlet|nama/i.test(h)),
+        alamat:headerCells.findIndex(h=>/alamat|address/i.test(h)),
+        nominal:headerCells.findIndex(h=>/nominal|total|tagihan|jumlah|sisa/i.test(h)),
+        ket:headerCells.findIndex(h=>/keterangan|ket|status/i.test(h))
+      };
+      if(idx.faktur<0 && idx.customer<0 && idx.nominal<0) continue;
+      const out=[];
+      trs.slice(1).forEach(tr=>{
+        const c=[...tr.querySelectorAll('td')].map(x=>String(x.textContent||'').trim());
+        if(!c.length) return;
+        const val=i=>i>=0?c[i]:'';
+        const r={faktur:val(idx.faktur),tanggal:val(idx.tanggal),sales:val(idx.sales),customer:val(idx.customer),alamat:val(idx.alamat),nominal:val(idx.nominal),keterangan:val(idx.ket)};
+        if(r.faktur||r.customer||r.alamat||r.nominal) out.push(r);
+      });
+      if(out.length) return out;
+    }
+  }catch(e){ console.warn('Sumber Data: gagal membaca Rekap AR',e); }
+  return [];
+}
+
+function populateSumberDataList(){
+  const penRaw = (scanResults.penRawAll || []).slice();
+  const umRaw  = (scanResults.umRawAll || []).slice();
+  const dthRaw = (scanResults.dthRawAll || []).slice();
+  const arRaw  = readSumberDataAR();
+
+  const norm = v => String(v == null ? '' : v).trim().toLowerCase().replace(/\s+/g,' ');
   const faktur = v => norm(v).replace(/[^a-z0-9]/g,'');
   const num = v => scanNum(v);
   const dateKey = v => {
-    const d = parseScanDate(v);
-    if(!d) return '';
+    const d=parseScanDate(v); if(!d) return '';
     return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   };
-  const esc = v => escScan(v == null ? '' : String(v));
-
-  // Identitas lintas sumber. No Faktur tetap prioritas utama.
   const identity = r => ({
-    faktur: faktur(r.faktur || r.noFaktur),
-    customer: norm(r.customer || r.nama_outlet),
-    alamat: norm(r.alamat),
-    sales: norm(r.sales || r.salesman),
-    tanggal: dateKey(r.tanggal),
-    nominal: num(r.total != null ? r.total : (r.nominal != null ? r.nominal : r.tagihan))
+    faktur:faktur(r.faktur || r.noFaktur || r.no_faktur),
+    customer:norm(r.customer || r.nama_outlet || r.nama_toko || r.toko),
+    alamat:norm(r.alamat),
+    sales:norm(r.sales || r.salesman),
+    tanggal:dateKey(r.tanggal || r.tanggal_dropping || r.tgl),
+    nominal:num(r.total!=null?r.total:(r.nominal!=null?r.nominal:r.tagihan))
   });
-
-  const score = (a,b) => {
-    const A=identity(a), B=identity(b);
+  const score=(a,b)=>{
+    const A=identity(a),B=identity(b);
     if(A.faktur && B.faktur && A.faktur===B.faktur) return 1000;
     let s=0;
-    if(A.customer && B.customer && A.customer===B.customer) s+=3;
-    if(A.alamat && B.alamat && A.alamat===B.alamat) s+=3;
-    if(A.sales && B.sales && A.sales===B.sales) s+=2;
-    if(A.nominal && B.nominal && Math.round(A.nominal)===Math.round(B.nominal)) s+=2;
-    if(A.tanggal && B.tanggal && A.tanggal===B.tanggal) s+=1;
+    if(A.customer&&B.customer&&A.customer===B.customer)s+=3;
+    if(A.alamat&&B.alamat&&A.alamat===B.alamat)s+=3;
+    if(A.sales&&B.sales&&A.sales===B.sales)s+=2;
+    if(A.nominal&&B.nominal&&Math.round(A.nominal)===Math.round(B.nominal))s+=2;
+    if(A.tanggal&&B.tanggal&&A.tanggal===B.tanggal)s+=1;
     return s;
   };
-
-  // Kandidat yang aman untuk fallback tanpa No Faktur:
-  // minimal 5 poin identitas, atau customer+alamat+nominal (8 poin).
-  const isStrong = (a,b,s) => {
-    if(s>=1000) return true;
-    const A=identity(a), B=identity(b);
-    const ca=A.customer && B.customer && A.customer===B.customer;
-    const al=A.alamat && B.alamat && A.alamat===B.alamat;
-    const sa=A.sales && B.sales && A.sales===B.sales;
-    const no=A.nominal && B.nominal && Math.round(A.nominal)===Math.round(B.nominal);
-    return s>=5 || (ca && al && no) || (ca && sa && no);
+  const strong=(a,b,s)=>{
+    if(s>=1000)return true;
+    const A=identity(a),B=identity(b);
+    const c=A.customer&&B.customer&&A.customer===B.customer;
+    const al=A.alamat&&B.alamat&&A.alamat===B.alamat;
+    const sa=A.sales&&B.sales&&A.sales===B.sales;
+    const n=A.nominal&&B.nominal&&Math.round(A.nominal)===Math.round(B.nominal);
+    return s>=5 || (c&&al&&n) || (c&&sa&&n);
+  };
+  const best=(base,rows,used)=>{
+    let hit=null,bestScore=-1,bestIndex=-1;
+    rows.forEach((r,i)=>{
+      if(used.has(i))return;
+      const s=score(base,r);
+      if(s>bestScore){best=r;bestScore=s;bestIndex=i;}
+    });
+    return hit = best && strong(base,best,bestScore) ? {row:best,index:bestIndex,score:bestScore}:null;
+  };
+  const all=(base,rows,used)=>{
+    const out=[];
+    rows.forEach((r,i)=>{ if(used.has(i))return; const s=score(base,r); if(strong(base,r,s))out.push({row:r,index:i,score:s}); });
+    return out;
   };
 
-  // Ambil kandidat terbaik satu kali. Untuk UM, semua pembayaran yang cocok
-  // pada faktur yang sama dikumpulkan agar nominal tidak terpecah menjadi baris terpisah.
-  function bestOne(base, rows, used){
-    let best=null, bestScore=0, bestIndex=-1;
-    rows.forEach((r,i)=>{
-      if(used && used.has(i)) return;
-      const sc=score(base,r);
-      if(sc>bestScore){best=r;bestScore=sc;bestIndex=i;}
-    });
-    return best && isStrong(base,best,bestScore) ? {row:best,index:bestIndex,score:bestScore} : null;
-  }
-
-  function allMatches(base, rows, used){
-    const out=[];
-    rows.forEach((r,i)=>{
-      if(used && used.has(i)) return;
-      const sc=score(base,r);
-      if(isStrong(base,r,sc)) out.push({row:r,index:i,score:sc});
-    });
-    return out;
-  }
-
-  // Bentuk master Penjualan per No Faktur agar baris produk ganda tidak berulang.
+  // Bentuk master UNION 4 sumber, bukan hanya Penjualan.
+  // Ini penting: UM/DTH/AR yang tidak mempunyai pasangan Penjualan tidak menunggu
+  // sampai baris paling bawah dan tidak terlihat seolah-olah kolomnya kosong.
   const masters=[];
-  const penMap=new Map();
-  penRaw.forEach(r=>{
-    const k=faktur(r.faktur);
-    if(k){
-      if(!penMap.has(k)){
-        penMap.set(k,{...r,total:num(r.total),_rawCount:1});
-      }else{
-        const x=penMap.get(k);
-        x.total += num(r.total);
-        x._rawCount++;
-        if(!x.tanggal && r.tanggal) x.tanggal=r.tanggal;
-        if(!x.sales && r.sales) x.sales=r.sales;
-        if(!x.customer && r.customer) x.customer=r.customer;
-        if(!x.alamat && r.alamat) x.alamat=r.alamat;
-        if(!x.pembayaran && r.pembayaran) x.pembayaran=r.pembayaran;
-      }
-    }else{
-      masters.push({pen:r,total:num(r.total),_rawCount:1});
+  const keyMap=new Map();
+  const addMaster=(r,source)=>{
+    const k=faktur(r.faktur||r.noFaktur||r.no_faktur);
+    const id=identity(r);
+    const fallback=(id.customer||'')+'|'+(id.alamat||'')+'|'+(id.sales||'')+'|'+(id.tanggal||'');
+    const key=k?('F:'+k):('X:'+fallback+'|'+source+'|'+masters.length);
+    if(k && keyMap.has('F:'+k)){
+      const m=keyMap.get('F:'+k);
+      m.sources.add(source); return m;
     }
-  });
-  penMap.forEach(v=>masters.push({pen:v,total:v.total,_rawCount:v._rawCount}));
+    const m={seed:r,sources:new Set([source]),faktur:r.faktur||r.noFaktur||r.no_faktur||'',customer:r.customer||r.nama_outlet||r.nama_toko||r.toko||'',alamat:r.alamat||'',sales:r.sales||r.salesman||'',tanggal:r.tanggal||r.tanggal_dropping||r.tgl||'',nominal:0,pembayaran:r.pembayaran||''};
+    masters.push(m);
+    if(k)keyMap.set('F:'+k,m);
+    return m;
+  };
+  penRaw.forEach(r=>addMaster(r,'pen'));
+  umRaw.forEach(r=>addMaster(r,'um'));
+  dthRaw.forEach(r=>addMaster(r,'dth'));
+  arRaw.forEach(r=>addMaster(r,'ar'));
 
-  const usedUM=new Set(), usedDTH=new Set(), usedAR=new Set();
+  const usedUM=new Set(),usedDTH=new Set(),usedAR=new Set();
   const rows=[];
-
-  masters.forEach((m,idx)=>{
-    const p=m.pen;
-    const umHits=allMatches(p,umRaw,usedUM);
-    const dthHit=bestOne(p,dthRaw,usedDTH);
-    const arHit=bestOne(p,arRaw,usedAR);
-
-    umHits.forEach(x=>usedUM.add(x.index));
-    if(dthHit) usedDTH.add(dthHit.index);
-    if(arHit) usedAR.add(arHit.index);
-
+  masters.forEach(m=>{
+    const base=m.seed;
+    const pHits=all(base,penRaw,new Set());
+    const umHits=all(base,umRaw,usedUM);
+    const dthHit=best(base,dthRaw,usedDTH);
+    const arHit=best(base,arRaw,usedAR);
+    // Bila master berasal dari sumber selain Penjualan, cari pasangan Penjualan.
+    let penHit=null;
+    if(!penRaw.includes(base)) penHit=best(base,penRaw,new Set());
+    const p=penHit?penHit.row:(penRaw.includes(base)?base:null);
+    if(p) m.sources.add('pen');
+    umHits.forEach(x=>{usedUM.add(x.index);m.sources.add('um');});
+    if(dthHit){usedDTH.add(dthHit.index);m.sources.add('dth');}
+    if(arHit){usedAR.add(arHit.index);m.sources.add('ar');}
+    const penNom=p ? num(p.total) : 0;
     const umTotal=umHits.reduce((n,x)=>n+num(x.row.total),0);
-    const umKet=umHits.map(x=>{
-      const r=x.row;
-      const parts=[r.customer||r.nama_outlet,r.sales||r.salesman,r.jenis].filter(Boolean);
-      return parts.join(' · ');
-    }).filter(Boolean);
-
     rows.push({
-      rowType:'penjualan',
-      tanggal:p.tanggal||'', noFaktur:p.faktur||'', sales:p.sales||'',
-      nominalFaktur:m.total||0, pembayaran:p.pembayaran||'',
-      customer:p.customer||'', alamat:p.alamat||'',
-      um: umHits.length ? {tanggal:umHits[0].row.tanggal||'', nominal:umTotal, keterangan:umKet.join(' | '), count:umHits.length} : null,
-      dth: dthHit ? {tanggal:dthHit.row.tanggal||'', keterangan:[dthHit.row.nama_outlet,dthHit.row.salesman,dthHit.row.tagihan!=null?rupiahScan(dthHit.row.tagihan):'',dthHit.row.ket].filter(Boolean).join(' · '), nominal:dthHit.row.tagihan||0} : null,
-      ar: arHit ? {tanggal:arHit.row.tanggal||'', keterangan:[arHit.row.customer,arHit.row.alamat,arHit.row.sales,arHit.row.nominal!=null?rupiahScan(arHit.row.nominal):'',arHit.row.keterangan].filter(Boolean).join(' · '), nominal:arHit.row.nominal||0} : null,
-      sortDate:parseScanDate(p.tanggal)||new Date(0)
+      rowType:m.sources.has('pen')?'gabungan':(m.sources.has('um')?'um-only':(m.sources.has('dth')?'dth-only':'ar-only')),
+      tanggal:p?.tanggal||m.tanggal||'',noFaktur:p?.faktur||m.faktur||'',sales:p?.sales||m.sales||'',
+      nominalFaktur:penNom,pembayaran:p?.pembayaran||m.pembayaran||'',customer:p?.customer||m.customer||'',alamat:p?.alamat||m.alamat||'',
+      um:umHits.length?{tanggal:umHits[0].row.tanggal||'',nominal:umTotal,keterangan:umHits.map(x=>[x.row.customer,x.row.alamat,x.row.sales,x.row.jenis].filter(Boolean).join(' · ')).filter(Boolean).join(' | '),count:umHits.length}:null,
+      dth:dthHit?{tanggal:dthHit.row.tanggal||dthHit.row.tanggal_dropping||'',keterangan:[dthHit.row.faktur,dthHit.row.nama_outlet,dthHit.row.salesman,dthHit.row.tagihan!=null?rupiahScan(dthHit.row.tagihan):'',dthHit.row.ket].filter(Boolean).join(' · '),nominal:num(dthHit.row.tagihan)}:null,
+      ar:arHit?{tanggal:arHit.row.tanggal||'',keterangan:[arHit.row.faktur,arHit.row.customer,arHit.row.alamat,arHit.row.sales,arHit.row.nominal!=null?rupiahScan(arHit.row.nominal):'',arHit.row.keterangan].filter(Boolean).join(' · '),nominal:num(arHit.row.nominal)}:null,
+      sortDate:parseScanDate(p?.tanggal||m.tanggal)||new Date(0)
     });
   });
 
-  // Tambahkan transaksi yang tidak mempunyai pasangan Penjualan agar tidak hilang.
-  umRaw.forEach((r,i)=>{
-    if(usedUM.has(i)) return;
-    rows.push({rowType:'um-only',tanggal:'',noFaktur:'',sales:'',nominalFaktur:0,pembayaran:'',customer:'',alamat:'',
-      um:{tanggal:r.tanggal||'',nominal:num(r.total),keterangan:[r.customer,r.alamat,r.sales,r.jenis].filter(Boolean).join(' · '),count:1},dth:null,ar:null,
-      sortDate:parseScanDate(r.tanggal)||new Date(0)});
-  });
-  dthRaw.forEach((r,i)=>{
-    if(usedDTH.has(i)) return;
-    rows.push({rowType:'dth-only',tanggal:'',noFaktur:'',sales:'',nominalFaktur:0,pembayaran:'',customer:'',alamat:'',um:null,
-      dth:{tanggal:r.tanggal||'',keterangan:[r.faktur,r.nama_outlet,r.salesman,r.tagihan!=null?rupiahScan(r.tagihan):'',r.ket].filter(Boolean).join(' · '),nominal:r.tagihan||0},ar:null,
-      sortDate:parseScanDate(r.tanggal)||new Date(0)});
-  });
-  arRaw.forEach((r,i)=>{
-    if(usedAR.has(i)) return;
-    rows.push({rowType:'ar-only',tanggal:'',noFaktur:'',sales:'',nominalFaktur:0,pembayaran:'',customer:'',alamat:'',um:null,dth:null,
-      ar:{tanggal:r.tanggal||'',keterangan:[r.noFaktur,r.customer,r.alamat,r.sales,r.nominal!=null?rupiahScan(r.nominal):'',r.keterangan].filter(Boolean).join(' · '),nominal:r.nominal||0},
-      sortDate:parseScanDate(r.tanggal)||new Date(0)});
-  });
-
-  rows.sort((a,b)=>(b.sortDate.getTime()||0)-(a.sortDate.getTime()||0));
-  scanResults.sumberData=rows;
+  // Jangan tampilkan baris duplikat karena union master + fallback matching.
+  const seen=new Set();
+  scanResults.sumberData=rows.filter(r=>{
+    const k=(faktur(r.noFaktur)||'X:'+norm(r.customer)+'|'+norm(r.alamat)+'|'+dateKey(r.tanggal));
+    if(seen.has(k)) return false; seen.add(k); return true;
+  }).sort((a,b)=>(b.sortDate.getTime()||0)-(a.sortDate.getTime()||0));
 }
 
 function renderSumberDataTable(){
-  const container=document.getElementById('scanSumberDataTable');
-  if(!container) return;
+  const container=document.getElementById('scanSumberDataTable'); if(!container)return;
   const allData=scanResults.sumberData||[];
-  if(allData.length===0){
-    container.innerHTML='<div class="scan-empty">Tidak ada data Sumber Data. Klik SCAN DATA terlebih dahulu.</div>';
-    renderPager('pager-sumber-data','sumberData',0); return;
-  }
+  if(!allData.length){container.innerHTML='<div class="scan-empty">Tidak ada data Sumber Data. Klik SCAN DATA terlebih dahulu.</div>';renderPager('pager-sumber-data','sumberData',0);return;}
   const {rows:data}=pageSlice(allData,'sumberData');
   const esc=v=>escScan(v==null?'':String(v));
   const badge=(text,kind)=>text?'<span class="sd-badge sd-'+kind+'">'+esc(text)+'</span>':'';
-  let html='<table class="scan-table-multi"><colgroup>'+
-    '<col class="c-no"><col class="c-tgl"><col class="c-faktur"><col class="c-sales"><col class="c-nom"><col class="c-bayar"><col class="c-cust"><col class="c-alamat">'+
-    '<col class="c-um-tgl"><col class="c-um-nom"><col class="c-um-ket"><col class="c-dth-tgl"><col class="c-dth-ket"><col class="c-ar-tgl"><col class="c-ar-ket">'+
-    '</colgroup><thead><tr><th colspan="8" class="h-pen">📋 PENJUALAN</th><th colspan="3" class="h-um">💰 UANG MASUK</th><th colspan="2" class="h-dth">📦 DTH</th><th colspan="2" class="h-ar">📊 REKAP AR</th></tr><tr>'+
-    '<th class="h-pen">No</th><th class="h-pen">Tgl</th><th class="h-pen">No. Faktur</th><th class="h-pen">Sales</th><th class="h-pen num">Nominal Fak</th><th class="h-pen">Pembayaran</th><th class="h-pen">Customer</th><th class="h-pen">Alamat</th>'+
-    '<th class="h-um">Tgl</th><th class="h-um num">Nominal</th><th class="h-um">Ket</th><th class="h-dth">Tgl</th><th class="h-dth">Ket</th><th class="h-ar">Tgl</th><th class="h-ar">Ket</th></tr></thead><tbody>';
+  let html='<table class="scan-table-multi"><colgroup><col class="c-no"><col class="c-tgl"><col class="c-faktur"><col class="c-sales"><col class="c-nom"><col class="c-bayar"><col class="c-cust"><col class="c-alamat"><col class="c-um-tgl"><col class="c-um-nom"><col class="c-um-ket"><col class="c-dth-tgl"><col class="c-dth-ket"><col class="c-ar-tgl"><col class="c-ar-ket"></colgroup><thead><tr><th colspan="8" class="h-pen">📋 PENJUALAN</th><th colspan="3" class="h-um">💰 UANG MASUK</th><th colspan="2" class="h-dth">📦 DTH</th><th colspan="2" class="h-ar">📊 REKAP AR</th></tr><tr><th class="h-pen">No</th><th class="h-pen">Tgl</th><th class="h-pen">No. Faktur</th><th class="h-pen">Sales</th><th class="h-pen num">Nominal Fak</th><th class="h-pen">Pembayaran</th><th class="h-pen">Customer</th><th class="h-pen">Alamat</th><th class="h-um">Tgl</th><th class="h-um num">Nominal</th><th class="h-um">Ket</th><th class="h-dth">Tgl</th><th class="h-dth">Ket</th><th class="h-ar">Tgl</th><th class="h-ar">Ket</th></tr></thead><tbody>';
   let no=((scanPage.sumberData||1)-1)*(scanPageSize||SCAN_PAGE_SIZE_DEFAULT)+1;
   data.forEach(row=>{
     const um=row.um,dth=row.dth,ar=row.ar;
-    html+='<tr>';
-    html+='<td class="pen-no">'+(no++)+'</td>';
-    html+='<td class="pen-tgl">'+(row.tanggal?formatScanDate(row.tanggal):'')+'</td>';
-    html+='<td class="pen-faktur" title="'+esc(row.noFaktur)+'">'+esc(row.noFaktur)+'</td>';
-    html+='<td class="pen-sales" title="'+esc(row.sales)+'">'+esc(row.sales)+'</td>';
-    html+='<td class="pen-nom num">'+(row.nominalFaktur?rupiahScan(row.nominalFaktur):'')+'</td>';
-    html+='<td class="pen-bayar">'+esc(row.pembayaran)+'</td>';
-    html+='<td class="pen-cust" title="'+esc(row.customer)+'">'+esc(row.customer)+'</td>';
-    html+='<td class="pen-alamat" title="'+esc(row.alamat)+'">'+esc(row.alamat)+'</td>';
-    html+='<td class="um-tgl">'+(um?formatScanDate(um.tanggal):'')+'</td>';
-    html+='<td class="um-nom num">'+(um?rupiahScan(um.nominal):'')+'</td>';
-    html+='<td class="um-ket" title="'+esc(um?um.keterangan:'')+'">'+(um?badge('ADA','ada'):'')+(um&&um.count>1?' <small>('+um.count+' UM)</small>':'')+(um&&um.keterangan?' '+esc(um.keterangan):'')+'</td>';
-    html+='<td class="dth-tgl">'+(dth?formatScanDate(dth.tanggal):'')+'</td>';
-    html+='<td class="dth-ket" title="'+esc(dth?dth.keterangan:'')+'">'+(dth?badge('ADA','dth')+' '+esc(dth.keterangan):'')+'</td>';
-    html+='<td class="ar-tgl">'+(ar?formatScanDate(ar.tanggal):'')+'</td>';
-    html+='<td class="ar-ket" title="'+esc(ar?ar.keterangan:'')+'">'+(ar?badge('ADA','ar')+' '+esc(ar.keterangan):'')+'</td>';
-    html+='</tr>';
+    html+='<tr><td class="pen-no">'+(no++)+'</td><td class="pen-tgl">'+(row.tanggal?formatScanDate(row.tanggal):'')+'</td><td class="pen-faktur" title="'+esc(row.noFaktur)+'">'+esc(row.noFaktur)+'</td><td class="pen-sales" title="'+esc(row.sales)+'">'+esc(row.sales)+'</td><td class="pen-nom num">'+(row.nominalFaktur?rupiahScan(row.nominalFaktur):'')+'</td><td class="pen-bayar">'+esc(row.pembayaran)+'</td><td class="pen-cust" title="'+esc(row.customer)+'">'+esc(row.customer)+'</td><td class="pen-alamat" title="'+esc(row.alamat)+'">'+esc(row.alamat)+'</td><td class="um-tgl">'+(um?formatScanDate(um.tanggal):'')+'</td><td class="um-nom num">'+(um?rupiahScan(um.nominal):'')+'</td><td class="um-ket" title="'+esc(um?um.keterangan:'')+'">'+(um?badge('ADA','ada'):'')+(um&&um.count>1?' <small>('+um.count+' UM)</small>':'')+(um&&um.keterangan?' '+esc(um.keterangan):'')+'</td><td class="dth-tgl">'+(dth?formatScanDate(dth.tanggal):'')+'</td><td class="dth-ket" title="'+esc(dth?dth.keterangan:'')+'">'+(dth?badge('ADA','dth')+' '+esc(dth.keterangan):'')+'</td><td class="ar-tgl">'+(ar?formatScanDate(ar.tanggal):'')+'</td><td class="ar-ket" title="'+esc(ar?ar.keterangan:'')+'">'+(ar?badge('ADA','ar')+' '+esc(ar.keterangan):'')+'</td></tr>';
   });
-  html+='</tbody></table>';
-  container.innerHTML=html;
-  renderPager('pager-sumber-data','sumberData',allData.length);
+  html+='</tbody></table>'; container.innerHTML=html; renderPager('pager-sumber-data','sumberData',allData.length);
 }
 
 function exportSumberDataExcel(){
   const data=scanResults.sumberData||[];
   if(!data.length){alert('Tidak ada data untuk di-export. Klik SCAN DATA terlebih dahulu.');return;}
   const wsData=[['NO','TGL-PEN','NO.FAKTUR','SALES','NOM.FAK','PEMBAYARAN','CUSTOMER','ALAMAT','TGL-UM','NOM-UM','KET-UM','TGL-DTH','KET-DTH','TGL-AR','KET-AR']];
-  data.forEach((row,i)=>wsData.push([
-    i+1,row.tanggal?formatScanDate(row.tanggal):'',row.noFaktur||'',row.sales||'',row.nominalFaktur||'',row.pembayaran||'',row.customer||'',row.alamat||'',
-    row.um?formatScanDate(row.um.tanggal):'',row.um?row.um.nominal:'',row.um?row.um.keterangan:'',row.dth?formatScanDate(row.dth.tanggal):'',row.dth?row.dth.keterangan:'',row.ar?formatScanDate(row.ar.tanggal):'',row.ar?row.ar.keterangan:''
-  ]));
-  const ws=XLSX.utils.aoa_to_sheet(wsData),wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,'Sumber Data');
-  XLSX.writeFile(wb,'Sumber_Data_'+new Date().toISOString().split('T')[0]+'.xlsx');
+  data.forEach((row,i)=>wsData.push([i+1,row.tanggal?formatScanDate(row.tanggal):'',row.noFaktur||'',row.sales||'',row.nominalFaktur||'',row.pembayaran||'',row.customer||'',row.alamat||'',row.um?formatScanDate(row.um.tanggal):'',row.um?row.um.nominal:'',row.um?row.um.keterangan:'',row.dth?formatScanDate(row.dth.tanggal):'',row.dth?row.dth.keterangan:'',row.ar?formatScanDate(row.ar.tanggal):'',row.ar?row.ar.keterangan:'']));
+  const ws=XLSX.utils.aoa_to_sheet(wsData),wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Sumber Data'); XLSX.writeFile(wb,'Sumber_Data_'+new Date().toISOString().split('T')[0]+'.xlsx');
 }
 
 function formatScanDate(v){
