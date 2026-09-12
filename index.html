@@ -830,6 +830,12 @@
 
       <div class="scan-panel active" id="scan-sumber-data">
         <div class="scan-sub-toolbar">
+          <select id="fltProdukSumberData" onchange="scheduleScanFilters(50)" style="margin-right:8px">
+            <option value="">Semua Produk</option>
+            <option value="FITRI">Minyak Fitri</option>
+            <option value="RUPA_RUPA">Rupa Rupa</option>
+            <option value="CAMPURAN">Campuran</option>
+          </select>
           <input type="search" id="fltCariSumberData" placeholder="🔍 Cari: No Faktur / Customer / Toko / Alamat…" oninput="onScanSearchInputFromPanel(this)" autocomplete="off">
         </div>
         <div id="scanSumberDataTable" class="scan-table-wrap-multi"><div class="scan-empty">Klik SCAN DATA untuk membaca 4 Sumber Data (Penjualan, Uang Masuk, DTH, Rekap AR).</div></div>
@@ -1719,7 +1725,7 @@ function populateScanFilterOptions(){
 
 function resetScanFilters(){
   ['fltPembayaran','fltSales','fltBulanUM','fltCariKandidat','fltCariSumberData','fltCariScan',
-   'fltStatusJT','fltSalesTidak','fltDiDTH','fltProdukTidak',
+   'fltStatusJT','fltSalesTidak','fltDiDTH','fltProdukTidak','fltProdukSumberData',
    'fltSalesAda','fltJenisUmAda','fltProdukAda','fltStatusAda','fltSalesUmOnly','fltJenisUmOnly'
   ].forEach(id=>{
     const el=document.getElementById(id);
@@ -2764,6 +2770,7 @@ function applySumberDataFilters(){
   const fBayar=(document.getElementById('fltPembayaran')||{}).value||'';
   const fSales=(document.getElementById('fltSales')||{}).value||'';
   const fBulanUM=[...(document.getElementById('fltBulanUM')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
+  const fProduk=(document.getElementById('fltProdukSumberData')||{}).value||'';
   const fCari=String(
     (document.getElementById('fltCariScan')||{}).value ||
     (document.getElementById('fltCariSumberData')||{}).value ||
@@ -2784,6 +2791,9 @@ function applySumberDataFilters(){
   if(fSales){
     const ns = normScan(fSales);
     out = out.filter(r => normScan(r.sales) === ns);
+  }
+  if(fProduk){
+    out = out.filter(r => (r.produkKategori||'') === fProduk);
   }
   // Tombol khusus: Penjualan Ada · UM Kosong (DTH & AR boleh ada/tidak)
   if(onlyPenAdaUmKosong){
