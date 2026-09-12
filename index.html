@@ -981,17 +981,79 @@ function loadIframeSrc(id, url){
   });
 }
 
+function applyThemeToDthIframe(fr){
+  try {
+    if (!fr || !fr.contentWindow) return;
+    var doc = fr.contentDocument || fr.contentWindow.document;
+    if (!doc || !doc.documentElement) return;
+    var t = 'light';
+    try { t = localStorage.getItem('rekap_theme') || 'light'; } catch(e){}
+    if (t === 'dark') {
+      doc.documentElement.classList.add('dark');
+      try { localStorage.setItem('dth-theme', 'dark'); } catch(e){}
+    } else {
+      doc.documentElement.classList.remove('dark');
+      try { localStorage.setItem('dth-theme', 'light'); } catch(e){}
+    }
+    // Dengarkan broadcast tema dari parent (DTH memakai class .dark, bukan data-theme)
+    if (!fr.__dthThemeListener) {
+      fr.__dthThemeListener = true;
+      try {
+        fr.contentWindow.addEventListener('message', function(ev){
+          if (!(ev && ev.data && ev.data.type === 'SET_THEME')) return;
+          try {
+            var doc2 = fr.contentDocument || fr.contentWindow.document;
+            if (!doc2 || !doc2.documentElement) return;
+            if (ev.data.theme === 'dark') {
+              doc2.documentElement.classList.add('dark');
+              try { localStorage.setItem('dth-theme', 'dark'); } catch(e){}
+            } else {
+              doc2.documentElement.classList.remove('dark');
+              try { localStorage.setItem('dth-theme', 'light'); } catch(e){}
+            }
+          } catch(e){}
+        });
+      } catch(e){}
+    }
+  } catch(e) { console && console.warn && console.warn('applyThemeToDthIframe:', e); }
+}
+
 function ensureDthLoaded(){
-  if (window.__dthLoaded) return true;
+  if (window.__dthLoaded) {
+    // Sudah pernah dimuat — pastikan tema tetap sinkron (mis. user ganti tema di tab lain)
+    try {
+      var fr0 = document.getElementById('iframe-dth');
+      if (fr0) applyThemeToDthIframe(fr0);
+    } catch(e){}
+    return true;
+  }
   try {
     var ph = document.getElementById('dthLoadingPlaceholder');
     var fr = document.getElementById('iframe-dth');
     var data = document.getElementById('b64dth-data');
     if (fr && data) {
+      // Samakan dth-theme dengan rekap_theme SEBELUM srcdoc,
+      // supaya initTheme() di dalam DTH langsung baca nilai yang benar.
+      try {
+        var t0 = localStorage.getItem('rekap_theme') || 'light';
+        localStorage.setItem('dth-theme', t0 === 'dark' ? 'dark' : 'light');
+      } catch(e){}
+      // Pasang listener load SEBELUM set srcdoc supaya tema ikut saat konten siap
+      fr.addEventListener('load', function onDthLoad(){
+        applyThemeToDthIframe(fr);
+        // PostMessage cadangan (jika listener di dalam sudah siap)
+        try {
+          var t = localStorage.getItem('rekap_theme') || 'light';
+          fr.contentWindow.postMessage({type:'SET_THEME', theme:t}, '*');
+        } catch(e){}
+      }, { once: false });
       fr.srcdoc = b64ToUtf8(data.textContent || '');
       fr.style.display = '';
       if (ph) ph.style.display = 'none';
       window.__dthLoaded = true;
+      // Coba apply segera (kadang srcdoc sudah siap sinkron)
+      setTimeout(function(){ applyThemeToDthIframe(fr); }, 50);
+      setTimeout(function(){ applyThemeToDthIframe(fr); }, 300);
       return true;
     }
   } catch(e) { console && console.warn && console.warn('lazy dth load:', e); }
@@ -4088,6 +4150,12 @@ function triggerPwaInstall() {
         if (fr && fr.contentWindow) fr.contentWindow.postMessage({type:'SET_THEME', theme:t}, '*');
       } catch(e){}
     });
+    // DTH memakai class .dark (bukan data-theme) — apply langsung juga
+    try {
+      if (typeof applyThemeToDthIframe === 'function') {
+        applyThemeToDthIframe(document.getElementById('iframe-dth'));
+      }
+    } catch(e){}
   }
   window.toggleTheme = function(){
     setTheme(getTheme() === 'dark' ? 'light' : 'dark');
