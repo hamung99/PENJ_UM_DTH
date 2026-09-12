@@ -276,6 +276,8 @@
     padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;line-height:1.25;height:32px;
   }
   .scan-filters .btn-reset:hover{background:#f1f5f9;border-color:#94a3b8}
+  #metaExportWrap{align-items:flex-end}
+  #metaExportWrap .btn-export-excel{height:32px;padding:5px 14px;font-size:12px}
   .scan-export-row{display:flex;justify-content:flex-end;margin:0 0 8px}
   .btn-export-excel{
     appearance:none;border:1px solid #15803d;background:#16a34a;color:#fff;
@@ -753,6 +755,10 @@
             <label>&nbsp;</label>
             <button type="button" class="btn-reset" onclick="resetScanFilters()">Reset</button>
           </div>
+          <div class="fg fg-btn" id="metaExportWrap" style="display:none">
+            <label>&nbsp;</label>
+            <button type="button" class="btn-export-excel" id="btnExportSumberData" onclick="exportSumberDataExcel()">⬇️ Download Excel</button>
+          </div>
         </div>
         <div class="scan-summary" id="summary-ada">
           <div class="card"><small>JUMLAH FAKTUR</small><b id="scanAdaCount">0</b></div>
@@ -856,9 +862,6 @@
       </div>
 
       <div class="scan-panel" id="scan-sumber-data">
-        <div class="scan-sub-toolbar">
-          <button type="button" class="btn-export-excel" id="btnExportSumberData" onclick="exportSumberDataExcel()">⬇️ Download Excel</button>
-        </div>
         <div id="scanSumberDataTable" class="scan-table-wrap-multi"><div class="scan-empty">Klik SCAN DATA untuk membaca 4 Sumber Data (Penjualan, Uang Masuk, DTH, Rekap AR).</div></div>
         <div class="scan-pager" id="pager-sumber-data" style="display:none"></div>
       </div>
@@ -1414,6 +1417,9 @@ function switchScanSubTab(btn, targetId){
     if(id===map[targetId]) el.classList.remove('hidden');
     else el.classList.add('hidden');
   });
+  // Tombol Download Excel Sumber Data: sebaris dengan filter
+  const metaExp = document.getElementById('metaExportWrap');
+  if(metaExp) metaExp.style.display = (targetId === 'scan-sumber-data') ? 'flex' : 'none';
   // Render tabel 4 sumber data jika tab dipilih
   if(targetId === 'scan-sumber-data' && scanResults.scanned) {
     renderSumberDataTable();
