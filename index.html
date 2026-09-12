@@ -875,24 +875,7 @@ function b64ToUtf8(b64){
 function loadIframe(id, b64){
   const iframe = document.getElementById(id);
   const html = b64ToUtf8(b64);
-  attachIframeOnload(iframe);
   iframe.srcdoc = html;
-}
-
-// Sama seperti loadIframe(), tapi memuat file HTML sungguhan lewat src=
-// (bukan srcdoc base64). Ini WAJIB dipakai untuk sub-app yang menyimpan data
-// sendiri (IndexedDB/localStorage) di dalam iframe-nya, karena dokumen
-// srcdoc di beberapa browser (terutama Safari/iOS) dianggap punya origin
-// yang tidak stabil sehingga penyimpanannya bisa hilang/tidak persisten
-// setiap kali halaman induk di-refresh. Dengan src= ke file .html asli,
-// iframe punya URL/origin yang stabil sehingga data tersimpan permanen.
-function loadIframeUrl(id, url){
-  const iframe = document.getElementById(id);
-  attachIframeOnload(iframe);
-  iframe.src = url;
-}
-
-function attachIframeOnload(iframe){
   // Setelah iframe load: sembunyikan header asli (tapi biarkan dropdown bisa tampil dengan position:fixed)
   iframe.addEventListener('load', function onIframeLoad(){
     try {
@@ -956,6 +939,72 @@ function attachIframeOnload(iframe){
       }
     } catch(e){ console.warn('hide header inject failed', e); }
   }, { once: true });
+}
+
+function loadIframeSrc(id, url){
+  const iframe = document.getElementById(id);
+  iframe.src = url;
+  // Sama seperti loadIframe(): sembunyikan header asli + dukungan tema,
+  // tapi dipicu tiap kali iframe selesai load (bukan hanya sekali),
+  // karena src bisa di-refresh/di-reload oleh browser.
+  iframe.addEventListener('load', function onIframeLoad(){
+    try {
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      if (!doc) return;
+      if (!doc.getElementById('__hideOrigHeader')) {
+        const st = doc.createElement('style');
+        st.id = '__hideOrigHeader';
+        st.textContent = [
+          'header{',
+          '  position:fixed!important;top:-200px!important;left:0;right:0;',
+          '  height:0!important;min-height:0!important;max-height:0!important;',
+          '  overflow:visible!important;opacity:1!important;pointer-events:none!important;',
+          '  margin:0!important;padding:0!important;border:none!important;',
+          '  background:transparent!important;box-shadow:none!important;z-index:99990;',
+          '}',
+          'header .dd-menu, header .dropdown, header .dd-backdrop{',
+          '  pointer-events:auto!important;opacity:1!important;',
+          '}',
+          'header .dd-backdrop{',
+          '  position:fixed!important;inset:0!important;top:0!important;left:0!important;',
+          '  right:0!important;bottom:0!important;z-index:99998!important;',
+          '  background:transparent!important;',
+          '}'
+        ].join('');
+        (doc.head || doc.documentElement).appendChild(st);
+      }
+      if (!doc.getElementById('__themeSupport')) {
+        const ts = doc.createElement('style');
+        ts.id = '__themeSupport';
+        ts.textContent = [
+          'html[data-theme="dark"] body{background:#0f172a!important;color:#e2e8f0!important}',
+          'html[data-theme="dark"] header{background:#1e3a5f!important}',
+          'html[data-theme="dark"] .kpi,html[data-theme="dark"] .card,html[data-theme="dark"] .dd-menu{background:#1e293b!important;color:#e2e8f0!important;border-color:#334155!important}',
+          'html[data-theme="dark"] .kpi b,html[data-theme="dark"] .kpi small{color:#e2e8f0!important}',
+          'html[data-theme="dark"] table th{background:#1e3a5f!important}',
+          'html[data-theme="dark"] table td{border-color:#334155!important;color:#e2e8f0!important}',
+          'html[data-theme="dark"] tfoot td{background:#422006!important;color:#fef3c7!important}',
+          'html[data-theme="dark"] .tabs{background:#1e293b!important;border-color:#334155!important}',
+          'html[data-theme="dark"] .tabs button{color:#93c5fd!important;border-color:#475569!important}',
+          'html[data-theme="dark"] .tabs button.active{background:#2563eb!important;color:#fff!important}',
+          'html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] .search-box,html[data-theme="dark"] .month-quick{background:#0f172a!important;color:#e2e8f0!important;border-color:#475569!important}',
+          'html[data-theme="dark"] .tablebox{background:#0f172a!important}',
+          'html[data-theme="dark"] .filter-menu,html[data-theme="dark"] .col-picker-menu{background:#1e293b!important;color:#e2e8f0!important}'
+        ].join('');
+        (doc.head || doc.documentElement).appendChild(ts);
+        const applyT = function(t){ try { doc.documentElement.setAttribute('data-theme', t==='dark'?'dark':'light'); } catch(e){} };
+        try {
+          const cur = localStorage.getItem('rekap_theme') || 'light';
+          applyT(cur);
+        } catch(e){}
+        try {
+          iframe.contentWindow.addEventListener('message', function(ev){
+            if (ev && ev.data && ev.data.type === 'SET_THEME') applyT(ev.data.theme);
+          });
+        } catch(e){}
+      }
+    } catch(e){ console.warn('hide header inject failed', e); }
+  });
 }
 
 function ensureDthLoaded(){
@@ -3716,7 +3765,7 @@ checkCloudUpdatesOnLoad();
 
 loadIframe('iframe-penjualan', B64_PENJUALAN);
 loadIframe('iframe-uangmasuk', B64_UANGMASUK);
-loadIframeUrl('iframe-rekap-ar', 'rekap-ar.html');
+loadIframeSrc('iframe-rekap-ar', 'rekap-ar.html');
 
 // Default tab = Penjualan → tampilkan MENU parent
 updateParentMenuVisibility('frame-penjualan');
