@@ -433,8 +433,9 @@
   .dthu-filter-bar{background:transparent;border:0;border-radius:0;padding:0;margin:2px 0 8px;display:flex;align-items:end;gap:7px;flex-wrap:wrap;box-shadow:none}
   .dthu-field{min-width:145px;flex:1 1 150px}
   .dthu-field label{display:block;font-size:9.5px;color:#64748b;font-weight:700;margin:0 0 3px 1px}
-  .dthu-field select{width:100%;height:29px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#334155;padding:0 7px;font-size:10.5px;outline:none}
-  .dthu-field select:focus{border-color:#7aa7d7;box-shadow:0 0 0 2px rgba(37,81,142,.08)}
+  .dthu-field select,.dthu-field input{width:100%;height:29px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#334155;padding:0 7px;font-size:10.5px;outline:none;box-sizing:border-box}
+  .dthu-field select:focus,.dthu-field input:focus{border-color:#7aa7d7;box-shadow:0 0 0 2px rgba(37,81,142,.08)}
+  .dthu-field-search{min-width:200px;flex:1 1 220px}
   .dthu-reset{height:29px;flex:0 0 auto}
 
   .dthu-table-box{background:#fff;border:1px solid #dbe3ed;border-radius:6px;overflow:hidden;box-shadow:none}
@@ -501,7 +502,7 @@
   html[data-theme="dark"] .dthu-card{background:#1e293b;border-color:#334155}
   html[data-theme="dark"] .dthu-card span{color:#94a3b8}
   html[data-theme="dark"] .dthu-card b{color:#f1f5f9}
-  html[data-theme="dark"] .dthu-field select,.dthu-refresh,.dthu-reset{background:#1e293b;color:#e2e8f0;border-color:#475569}
+  html[data-theme="dark"] .dthu-field select,html[data-theme="dark"] .dthu-field input,.dthu-refresh,.dthu-reset{background:#1e293b;color:#e2e8f0;border-color:#475569}
   html[data-theme="dark"] .dthu-table-box{background:#1e293b;border-color:#334155}
   html[data-theme="dark"] .dthu-table-head{background:#0f172a;border-bottom-color:#334155;color:#93c5fd}
   html[data-theme="dark"] .dthu-table th{background:#1e3a5f}
@@ -825,6 +826,7 @@
 
       <!-- FILTER DI BAWAH CARDS -->
       <div class="dthu-filter-bar">
+        <div class="dthu-field dthu-field-search"><label for="dthuFltSearch">Cari No Faktur / Toko</label><input type="text" id="dthuFltSearch" placeholder="Ketik no faktur atau nama toko…" oninput="applyDthUmFilters()"></div>
         <div class="dthu-field"><label for="dthuFltBulan">Bulan</label><select id="dthuFltBulan" onchange="applyDthUmFilters()"><option value="">Semua Bulan</option></select></div>
         <div class="dthu-field"><label for="dthuFltTanggal">Tanggal DTH</label><select id="dthuFltTanggal" onchange="applyDthUmFilters()"><option value="">Semua Tanggal</option></select></div>
         <div class="dthu-field"><label for="dthuFltSales">Sales</label><select id="dthuFltSales" onchange="applyDthUmFilters()"><option value="">Semua Sales</option></select></div>
@@ -1256,10 +1258,22 @@ function applyDthUmFilters(){
   var t=(document.getElementById('dthuFltTanggal')||{}).value||'';
   var s=(document.getElementById('dthuFltSales')||{}).value||'';
   var st=(document.getElementById('dthuFltStatus')||{}).value||'';
-  var rows=dthUmRows.filter(function(r){return (!b||r.month===b)&&(!t||r.dateKey===t)&&(!s||String(r.sales||'')===s)&&(!st||r.status.key===st);});
+  var q=String((document.getElementById('dthuFltSearch')||{}).value||'').trim().toLowerCase();
+  var rows=dthUmRows.filter(function(r){
+    if(b&&r.month!==b) return false;
+    if(t&&r.dateKey!==t) return false;
+    if(s&&String(r.sales||'')!==s) return false;
+    if(st&&r.status.key!==st) return false;
+    if(q){
+      var faktur=String(r.faktur||'').toLowerCase();
+      var toko=String(r.toko||'').toLowerCase();
+      if(faktur.indexOf(q)===-1 && toko.indexOf(q)===-1) return false;
+    }
+    return true;
+  });
   renderDthUmAnalysis(rows);
 }
-function resetDthUmFilters(){ ['dthuFltBulan','dthuFltTanggal','dthuFltSales','dthuFltStatus'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';}); applyDthUmFilters(); }
+function resetDthUmFilters(){ ['dthuFltBulan','dthuFltTanggal','dthuFltSales','dthuFltStatus','dthuFltSearch'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';}); applyDthUmFilters(); }
 function renderDthUmAnalysis(rows){
   var total=rows.reduce(function(n,r){return n+r.dth;},0);
   var totalUm=rows.reduce(function(n,r){return n+r.um;},0);
