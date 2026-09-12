@@ -2913,12 +2913,12 @@ function renderSumberDataTable(){
     else { arPos = 'BELUM LUNAS'; arPosCls = 'belum'; }
     
     const posColors = {
-      belum: {bg:'#fee2e2', fg:'#b91c1c', bd:'#fca5a5'},
+      belum: {bg:'#fecaca', fg:'#b91c1c', bd:'#f87171'},
       titip: {bg:'#fef3c7', fg:'#b45309', bd:'#fcd34d'},
       lunas: {bg:'#dbeafe', fg:'#1d4ed8', bd:'#93c5fd'}
     };
     const pc = posColors[arPosCls] || posColors.belum;
-    return arPos ? '<span style="display:inline-block;background:'+pc.bg+';color:'+pc.fg+';border:1px solid '+pc.bd+';padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.02em">'+esc(arPos)+'</span>' : '';
+    return arPos ? '<span style="display:inline-block;background:'+pc.bg+';color:'+pc.fg+';border:1px solid '+pc.bd+';padding:1px 6px;border-radius:999px;font-size:10px;font-weight:600;letter-spacing:.02em">'+esc(arPos)+'</span>' : '';
   };
   let html='<table class="scan-table-multi"><colgroup><col class="c-no"><col class="c-tgl"><col class="c-faktur"><col class="c-sales"><col class="c-nom"><col class="c-bayar"><col class="c-cust"><col class="c-alamat"><col class="c-um-tgl"><col class="c-um-nom"><col class="c-um-ket"><col class="c-dth-tgl"><col class="c-dth-ket"><col class="c-ar-tgl"><col class="c-ar-ket"></colgroup><thead><tr><th colspan="8" class="h-pen">📋 REKAP PENJUALAN</th><th colspan="3" class="h-um">💰 UANG MASUK</th><th colspan="2" class="h-dth">📦 DTH</th><th colspan="2" class="h-ar">🗂️ REKAP AR</th></tr><tr><th class="h-pen">No</th><th class="h-pen">Tgl Faktur</th><th class="h-pen">No Faktur</th><th class="h-pen">Sales</th><th class="h-pen num">Nominal</th><th class="h-pen">Jenis Bayar</th><th class="h-pen">Customer</th><th class="h-pen">Alamat</th><th class="h-um">Tgl UM</th><th class="h-um num">Nominal UM</th><th class="h-um">Keterangan UM</th><th class="h-dth">Tgl DTH</th><th class="h-dth">Keterangan DTH</th><th class="h-ar">Tgl AR</th><th class="h-ar">Keterangan AR</th></tr></thead><tbody>';
   const pageStart=((scanPage.sumberData||1)-1)*(scanPageSize||SCAN_PAGE_SIZE_DEFAULT);
@@ -3455,7 +3455,7 @@ function openFakturModal(pageKey, idx){
         else { arPos = 'BELUM LUNAS'; arPosCls = 'belum'; }
         
         const posColors = {
-          belum: {bg:'#fee2e2', fg:'#b91c1c', bd:'#fca5a5'},
+          belum: {bg:'#fecaca', fg:'#b91c1c', bd:'#f87171'},
           titip: {bg:'#fef3c7', fg:'#b45309', bd:'#fcd34d'},
           lunas: {bg:'#dbeafe', fg:'#1d4ed8', bd:'#93c5fd'}
         };
