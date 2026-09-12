@@ -2838,6 +2838,64 @@ function renderSumberDataTable(){
   const {rows:data}=pageSlice(allData,'sumberData');
   const esc=v=>escScan(v==null?'':String(v));
   const badge=(text,kind)=>text?'<span class="sd-badge sd-'+kind+'">'+esc(text)+'</span>':'';
+  
+  // Function untuk menentukan status AR sebagai text (untuk export & display)
+  const getArStatusText = (ar) => {
+    if(!ar) return '';
+    const rawSt = String(ar.status||'').trim();
+    const ketSt = String(ar.keterangan||'').trim();
+    const stUp = (rawSt || ketSt).toUpperCase().replace(/\s+/g,' ');
+    let arPos = '';
+    
+    if(/BELUM\s*LUNAS|BELUM\s*BAYAR|UNPAID/i.test(stUp)){ arPos='BELUM LUNAS'; }
+    else if(/BAYAR\s*TITIP|\bTITIP\b|PARTIAL|SEBAGIAN/i.test(stUp)){ arPos='BAYAR TITIP'; }
+    else if(/SUDAH\s*LUNAS|\bLUNAS\b|\bPAID\b/i.test(stUp) && !/BELUM/i.test(stUp)){ arPos='SUDAH LUNAS'; }
+    else if(ar.sisa!=null){
+      const nom = Number(ar.nominal)||0;
+      const sisa = Number(ar.sisa);
+      if(sisa<=0){ arPos='SUDAH LUNAS'; }
+      else if(nom>0 && sisa<nom){ arPos='BAYAR TITIP'; }
+      else { arPos='BELUM LUNAS'; }
+    } else if(rawSt){
+      arPos = rawSt;
+    } else {
+      arPos = 'BELUM LUNAS';
+    }
+    
+    return arPos;
+  };
+  
+  // Function untuk menentukan status AR dan return badge HTML
+  const getArStatusBadge = (ar) => {
+    if(!ar) return '';
+    const rawSt = String(ar.status||'').trim();
+    const ketSt = String(ar.keterangan||'').trim();
+    const stUp = (rawSt || ketSt).toUpperCase().replace(/\s+/g,' ');
+    let arPos = '', arPosCls = '';
+    
+    if(/BELUM\s*LUNAS|BELUM\s*BAYAR|UNPAID/i.test(stUp)){ arPos='BELUM LUNAS'; arPosCls='belum'; }
+    else if(/BAYAR\s*TITIP|\bTITIP\b|PARTIAL|SEBAGIAN/i.test(stUp)){ arPos='BAYAR TITIP'; arPosCls='titip'; }
+    else if(/SUDAH\s*LUNAS|\bLUNAS\b|\bPAID\b/i.test(stUp) && !/BELUM/i.test(stUp)){ arPos='SUDAH LUNAS'; arPosCls='lunas'; }
+    else if(ar.sisa!=null){
+      const nom = Number(ar.nominal)||0;
+      const sisa = Number(ar.sisa);
+      if(sisa<=0){ arPos='SUDAH LUNAS'; arPosCls='lunas'; }
+      else if(nom>0 && sisa<nom){ arPos='BAYAR TITIP'; arPosCls='titip'; }
+      else { arPos='BELUM LUNAS'; arPosCls='belum'; }
+    } else if(rawSt){
+      arPos = rawSt; arPosCls = 'belum';
+    } else {
+      arPos = 'BELUM LUNAS'; arPosCls = 'belum';
+    }
+    
+    const posColors = {
+      belum: {bg:'#fee2e2', fg:'#b91c1c', bd:'#fca5a5'},
+      titip: {bg:'#fef3c7', fg:'#b45309', bd:'#fcd34d'},
+      lunas: {bg:'#dcfce7', fg:'#15803d', bd:'#86efac'}
+    };
+    const pc = posColors[arPosCls] || posColors.belum;
+    return arPos ? '<span style="display:inline-block;background:'+pc.bg+';color:'+pc.fg+';border:1px solid '+pc.bd+';padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.02em">'+esc(arPos)+'</span>' : '';
+  };
   let html='<table class="scan-table-multi"><colgroup><col class="c-no"><col class="c-tgl"><col class="c-faktur"><col class="c-sales"><col class="c-nom"><col class="c-bayar"><col class="c-cust"><col class="c-alamat"><col class="c-um-tgl"><col class="c-um-nom"><col class="c-um-ket"><col class="c-dth-tgl"><col class="c-dth-ket"><col class="c-ar-tgl"><col class="c-ar-ket"></colgroup><thead><tr><th colspan="8" class="h-pen">📋 REKAP PENJUALAN</th><th colspan="3" class="h-um">💰 UANG MASUK</th><th colspan="2" class="h-dth">📦 DTH</th><th colspan="2" class="h-ar">🗂️ REKAP AR</th></tr><tr><th class="h-pen">No</th><th class="h-pen">Tgl Faktur</th><th class="h-pen">No Faktur</th><th class="h-pen">Sales</th><th class="h-pen num">Nominal</th><th class="h-pen">Jenis Bayar</th><th class="h-pen">Customer</th><th class="h-pen">Alamat</th><th class="h-um">Tgl UM</th><th class="h-um num">Nominal UM</th><th class="h-um">Keterangan UM</th><th class="h-dth">Tgl DTH</th><th class="h-dth">Keterangan DTH</th><th class="h-ar">Tgl AR</th><th class="h-ar">Keterangan AR</th></tr></thead><tbody>';
   const pageStart=((scanPage.sumberData||1)-1)*(scanPageSize||SCAN_PAGE_SIZE_DEFAULT);
   let no=pageStart+1;
@@ -2848,7 +2906,7 @@ function renderSumberDataTable(){
     const fkCell=fkDisp
       ? ('<a href="#" class="scan-faktur-link" title="Klik untuk detail faktur penjualan" onclick="openFakturModal(\'sumberData\','+absIdx+');return false;">'+esc(fkDisp)+'</a>')
       : '';
-    html+='<tr><td class="pen-no">'+(no++)+'</td><td class="pen-tgl">'+(row.tanggal?formatScanDate(row.tanggal):'')+'</td><td class="pen-faktur" title="'+esc(fkDisp)+'">'+fkCell+'</td><td class="pen-sales" title="'+esc(row.sales)+'">'+esc(row.sales)+'</td><td class="pen-nom num">'+(row.nominalFaktur?rupiahScan(row.nominalFaktur):'')+'</td><td class="pen-bayar">'+esc(row.pembayaran)+'</td><td class="pen-cust" title="'+esc(row.customer)+'">'+esc(row.customer)+'</td><td class="pen-alamat" title="'+esc(row.alamat)+'">'+esc(row.alamat)+'</td><td class="um-tgl">'+(um?formatScanDate(um.tanggal):'')+'</td><td class="um-nom num">'+(um?rupiahScan(um.nominal):'')+'</td><td class="um-ket" title="'+esc(um?um.keterangan:'')+'">'+(um?badge('ADA','ada'):'')+(um&&um.count>1?' <small>('+um.count+' UM)</small>':'')+(um&&um.keterangan?' '+esc(um.keterangan):'')+'</td><td class="dth-tgl">'+(dth?formatScanDate(dth.tanggal):'')+'</td><td class="dth-ket" title="'+esc(dth?dth.keterangan:'')+'">'+(dth?badge('ADA','dth')+' '+esc(dth.keterangan):'')+'</td><td class="ar-tgl">'+(ar?formatScanDate(ar.tanggal):'')+'</td><td class="ar-ket" title="'+esc(ar?ar.keterangan:'')+'">'+(ar?badge('ADA','ar')+' '+esc(ar.keterangan):'')+'</td></tr>';
+    html+='<tr><td class="pen-no">'+(no++)+'</td><td class="pen-tgl">'+(row.tanggal?formatScanDate(row.tanggal):'')+'</td><td class="pen-faktur" title="'+esc(fkDisp)+'">'+fkCell+'</td><td class="pen-sales" title="'+esc(row.sales)+'">'+esc(row.sales)+'</td><td class="pen-nom num">'+(row.nominalFaktur?rupiahScan(row.nominalFaktur):'')+'</td><td class="pen-bayar">'+esc(row.pembayaran)+'</td><td class="pen-cust" title="'+esc(row.customer)+'">'+esc(row.customer)+'</td><td class="pen-alamat" title="'+esc(row.alamat)+'">'+esc(row.alamat)+'</td><td class="um-tgl">'+(um?formatScanDate(um.tanggal):'')+'</td><td class="um-nom num">'+(um?rupiahScan(um.nominal):'')+'</td><td class="um-ket" title="'+esc(um?um.keterangan:'')+'">'+(um?badge('ADA','ada'):'')+(um&&um.count>1?' <small>('+um.count+' UM)</small>':'')+(um&&um.keterangan?' '+esc(um.keterangan):'')+'</td><td class="dth-tgl">'+(dth?formatScanDate(dth.tanggal):'')+'</td><td class="dth-ket" title="'+esc(dth?dth.keterangan:'')+'">'+(dth?badge('ADA','dth')+' '+esc(dth.keterangan):'')+'</td><td class="ar-tgl">'+(ar?formatScanDate(ar.tanggal):'')+'</td><td class="ar-ket" title="'+esc(ar?ar.keterangan:'')+'">'+(ar?getArStatusBadge(ar):'')+'</td></tr>';
   });
   html+='</tbody></table>'; container.innerHTML=html; renderPager('pager-sumber-data','sumberData',allData.length);
 }
@@ -2857,7 +2915,7 @@ function exportSumberDataExcel(){
   const data=scanResults.sumberData||[];
   if(!data.length){alert('Tidak ada data untuk di-export. Klik SCAN DATA terlebih dahulu.');return;}
   const wsData=[['NO','TGL-PEN','NO.FAKTUR','SALES','NOM.FAK','PEMBAYARAN','CUSTOMER','ALAMAT','TGL-UM','NOM-UM','KET-UM','TGL-DTH','KET-DTH','TGL-AR','KET-AR']];
-  data.forEach((row,i)=>wsData.push([i+1,row.tanggal?formatScanDate(row.tanggal):'',row.noFaktur||'',row.sales||'',row.nominalFaktur||'',row.pembayaran||'',row.customer||'',row.alamat||'',row.um?formatScanDate(row.um.tanggal):'',row.um?row.um.nominal:'',row.um?row.um.keterangan:'',row.dth?formatScanDate(row.dth.tanggal):'',row.dth?row.dth.keterangan:'',row.ar?formatScanDate(row.ar.tanggal):'',row.ar?row.ar.keterangan:'']));
+  data.forEach((row,i)=>wsData.push([i+1,row.tanggal?formatScanDate(row.tanggal):'',row.noFaktur||'',row.sales||'',row.nominalFaktur||'',row.pembayaran||'',row.customer||'',row.alamat||'',row.um?formatScanDate(row.um.tanggal):'',row.um?row.um.nominal:'',row.um?row.um.keterangan:'',row.dth?formatScanDate(row.dth.tanggal):'',row.dth?row.dth.keterangan:'',row.ar?formatScanDate(row.ar.tanggal):'',row.ar?getArStatusText(row.ar):'']));
   const ws=XLSX.utils.aoa_to_sheet(wsData),wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Sumber Data'); XLSX.writeFile(wb,'Sumber_Data_'+new Date().toISOString().split('T')[0]+'.xlsx');
 }
 
