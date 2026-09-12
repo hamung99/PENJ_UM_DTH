@@ -3376,7 +3376,7 @@ function openFakturModal(pageKey, idx){
         if(r.ar.nominal!=null && r.ar.nominal!==''){
           html += '<div><label>Nominal AR</label><b>'+rupiahScan(r.ar.nominal)+'</b></div>';
         }
-        html += '<div style="grid-column:1/-1"><label>Keterangan AR</label><b>'+escScan(r.ar.keterangan||'-')+'</b></div>';
+        html += '<div style="grid-column:1/-1"><label>Keterangan dari Rekap AR</label><b>'+escScan(r.ar.keterangan||'-')+'</b></div>';
       }
       html += '</div>';
     }
