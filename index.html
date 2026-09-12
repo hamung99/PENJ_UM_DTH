@@ -825,7 +825,7 @@
   </div>
 </main>
 
-<!-- Modal Detail Faktur (dipakai khusus dari sub-tab "Penjualan-Tidak Ada UM") -->
+<!-- Modal Detail Faktur (Scan Data: Sumber Data / sub-tab lama) -->
 <div id="scanFakturModal" role="dialog" aria-modal="true" aria-labelledby="sfmTitle" onclick="if(event.target===this)closeFakturModal()">
   <div class="sfm-box">
     <div class="sfm-header">
@@ -2795,10 +2795,16 @@ function renderSumberDataTable(){
   const esc=v=>escScan(v==null?'':String(v));
   const badge=(text,kind)=>text?'<span class="sd-badge sd-'+kind+'">'+esc(text)+'</span>':'';
   let html='<table class="scan-table-multi"><colgroup><col class="c-no"><col class="c-tgl"><col class="c-faktur"><col class="c-sales"><col class="c-nom"><col class="c-bayar"><col class="c-cust"><col class="c-alamat"><col class="c-um-tgl"><col class="c-um-nom"><col class="c-um-ket"><col class="c-dth-tgl"><col class="c-dth-ket"><col class="c-ar-tgl"><col class="c-ar-ket"></colgroup><thead><tr><th colspan="8" class="h-pen">📋 REKAP PENJUALAN</th><th colspan="3" class="h-um">💰 UANG MASUK</th><th colspan="2" class="h-dth">📦 DTH</th><th colspan="2" class="h-ar">🗂️ REKAP AR</th></tr><tr><th class="h-pen">No</th><th class="h-pen">Tgl Faktur</th><th class="h-pen">No Faktur</th><th class="h-pen">Sales</th><th class="h-pen num">Nominal</th><th class="h-pen">Jenis Bayar</th><th class="h-pen">Customer</th><th class="h-pen">Alamat</th><th class="h-um">Tgl UM</th><th class="h-um num">Nominal UM</th><th class="h-um">Keterangan UM</th><th class="h-dth">Tgl DTH</th><th class="h-dth">Keterangan DTH</th><th class="h-ar">Tgl AR</th><th class="h-ar">Keterangan AR</th></tr></thead><tbody>';
-  let no=((scanPage.sumberData||1)-1)*(scanPageSize||SCAN_PAGE_SIZE_DEFAULT)+1;
-  data.forEach(row=>{
+  const pageStart=((scanPage.sumberData||1)-1)*(scanPageSize||SCAN_PAGE_SIZE_DEFAULT);
+  let no=pageStart+1;
+  data.forEach((row,rowIdx)=>{
     const um=row.um,dth=row.dth,ar=row.ar;
-    html+='<tr><td class="pen-no">'+(no++)+'</td><td class="pen-tgl">'+(row.tanggal?formatScanDate(row.tanggal):'')+'</td><td class="pen-faktur" title="'+esc(row.noFaktur)+'">'+esc(row.noFaktur)+'</td><td class="pen-sales" title="'+esc(row.sales)+'">'+esc(row.sales)+'</td><td class="pen-nom num">'+(row.nominalFaktur?rupiahScan(row.nominalFaktur):'')+'</td><td class="pen-bayar">'+esc(row.pembayaran)+'</td><td class="pen-cust" title="'+esc(row.customer)+'">'+esc(row.customer)+'</td><td class="pen-alamat" title="'+esc(row.alamat)+'">'+esc(row.alamat)+'</td><td class="um-tgl">'+(um?formatScanDate(um.tanggal):'')+'</td><td class="um-nom num">'+(um?rupiahScan(um.nominal):'')+'</td><td class="um-ket" title="'+esc(um?um.keterangan:'')+'">'+(um?badge('ADA','ada'):'')+(um&&um.count>1?' <small>('+um.count+' UM)</small>':'')+(um&&um.keterangan?' '+esc(um.keterangan):'')+'</td><td class="dth-tgl">'+(dth?formatScanDate(dth.tanggal):'')+'</td><td class="dth-ket" title="'+esc(dth?dth.keterangan:'')+'">'+(dth?badge('ADA','dth')+' '+esc(dth.keterangan):'')+'</td><td class="ar-tgl">'+(ar?formatScanDate(ar.tanggal):'')+'</td><td class="ar-ket" title="'+esc(ar?ar.keterangan:'')+'">'+(ar?badge('ADA','ar')+' '+esc(ar.keterangan):'')+'</td></tr>';
+    const absIdx=pageStart+rowIdx;
+    const fkDisp=row.noFaktur||'';
+    const fkCell=fkDisp
+      ? ('<a href="#" class="scan-faktur-link" title="Klik untuk detail faktur penjualan" onclick="openFakturModal(\'sumberData\','+absIdx+');return false;">'+esc(fkDisp)+'</a>')
+      : '';
+    html+='<tr><td class="pen-no">'+(no++)+'</td><td class="pen-tgl">'+(row.tanggal?formatScanDate(row.tanggal):'')+'</td><td class="pen-faktur" title="'+esc(fkDisp)+'">'+fkCell+'</td><td class="pen-sales" title="'+esc(row.sales)+'">'+esc(row.sales)+'</td><td class="pen-nom num">'+(row.nominalFaktur?rupiahScan(row.nominalFaktur):'')+'</td><td class="pen-bayar">'+esc(row.pembayaran)+'</td><td class="pen-cust" title="'+esc(row.customer)+'">'+esc(row.customer)+'</td><td class="pen-alamat" title="'+esc(row.alamat)+'">'+esc(row.alamat)+'</td><td class="um-tgl">'+(um?formatScanDate(um.tanggal):'')+'</td><td class="um-nom num">'+(um?rupiahScan(um.nominal):'')+'</td><td class="um-ket" title="'+esc(um?um.keterangan:'')+'">'+(um?badge('ADA','ada'):'')+(um&&um.count>1?' <small>('+um.count+' UM)</small>':'')+(um&&um.keterangan?' '+esc(um.keterangan):'')+'</td><td class="dth-tgl">'+(dth?formatScanDate(dth.tanggal):'')+'</td><td class="dth-ket" title="'+esc(dth?dth.keterangan:'')+'">'+(dth?badge('ADA','dth')+' '+esc(dth.keterangan):'')+'</td><td class="ar-tgl">'+(ar?formatScanDate(ar.tanggal):'')+'</td><td class="ar-ket" title="'+esc(ar?ar.keterangan:'')+'">'+(ar?badge('ADA','ar')+' '+esc(ar.keterangan):'')+'</td></tr>';
   });
   html+='</tbody></table>'; container.innerHTML=html; renderPager('pager-sumber-data','sumberData',allData.length);
 }
@@ -3163,19 +3169,42 @@ function openFakturModal(pageKey, idx){
     const data = pageKey==='tidak' ? (scanResults.tidak||[])
       : pageKey==='ada' ? (scanResults.ada||[])
       : pageKey==='umOnly' ? (scanResults.umOnly||[])
+      : pageKey==='sumberData' ? (scanResults.sumberData||[])
       : [];
-    const r = data[idx];
+    let r = data[idx];
     if(!r) return;
     const m = document.getElementById('scanFakturModal');
     const body = document.getElementById('scanFakturModalBody');
     const titleEl = document.getElementById('sfmTitle');
     if(!m || !body) return;
 
+    // Sumber Data: petakan field ringkas → bentuk yang dipakai modal penjualan
+    if(pageKey==='sumberData'){
+      const fk = r.noFaktur || r.faktur || '';
+      r = {
+        faktur: fk,
+        tanggal: r.tanggal || '',
+        sales: r.sales || '',
+        customer: r.customer || '',
+        alamat: r.alamat || '',
+        pembayaran: r.pembayaran || '',
+        total: r.nominalFaktur || 0,
+        produkKategori: r.produkKategori || '',
+        produkList: r.produkList || null,
+        um: r.um || null,
+        dth: r.dth || null,
+        ar: r.ar || null,
+        rowType: r.rowType || '',
+        _fromSumberData: true
+      };
+    }
+
     const isUmSide = pageKey==='umOnly' || !!r.umReconciled;
     _currentModalKind = isUmSide ? 'umonly' : 'penjualan';
 
     let titleBadge;
-    if(pageKey==='umOnly') titleBadge = 'UM Tanpa Faktur';
+    if(pageKey==='sumberData') titleBadge = 'Sumber Data · Penjualan';
+    else if(pageKey==='umOnly') titleBadge = 'UM Tanpa Faktur';
     else if(r.umReconciled) titleBadge = UM_STATUS_LABEL[r.manualStatus] || 'Dari UM';
     else if(pageKey==='ada') titleBadge = r.manualStatus==='titip' ? 'Titip (manual)'
       : r.manualStatus==='lunas' ? 'Lunas (manual)'
@@ -3198,6 +3227,32 @@ function openFakturModal(pageKey, idx){
     }
     html += '</div>';
     html += '<div class="sfm-total"><label>'+(isUmSide?'TOTAL NOMINAL UM':'TOTAL NOMINAL FAKTUR')+'</label><b>'+rupiahScan(r.total)+'</b></div>';
+
+    // Ringkasan pasangan UM / DTH / AR dari baris Sumber Data
+    if(pageKey==='sumberData'){
+      html += '<div class="sfm-section-title">Pasangan di Sumber Lain</div>';
+      html += '<div class="sfm-grid">';
+      if(r.um){
+        html += '<div><label>Tgl UM</label><b>'+escScan(formatScanDate(r.um.tanggal))+'</b></div>';
+        html += '<div><label>Nominal UM</label><b>'+rupiahScan(r.um.nominal)+'</b></div>';
+        html += '<div style="grid-column:1/-1"><label>Keterangan UM</label><b>'+escScan(r.um.keterangan||'-')+'</b></div>';
+      } else {
+        html += '<div style="grid-column:1/-1"><label>Uang Masuk</label><b style="color:#b91c1c">Tidak ada</b></div>';
+      }
+      if(r.dth){
+        html += '<div><label>Tgl DTH</label><b>'+escScan(formatScanDate(r.dth.tanggal))+'</b></div>';
+        html += '<div style="grid-column:1/-1"><label>Keterangan DTH</label><b>'+escScan(r.dth.keterangan||'-')+'</b></div>';
+      } else {
+        html += '<div style="grid-column:1/-1"><label>DTH</label><b style="color:#b91c1c">Tidak ada</b></div>';
+      }
+      if(r.ar){
+        html += '<div><label>Tgl AR</label><b>'+escScan(formatScanDate(r.ar.tanggal))+'</b></div>';
+        html += '<div style="grid-column:1/-1"><label>Keterangan AR</label><b>'+escScan(r.ar.keterangan||'-')+'</b></div>';
+      } else {
+        html += '<div style="grid-column:1/-1"><label>Rekap AR</label><b style="color:#b91c1c">Tidak ada</b></div>';
+      }
+      html += '</div>';
+    }
 
     if(pageKey==='umOnly'){
       html += '<div class="sfm-empty">Baris uang masuk ini tidak ditemukan pasangan No Faktur-nya di data Penjualan yang ter-load. Silakan cek manual (misalnya salah ketik No Faktur, faktur beda bulan, dsb). Jika setelah dicek ternyata transaksi ini normal, gunakan tombol di bawah untuk memindahkannya ke sub-tab <b>Penjualan-Ada di UM</b>.</div>';
