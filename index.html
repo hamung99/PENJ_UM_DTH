@@ -2599,7 +2599,10 @@ function readSumberDataAR(){
         const a=w[name];
         if(Array.isArray(a) && a.length && a.some(x=>x && typeof x==='object')){
           const out=a.map(mapObj).filter(x=>x.faktur||x.customer||x.alamat||x.nominal!=null);
-          if(out.length) return out;
+          if(out.length){
+            console.log('✅ AR data from window.'+name+': '+out.length+' rows', out.slice(0,3));
+            return out;
+          }
         }
       }catch(e){}
     }
@@ -2624,6 +2627,8 @@ function readSumberDataAR(){
         ket:headerCells.findIndex(h=>/keterangan|^ket$/i.test(h))
       };
       if(idx.faktur<0 && idx.customer<0 && idx.nominal<0) continue;
+      console.log('📋 AR table detected - Column indices:', idx);
+      console.log('📋 AR table headers:', headerCells);
       const out=[];
       trs.slice(1).forEach(tr=>{
         const c=[...tr.querySelectorAll('td')].map(x=>String(x.textContent||'').trim());
@@ -2632,7 +2637,10 @@ function readSumberDataAR(){
         const r={faktur:val(idx.faktur),tanggal:val(idx.tanggal),sales:val(idx.sales),customer:val(idx.customer),alamat:val(idx.alamat),nominal:val(idx.nominal),sisa:val(idx.sisa),status:val(idx.status),keterangan:val(idx.ket)};
         if(r.faktur||r.customer||r.alamat||r.nominal) out.push(r);
       });
-      if(out.length) return out;
+      if(out.length){
+        console.log('✅ AR data from table: '+out.length+' rows', out.slice(0,3));
+        return out;
+      }
     }
   }catch(e){ console.warn('Sumber Data: gagal membaca Rekap AR',e); }
   return [];
