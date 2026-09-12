@@ -2134,7 +2134,8 @@ function initTheme(){
   }
   applyTheme(saved);
 }
-document.getElementById('themeToggle').addEventListener('click', () => {
+const __themeToggleBtn = document.getElementById('themeToggle');
+if (__themeToggleBtn) __themeToggleBtn.addEventListener('click', () => {
   const current = document.documentElement.getAttribute('data-theme') || 'light';
   const next = current === 'dark' ? 'light' : 'dark';
   localStorage.setItem(THEME_KEY, next);
