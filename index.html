@@ -2777,7 +2777,7 @@ function applySumberDataFilters(){
       return hasPen && !r.um;
     });
   }
-  if(fBulanUM.length){
+  if(fBulanUM.length && !onlyPenAdaUmKosong){
     const set = new Set(fBulanUM);
     out = out.filter(r => r.um && r.um.tanggal && set.has(monthKeyFromDate(r.um.tanggal)));
   }
@@ -2814,6 +2814,13 @@ function updatePenAdaUmKosongBtn(filteredCount){
     btn.innerHTML = '⚠ Penjualan Ada · UM Kosong <span class="cnt">'+n+'</span>';
   } else {
     btn.innerHTML = '⚠ Penjualan Ada · UM Kosong';
+  }
+  // Filter "Bulan UM" tidak relevan saat mode UM Kosong aktif (baris di sini memang
+  // tidak punya UM sama sekali) — nonaktifkan visual + fungsional agar tidak membingungkan.
+  const umBtn = document.getElementById('fltBulanUMBtn') || document.getElementById('fltBulanUmBtn');
+  if(umBtn){
+    umBtn.disabled = on;
+    umBtn.title = on ? 'Nonaktif saat mode "UM Kosong" aktif' : '';
   }
 }
 
