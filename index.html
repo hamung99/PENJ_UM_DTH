@@ -309,11 +309,11 @@
   }
   .btn-pen-um-kosong.active .cnt{background:rgba(255,255,255,.25)}
   html[data-theme="dark"] .btn-pen-um-kosong{
-    background:#431407;color:#fdba74;border-color:#9a3412;
+    background:#3b2410!important;color:#d6a06a!important;border-color:#7c4a1e!important;
   }
-  html[data-theme="dark"] .btn-pen-um-kosong:hover{background:#7c2d12}
+  html[data-theme="dark"] .btn-pen-um-kosong:hover{background:#4a2e14!important}
   html[data-theme="dark"] .btn-pen-um-kosong.active{
-    background:#ea580c;color:#fff;border-color:#fb923c;
+    background:#9a3412!important;color:#ffedd5!important;border-color:#c2410c!important;
   }
   .scan-export-row{display:flex;justify-content:flex-end;margin:0 0 8px}
   .btn-export-excel{
@@ -364,28 +364,28 @@
   .scan-table-multi td.num{text-align:right;font-variant-numeric:tabular-nums}
 
   /* Lebar proporsional — tanggal sempit (dd/mm/yy), ket UM/DTH/AR lebih lega */
-  .scan-table-multi col.c-no{width:26px}
-  .scan-table-multi col.c-tgl{width:52px}
-  .scan-table-multi col.c-faktur{width:90px}
-  .scan-table-multi col.c-sales{width:50px}
-  .scan-table-multi col.c-nom{width:72px}
-  .scan-table-multi col.c-bayar{width:56px}
-  .scan-table-multi col.c-cust{width:88px}
+  .scan-table-multi col.c-no{width:28px}
+  .scan-table-multi col.c-tgl{width:58px}
+  .scan-table-multi col.c-faktur{width:96px}
+  .scan-table-multi col.c-sales{width:54px}
+  .scan-table-multi col.c-nom{width:78px}
+  .scan-table-multi col.c-bayar{width:72px}
+  .scan-table-multi col.c-cust{width:90px}
   .scan-table-multi col.c-alamat{width:92px}
-  .scan-table-multi col.c-um-tgl{width:52px}
-  .scan-table-multi col.c-um-nom{width:80px}
-  .scan-table-multi col.c-um-ket{width:130px}
-  .scan-table-multi col.c-dth-tgl{width:52px}
-  .scan-table-multi col.c-dth-ket{width:130px}
-  .scan-table-multi col.c-ar-tgl{width:52px}
-  .scan-table-multi col.c-ar-ket{width:130px}
+  .scan-table-multi col.c-um-tgl{width:58px}
+  .scan-table-multi col.c-um-nom{width:84px}
+  .scan-table-multi col.c-um-ket{width:120px}
+  .scan-table-multi col.c-dth-tgl{width:58px}
+  .scan-table-multi col.c-dth-ket{width:120px}
+  .scan-table-multi col.c-ar-tgl{width:58px}
+  .scan-table-multi col.c-ar-ket{width:120px}
 
   /* Header grup (baris 1: colspan) rata tengah — dan stacking 2 baris sticky
      supaya baris 1 (PENJUALAN/UANG MASUK/DTH/REKAP AR) tidak tertutup/hilang
      saat tabel discroll: baris 1 sticky di top:0, baris 2 sticky tepat di
      bawahnya (top = tinggi baris 1), bukan sama-sama top:0. */
   .scan-table-multi thead tr:first-child th{text-align:center;letter-spacing:.02em;top:0;height:26px;box-sizing:border-box;z-index:11}
-  .scan-table-multi thead tr:nth-child(2) th{top:26px;z-index:10}
+  .scan-table-multi thead tr:nth-child(2) th{top:26px;z-index:10;font-size:10px;letter-spacing:0;line-height:1.2;padding:5px 3px}
 
   /* Header Penjualan (biru muda) */
   .scan-table-multi th.h-pen{background:#5B9BD5;color:#fff}
@@ -552,12 +552,33 @@
   html[data-theme="dark"] .app-frame-wrap iframe{background:#0f172a}
   html[data-theme="dark"] .scan-wrap{background:#0f172a;color:#e2e8f0}
   html[data-theme="dark"] .scan-tabs button{background:#1e293b;color:#cbd5e1;border-color:#475569}
-  html[data-theme="dark"] .scan-tabs button.active{background:#2563eb;color:#fff;border-color:#2563eb}
+  html[data-theme="dark"] .scan-tabs button.active{background:#1e3a5f;color:#93c5fd;border-color:#334155}
   html[data-theme="dark"] .scan-tabs button:hover{background:#1e3a5f;border-color:#60a5fa}
   html[data-theme="dark"] #btnScanData{background:#1e293b;color:#e2e8f0;border-color:#475569}
-  html[data-theme="dark"] .scan-filters select,.scan-month-btn,.kandidat-bar-row select,.scan-sub-toolbar select,
+  html[data-theme="dark"] .scan-filters select,
+  html[data-theme="dark"] .scan-month-btn,
+  html[data-theme="dark"] .kandidat-bar-row select,
+  html[data-theme="dark"] .scan-sub-toolbar select,
   html[data-theme="dark"] .kandidat-bar-row input[type=search],
-  html[data-theme="dark"] .scan-sub-toolbar input[type=search]{background:#1e293b;color:#e2e8f0;border-color:#475569}
+  html[data-theme="dark"] .scan-sub-toolbar input[type=search],
+  html[data-theme="dark"] .scan-filters input[type=search],
+  html[data-theme="dark"] .scan-filters .fg-search input[type=search],
+  html[data-theme="dark"] #fltCariScan,
+  html[data-theme="dark"] #fltCariSumberData{
+    background:#1e293b!important;color:#e2e8f0!important;border-color:#475569!important;
+  }
+  html[data-theme="dark"] .scan-filters input[type=search]::placeholder,
+  html[data-theme="dark"] .scan-filters .fg-search input[type=search]::placeholder,
+  html[data-theme="dark"] #fltCariScan::placeholder,
+  html[data-theme="dark"] #fltCariSumberData::placeholder{
+    color:#64748b!important;opacity:1;
+  }
+  html[data-theme="dark"] .scan-filters input[type=search]:focus,
+  html[data-theme="dark"] .scan-filters .fg-search input[type=search]:focus,
+  html[data-theme="dark"] #fltCariScan:focus,
+  html[data-theme="dark"] #fltCariSumberData:focus{
+    border-color:#475569!important;box-shadow:0 0 0 2px rgba(51,65,85,.45)!important;
+  }
   html[data-theme="dark"] .scan-summary .card{background:#1e293b;border-color:#334155}
   html[data-theme="dark"] .scan-summary small{color:#94a3b8}
   html[data-theme="dark"] .scan-summary b{color:#f1f5f9}
@@ -636,8 +657,17 @@
   html[data-theme="dark"] #scanFakturModal .sfm-footer-info b{color:#f8fafc}
   html[data-theme="dark"] #themeToggleBtn.open{background:#fff;color:#1A4B75;border-color:#fff}
   /* Redupkan warna yang terlalu menyolok di mode gelap (tab Scan Data > Penjualan-Tidak Ada UM) */
-  html[data-theme="dark"] .btn-export-excel{background:#14532d!important;border-color:#166534!important;color:#bbf7d0!important;box-shadow:none!important}
-  html[data-theme="dark"] .btn-export-excel:hover{background:#166534!important}
+  html[data-theme="dark"] .btn-export-excel,
+  html[data-theme="dark"] #btnExportSumberData,
+  html[data-theme="dark"] #btnExportAda,
+  html[data-theme="dark"] #btnExportUmOnly{
+    background:#163528!important;border-color:#1f4a36!important;color:#86efac!important;
+    box-shadow:none!important;filter:none!important;
+  }
+  html[data-theme="dark"] .btn-export-excel:hover,
+  html[data-theme="dark"] #btnExportSumberData:hover{
+    background:#1a3f30!important;border-color:#225c42!important;color:#bbf7d0!important;
+  }
   html[data-theme="dark"] .kandidat-bar-row .btn-kandidat-reset,
   html[data-theme="dark"] .btn-kandidat-reset{background:#1e293b!important;color:#e2e8f0!important;border-color:#475569!important}
   html[data-theme="dark"] .kandidat-bar-row .btn-kandidat-reset:hover,
@@ -749,16 +779,7 @@
           <button type="button" id="btnScanData" onclick="scanDataRun()">SCAN DATA</button>
         </div>
         <div class="scan-tabs" id="scanSubTabs">
-          <button type="button" class="active" onclick="switchScanSubTab(this,'scan-ada')">
-            Penjualan-Ada di UM
-          </button>
-          <button type="button" onclick="switchScanSubTab(this,'scan-tidak-ada')">
-            Penjualan-Tidak Ada UM
-          </button>
-          <button type="button" onclick="switchScanSubTab(this,'scan-um-only')">
-            UM-Tidak Ada di Penjualan
-          </button>
-          <button type="button" onclick="switchScanSubTab(this,'scan-sumber-data')">
+          <button type="button" class="active" onclick="switchScanSubTab(this,'scan-sumber-data')">
             📊 Sumber Data
           </button>
         </div>
@@ -809,115 +830,16 @@
             <button type="button" class="btn-reset" onclick="resetScanFilters()">Reset</button>
           </div>
         </div>
-        <div class="fg fg-btn" id="metaExportWrap" style="display:none">
+        <div class="fg fg-btn" id="metaExportWrap" style="display:flex">
           <label>&nbsp;</label>
           <button type="button" class="btn-pen-um-kosong" id="btnPenAdaUmKosong" onclick="togglePenAdaUmKosong()" title="Tampilkan hanya Penjualan yang belum ada di Uang Masuk — prioritas cek manual">
             ⚠ Penjualan Ada · UM Kosong
           </button>
           <button type="button" class="btn-export-excel" id="btnExportSumberData" onclick="exportSumberDataExcel()">⬇️ Download Excel</button>
         </div>
-        <div class="scan-summary" id="summary-ada">
-          <div class="card"><small>JUMLAH FAKTUR</small><b id="scanAdaCount">0</b></div>
-          <div class="card"><small>NOMINAL FAKTUR</small><b id="scanAdaNominal">Rp 0</b></div>
-          <div class="card"><small>NOMINAL UM</small><b id="scanAdaUM">Rp 0</b></div>
-          <div class="card"><small>SELISIH</small><b id="scanAdaSelisih">Rp 0</b></div>
-        </div>
-        <div class="scan-summary hidden" id="summary-tidak">
-          <div class="card"><small>Belum Ditemukan di UM</small><b id="scanTidakCount">0</b></div>
-          <div class="card"><small>NOMINAL FAKTUR</small><b id="scanTidakNominal">Rp 0</b></div>
-          <div class="card"><small>ADA DI DTH</small><b id="scanTidakDthCount">0</b></div>
-        </div>
-        <div class="scan-summary hidden" id="summary-umonly">
-          <div class="card"><small>JUMLAH FAKTUR UM</small><b id="scanUmOnlyCount">0</b></div>
-          <div class="card"><small>NOMINAL UM</small><b id="scanUmOnlyNominal">Rp 0</b></div>
-          <div class="card"><small>TOTAL UM TER-LOAD</small><b id="scanUmTotalAll">Rp 0</b></div>
-        </div>
       </div>
 
-      <div class="scan-panel active" id="scan-ada">
-        <div class="scan-sub-toolbar">
-          <select id="fltSalesAda" onchange="applyScanFilters()" title="Filter Sales">
-            <option value="">Semua Sales</option>
-          </select>
-          <select id="fltJenisUmAda" onchange="applyScanFilters()" title="Filter Jenis UM">
-            <option value="">Semua Jenis UM</option>
-          </select>
-          <select id="fltProdukAda" onchange="applyScanFilters()" title="Filter Produk">
-            <option value="">Semua Produk</option>
-            <option value="FITRI">Minyak Fitri</option>
-            <option value="RUPA_RUPA">Rupa Rupa</option>
-            <option value="CAMPURAN">Campuran (Fitri + Rupa Rupa)</option>
-          </select>
-          <select id="fltStatusAda" onchange="applyScanFilters()" title="Filter Status Pembayaran">
-            <option value="">Semua Status</option>
-            <option value="lunas">LUNAS</option>
-            <option value="titip">TITIP</option>
-            <option value="beda">Nominal Beda</option>
-          </select>
-          <button type="button" class="btn-export-excel" id="btnExportAda" onclick="exportAdaExcel()">⬇️ Download Excel</button>
-        </div>
-        <div id="scanAdaTable" class="scan-table-wrap"><div class="scan-empty">Klik SCAN DATA untuk membaca Penjualan / Faktur.</div></div>
-        <div class="scan-pager" id="pager-ada" style="display:none"></div>
-      </div>
-
-      <div class="scan-panel" id="scan-tidak-ada">
-        <div class="kandidat-bar" id="kandidatBar">
-          <div class="kandidat-bar-row">
-            <button type="button" id="btnCariKandidatBatal" onclick="cariKandidatBatal()">
-              <span class="ico">🔍</span> Cari Kandidat Batal
-            </button>
-            <input type="search" id="fltCariKandidat" placeholder="Filter: No Faktur / Customer / Sales / Alamat…" oninput="onScanSearchInputFromPanel(this)" autocomplete="off">
-            <select id="fltStatusJT" onchange="applyScanFilters()" title="Filter Status Jatuh Tempo">
-              <option value="">Semua Status</option>
-              <option value="belum">Belum JT</option>
-              <option value="overdue">Overdue</option>
-              <option value="bukan">Bukan Tempo</option>
-            </select>
-            <select id="fltSalesTidak" onchange="applyScanFilters()" title="Filter Sales">
-              <option value="">Semua Sales</option>
-            </select>
-            <select id="fltDiDTH" onchange="applyScanFilters()" title="Filter keberadaan di DTH">
-              <option value="">Semua Di DTH?</option>
-              <option value="ada">Ada di DTH</option>
-              <option value="tidak">Tidak di DTH</option>
-            </select>
-            <select id="fltProdukTidak" onchange="applyScanFilters()" title="Filter Produk">
-              <option value="">Semua Produk</option>
-              <option value="FITRI">Minyak Fitri</option>
-              <option value="RUPA_RUPA">Rupa Rupa</option>
-              <option value="CAMPURAN">Campuran (Fitri + Rupa Rupa)</option>
-            </select>
-            <button type="button" class="btn-kandidat-reset" onclick="resetModeKandidatMinus()" title="Tampilkan semua Penjualan-Tidak Ada UM (bukan hanya yang minus)">Tampilkan semua</button>
-            <button type="button" class="btn-export-excel" id="btnExportTidak" onclick="exportTidakExcel()">⬇️ Download Excel</button>
-          </div>
-          <div class="kandidat-bulk" id="kandidatBulkBar" style="display:none">
-            <span>Ditemukan <b id="kandidatBulkCount">0</b> kandidat (baris minus / nominal Rp 0)</span>
-            <button type="button" class="btn-tandai-semua" onclick="tandaiSemuaKandidatBatal()">⚡ Tandai Semua sebagai BATAL</button>
-          </div>
-          <div class="kandidat-nol-bar" id="kandidatNolBar" style="display:none">
-            <span>📦 <b id="kandidatNolCount">0</b> faktur nominal <b>Rp 0</b> dikelompokkan terpisah (kemungkinan batal/retur — <u>tidak dihapus</u>).</span>
-            <button type="button" class="btn-lihat-nol" id="btnLihatNol" onclick="toggleKelompokNol()">Lihat kelompok Rp 0</button>
-          </div>
-        </div>
-        <div id="scanTidakTable" class="scan-table-wrap"><div class="scan-empty">Klik SCAN DATA, lalu klik <b>Cari Kandidat Batal</b> untuk menemukan faktur ber-baris minus.</div></div>
-        <div class="scan-pager" id="pager-tidak" style="display:none"></div>
-      </div>
-
-      <div class="scan-panel" id="scan-um-only">
-        <div class="scan-sub-toolbar">
-          <select id="fltSalesUmOnly" onchange="applyScanFilters()" title="Filter Sales">
-            <option value="">Semua Sales</option>
-          </select>
-          <select id="fltJenisUmOnly" onchange="applyScanFilters()" title="Filter Jenis UM">
-            <option value="">Semua Jenis UM</option>
-          </select>
-          <button type="button" class="btn-export-excel" id="btnExportUmOnly" onclick="exportUmOnlyExcel()">⬇️ Download Excel</button>
-        </div>
-        <div id="scanUmOnlyTable" class="scan-table-wrap"><div class="scan-empty">Klik SCAN DATA untuk membaca Uang Masuk.</div></div>
-        <div class="scan-pager" id="pager-umonly" style="display:none"></div>
-      </div>
-
-      <div class="scan-panel" id="scan-sumber-data">
+      <div class="scan-panel active" id="scan-sumber-data">
         <div class="scan-sub-toolbar">
           <input type="search" id="fltCariSumberData" placeholder="🔍 Cari: No Faktur / Customer / Toko / Alamat…" oninput="onScanSearchInputFromPanel(this)" autocomplete="off">
         </div>
@@ -1460,27 +1382,13 @@ window.addEventListener('storage',function(e){
 
 function switchScanSubTab(btn, targetId){
   document.querySelectorAll('#scanSubTabs button').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  if (btn) btn.classList.add('active');
   document.querySelectorAll('.scan-panel').forEach(p => p.classList.remove('active'));
-  const target = document.getElementById(targetId);
+  const target = document.getElementById(targetId || 'scan-sumber-data');
   if (target) target.classList.add('active');
-  const map = {
-    'scan-ada': 'summary-ada',
-    'scan-tidak-ada': 'summary-tidak',
-    'scan-um-only': 'summary-umonly',
-    'scan-sumber-data': null
-  };
-  ['summary-ada','summary-tidak','summary-umonly'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(!el) return;
-    if(id===map[targetId]) el.classList.remove('hidden');
-    else el.classList.add('hidden');
-  });
-  // Tombol Download Excel Sumber Data: sebaris dengan filter
   const metaExp = document.getElementById('metaExportWrap');
-  if(metaExp) metaExp.style.display = (targetId === 'scan-sumber-data') ? 'flex' : 'none';
-  // Render tabel 4 sumber data jika tab dipilih
-  if(targetId === 'scan-sumber-data' && scanResults.scanned) {
+  if(metaExp) metaExp.style.display = 'flex';
+  if(typeof scanResults !== 'undefined' && scanResults && scanResults.scanned) {
     applySumberDataFilters();
     renderSumberDataTable();
   }
@@ -2532,10 +2440,8 @@ function resetModeKandidatMinus(){
 function scanDataRun(){
   if(scanBusy) return;
   scanBusy=true; setScanButtonBusy(true);
-  document.getElementById('scanAdaTable').innerHTML='<div class="scan-empty">Sedang membaca data...</div>';
-  document.getElementById('scanTidakTable').innerHTML='<div class="scan-empty">Sedang membaca data...</div>';
-  const uot=document.getElementById('scanUmOnlyTable');
-  if(uot) uot.innerHTML='<div class="scan-empty">Sedang membaca data...</div>';
+  const sdt=document.getElementById('scanSumberDataTable');
+  if(sdt) sdt.innerHTML='<div class="scan-empty">Sedang membaca data...</div>';
   ensureDthLoaded();
   let tries=0;
   function attempt(){
@@ -2639,12 +2545,12 @@ function scanDataRun(){
 function renderScanResults(){
   const ada=scanResults.ada,tidak=scanResults.tidak,umOnly=scanResults.umOnly||[];
   const sum=(a,k)=>a.reduce((n,x)=>n+scanNum(k==='um'?(x.um&&x.um.total):x[k]),0);
-  document.getElementById('scanAdaCount').textContent=ada.length.toLocaleString('id-ID');
-  document.getElementById('scanAdaNominal').textContent=rupiahScan(sum(ada,'total'));
-  document.getElementById('scanAdaUM').textContent=rupiahScan(sum(ada,'um'));
-  document.getElementById('scanAdaSelisih').textContent=rupiahScan(ada.reduce((n,x)=>n+(x.selisih||0),0));
-  document.getElementById('scanTidakCount').textContent=tidak.length.toLocaleString('id-ID');
-  document.getElementById('scanTidakNominal').textContent=rupiahScan(sum(tidak,'total'));
+  const _el=id=>document.getElementById(id); if(_el('scanAdaCount')) _el('scanAdaCount').textContent=ada.length.toLocaleString('id-ID');
+  if(_el('scanAdaNominal')) _el('scanAdaNominal').textContent=rupiahScan(sum(ada,'total'));
+  if(_el('scanAdaUM')) _el('scanAdaUM').textContent=rupiahScan(sum(ada,'um'));
+  if(_el('scanAdaSelisih')) _el('scanAdaSelisih').textContent=rupiahScan(ada.reduce((n,x)=>n+(x.selisih||0),0));
+  if(_el('scanTidakCount')) _el('scanTidakCount').textContent=tidak.length.toLocaleString('id-ID');
+  if(_el('scanTidakNominal')) _el('scanTidakNominal').textContent=rupiahScan(sum(tidak,'total'));
   const dthMap=scanResults.dthByFaktur;
   const dthHitCount = scanResults.dthLoaded ? tidak.reduce((n,x)=>n+(scanDthMatchForPenjualan(x)?1:0),0) : 0;
   const dthCountEl=document.getElementById('scanTidakDthCount');
@@ -2656,8 +2562,8 @@ function renderScanResults(){
         + (totalDth ? ' (DTH: '+totalDth.toLocaleString('id-ID')+' faktur)' : ' (DTH kosong)');
     }
   }
-  document.getElementById('scanUmOnlyCount').textContent=umOnly.length.toLocaleString('id-ID');
-  document.getElementById('scanUmOnlyNominal').textContent=rupiahScan(umOnly.reduce((n,x)=>n+scanNum(x.total),0));
+  if(document.getElementById('scanUmOnlyCount')) document.getElementById('scanUmOnlyCount').textContent=umOnly.length.toLocaleString('id-ID');
+  if(document.getElementById('scanUmOnlyNominal')) document.getElementById('scanUmOnlyNominal').textContent=rupiahScan(umOnly.reduce((n,x)=>n+scanNum(x.total),0));
   const fBulanUM=[...(document.getElementById('fltBulanUM')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
   let umAll;
   if(fBulanUM.length && scanResults.umByMonth){
@@ -2675,7 +2581,7 @@ function renderScanResults(){
   // Total UM TER-LOAD dihitung dari baris UM mentah yang sama dengan Rekap Uang Masuk,
   // bukan dari hasil grouping faktur. Ini mencegah total berubah karena proses pencocokan.
   const loadedUm = fBulanUM.length ? umAll : (scanResults.umRawAll || umAll);
-  document.getElementById('scanUmTotalAll').textContent=rupiahScan(loadedUm.reduce((n,x)=>n+scanNum(x.total),0));
+  if(document.getElementById('scanUmTotalAll')) document.getElementById('scanUmTotalAll').textContent=rupiahScan(loadedUm.reduce((n,x)=>n+scanNum(x.total),0));
   renderScanTable('scanAdaTable',ada,true,'ada','pager-ada');
   renderScanTable('scanTidakTable',tidak,false,'tidak','pager-tidak');
   renderScanTableUmOnly('scanUmOnlyTable',umOnly,'umOnly','pager-umonly');
@@ -2946,7 +2852,7 @@ function renderSumberDataTable(){
   const {rows:data}=pageSlice(allData,'sumberData');
   const esc=v=>escScan(v==null?'':String(v));
   const badge=(text,kind)=>text?'<span class="sd-badge sd-'+kind+'">'+esc(text)+'</span>':'';
-  let html='<table class="scan-table-multi"><colgroup><col class="c-no"><col class="c-tgl"><col class="c-faktur"><col class="c-sales"><col class="c-nom"><col class="c-bayar"><col class="c-cust"><col class="c-alamat"><col class="c-um-tgl"><col class="c-um-nom"><col class="c-um-ket"><col class="c-dth-tgl"><col class="c-dth-ket"><col class="c-ar-tgl"><col class="c-ar-ket"></colgroup><thead><tr><th colspan="8" class="h-pen">📋 PENJUALAN</th><th colspan="3" class="h-um">💰 UANG MASUK</th><th colspan="2" class="h-dth">📦 DTH</th><th colspan="2" class="h-ar">📊 REKAP AR</th></tr><tr><th class="h-pen">No</th><th class="h-pen">Tgl</th><th class="h-pen">No. Faktur</th><th class="h-pen">Sales</th><th class="h-pen num">Nominal Fak</th><th class="h-pen">Pembayaran</th><th class="h-pen">Customer</th><th class="h-pen">Alamat</th><th class="h-um">Tgl</th><th class="h-um num">Nominal</th><th class="h-um">Ket</th><th class="h-dth">Tgl</th><th class="h-dth">Ket</th><th class="h-ar">Tgl</th><th class="h-ar">Ket</th></tr></thead><tbody>';
+  let html='<table class="scan-table-multi"><colgroup><col class="c-no"><col class="c-tgl"><col class="c-faktur"><col class="c-sales"><col class="c-nom"><col class="c-bayar"><col class="c-cust"><col class="c-alamat"><col class="c-um-tgl"><col class="c-um-nom"><col class="c-um-ket"><col class="c-dth-tgl"><col class="c-dth-ket"><col class="c-ar-tgl"><col class="c-ar-ket"></colgroup><thead><tr><th colspan="8" class="h-pen">📋 REKAP PENJUALAN</th><th colspan="3" class="h-um">💰 UANG MASUK</th><th colspan="2" class="h-dth">📦 DTH</th><th colspan="2" class="h-ar">🗂️ REKAP AR</th></tr><tr><th class="h-pen">No</th><th class="h-pen">Tgl Faktur</th><th class="h-pen">No Faktur</th><th class="h-pen">Sales</th><th class="h-pen num">Nominal</th><th class="h-pen">Jenis Bayar</th><th class="h-pen">Customer</th><th class="h-pen">Alamat</th><th class="h-um">Tgl UM</th><th class="h-um num">Nominal UM</th><th class="h-um">Keterangan UM</th><th class="h-dth">Tgl DTH</th><th class="h-dth">Keterangan DTH</th><th class="h-ar">Tgl AR</th><th class="h-ar">Keterangan AR</th></tr></thead><tbody>';
   let no=((scanPage.sumberData||1)-1)*(scanPageSize||SCAN_PAGE_SIZE_DEFAULT)+1;
   data.forEach(row=>{
     const um=row.um,dth=row.dth,ar=row.ar;
@@ -3030,6 +2936,7 @@ function changeScanPageSize(v){
 
 function renderScanTable(id,data,withUM,pageKey,pagerId){
   const box=document.getElementById(id);
+  if(!box) return;
   if(!data.length){
     let emptyMsg='Tidak ada data pada kategori ini.';
     if(pageKey==='tidak'){
