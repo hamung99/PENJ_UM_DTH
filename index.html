@@ -278,7 +278,7 @@
     padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;line-height:1.25;height:32px;
   }
   .scan-filters .btn-reset:hover{background:#f1f5f9;border-color:#94a3b8}
-  #metaExportWrap{align-items:flex-end}
+  #metaExportWrap{align-items:flex-end;margin-left:auto}
   #metaExportWrap .btn-export-excel{height:32px;padding:5px 14px;font-size:12px}
   .scan-export-row{display:flex;justify-content:flex-end;margin:0 0 8px}
   .btn-export-excel{
@@ -323,20 +323,20 @@
   .scan-table tfoot td{font-weight:700;background:#fff3cd}
   
   /* ===== TABEL 4 SUMBER DATA ===== */
-  .scan-table-multi{border-collapse:collapse;width:100%;font-size:11px;table-layout:fixed;min-width:1280px}
+  .scan-table-multi{border-collapse:collapse;width:100%;font-size:11px;table-layout:fixed;min-width:1200px}
   .scan-table-multi th{padding:5px 4px;position:sticky;top:0;text-align:left;z-index:10;white-space:nowrap;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis}
   .scan-table-multi td{padding:4px 4px;border-bottom:1px solid #e2e8f0;white-space:nowrap;vertical-align:middle;overflow:hidden;text-overflow:ellipsis}
   .scan-table-multi td.num{text-align:right;font-variant-numeric:tabular-nums}
 
-  /* Lebar proporsional — Sales & Nominal diperketat */
-  .scan-table-multi col.c-no{width:32px}
-  .scan-table-multi col.c-tgl{width:72px}
-  .scan-table-multi col.c-faktur{width:112px}
-  .scan-table-multi col.c-sales{width:64px}
-  .scan-table-multi col.c-nom{width:88px}
-  .scan-table-multi col.c-bayar{width:72px}
-  .scan-table-multi col.c-cust{width:110px}
-  .scan-table-multi col.c-alamat{width:120px}
+  /* Lebar proporsional — bagian PENJUALAN dirapatkan (lebih ringkas) */
+  .scan-table-multi col.c-no{width:26px}
+  .scan-table-multi col.c-tgl{width:60px}
+  .scan-table-multi col.c-faktur{width:96px}
+  .scan-table-multi col.c-sales{width:52px}
+  .scan-table-multi col.c-nom{width:74px}
+  .scan-table-multi col.c-bayar{width:58px}
+  .scan-table-multi col.c-cust{width:92px}
+  .scan-table-multi col.c-alamat{width:100px}
   .scan-table-multi col.c-um-tgl{width:72px}
   .scan-table-multi col.c-um-nom{width:88px}
   .scan-table-multi col.c-um-ket{width:110px}
@@ -345,8 +345,12 @@
   .scan-table-multi col.c-ar-tgl{width:72px}
   .scan-table-multi col.c-ar-ket{width:110px}
 
-  /* Header grup (baris 1: colspan) rata tengah */
-  .scan-table-multi thead tr:first-child th{text-align:center;letter-spacing:.02em}
+  /* Header grup (baris 1: colspan) rata tengah — dan stacking 2 baris sticky
+     supaya baris 1 (PENJUALAN/UANG MASUK/DTH/REKAP AR) tidak tertutup/hilang
+     saat tabel discroll: baris 1 sticky di top:0, baris 2 sticky tepat di
+     bawahnya (top = tinggi baris 1), bukan sama-sama top:0. */
+  .scan-table-multi thead tr:first-child th{text-align:center;letter-spacing:.02em;top:0;height:26px;box-sizing:border-box;z-index:11}
+  .scan-table-multi thead tr:nth-child(2) th{top:26px;z-index:10}
 
   /* Header Penjualan (biru muda) */
   .scan-table-multi th.h-pen{background:#5B9BD5;color:#fff}
@@ -759,10 +763,10 @@
             <label>&nbsp;</label>
             <button type="button" class="btn-reset" onclick="resetScanFilters()">Reset</button>
           </div>
-          <div class="fg fg-btn" id="metaExportWrap" style="display:none">
-            <label>&nbsp;</label>
-            <button type="button" class="btn-export-excel" id="btnExportSumberData" onclick="exportSumberDataExcel()">⬇️ Download Excel</button>
-          </div>
+        </div>
+        <div class="fg fg-btn" id="metaExportWrap" style="display:none">
+          <label>&nbsp;</label>
+          <button type="button" class="btn-export-excel" id="btnExportSumberData" onclick="exportSumberDataExcel()">⬇️ Download Excel</button>
         </div>
         <div class="scan-summary" id="summary-ada">
           <div class="card"><small>JUMLAH FAKTUR</small><b id="scanAdaCount">0</b></div>
