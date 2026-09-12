@@ -3332,6 +3332,34 @@ function idbOpenNoVersion(name){
    buka dulu TANPA menentukan versi (ikut versi yang sudah ada apa adanya),
    dan hanya menaikkan versi (currentVersion + 1) kalau object store yang
    dibutuhkan memang belum ada. ---- */
+/* ---- helper KHUSUS untuk 'piutangHarianDB' (data tab Rekap AR): buka dan,
+   kalau object store 'slots' belum ada (device baru yang belum pernah buka
+   tab Rekap AR), buat dulu skemanya. Sama logikanya dengan idbOpenDTHDatabase
+   di bawah, supaya restore dari Cloud tidak diam-diam gagal. ---- */
+function idbOpenPiutangHarianDB(){
+  return new Promise((resolve, reject)=>{
+    const reqCheck = indexedDB.open('piutangHarianDB');
+    reqCheck.onsuccess = () => {
+      const dbCheck = reqCheck.result;
+      if (dbCheck.objectStoreNames.contains('slots')) {
+        resolve(dbCheck);
+        return;
+      }
+      const nextVersion = dbCheck.version + 1;
+      dbCheck.close();
+      const req = indexedDB.open('piutangHarianDB', nextVersion);
+      req.onupgradeneeded = () => {
+        const d = req.result;
+        if (!d.objectStoreNames.contains('slots')) {
+          d.createObjectStore('slots', { keyPath: 'slot' });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror   = () => reject(req.error || new Error('Gagal membuka piutangHarianDB'));
+    };
+    reqCheck.onerror = () => reject(reqCheck.error || new Error('Gagal membuka piutangHarianDB'));
+  });
+}
 function idbOpenDTHDatabase(){
   return new Promise((resolve, reject)=>{
     const reqCheck = indexedDB.open('DTHDatabase');
@@ -3457,6 +3485,14 @@ async function collectAllBackupData(){
     result.dth = { faktur: await idbGetAll(dbD, 'faktur'), metadata: await idbGetAll(dbD, 'metadata') };
     dbD.close();
   } catch(e) { result.dth = { faktur:[], metadata:[], error:String(e) }; }
+  /* ---- Tab Rekap AR punya IndexedDB sendiri ('piutangHarianDB', store 'slots'),
+     dibuat di dalam rekap-ar.html. Karena satu origin dengan halaman induk,
+     bisa dibaca langsung dari sini juga. ---- */
+  try {
+    const dbAR = await idbOpenNoVersion('piutangHarianDB');
+    result.ar = { slots: await idbGetAll(dbAR, 'slots') };
+    dbAR.close();
+  } catch(e) { result.ar = { slots: [], error: String(e) }; }
   return result;
 }
 
@@ -3481,6 +3517,12 @@ async function restoreAllBackupData(obj){
     await idbClearAndBulkPut(dbD, 'faktur', obj.dth.faktur, null);
     await idbClearAndBulkPut(dbD, 'metadata', obj.dth.metadata, null);
     dbD.close();
+  }
+  /* ---- pulihkan data tab Rekap AR (jika ada di file backup ini) ---- */
+  if (obj.ar && obj.ar.slots) {
+    const dbAR = await idbOpenPiutangHarianDB();
+    await idbClearAndBulkPut(dbAR, 'slots', obj.ar.slots, null);
+    dbAR.close();
   }
 }
 
