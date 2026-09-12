@@ -2915,7 +2915,7 @@ function renderSumberDataTable(){
     const posColors = {
       belum: {bg:'#fee2e2', fg:'#b91c1c', bd:'#fca5a5'},
       titip: {bg:'#fef3c7', fg:'#b45309', bd:'#fcd34d'},
-      lunas: {bg:'#dcfce7', fg:'#15803d', bd:'#86efac'}
+      lunas: {bg:'#dbeafe', fg:'#1d4ed8', bd:'#93c5fd'}
     };
     const pc = posColors[arPosCls] || posColors.belum;
     return arPos ? '<span style="display:inline-block;background:'+pc.bg+';color:'+pc.fg+';border:1px solid '+pc.bd+';padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.02em">'+esc(arPos)+'</span>' : '';
@@ -3457,7 +3457,7 @@ function openFakturModal(pageKey, idx){
         const posColors = {
           belum: {bg:'#fee2e2', fg:'#b91c1c', bd:'#fca5a5'},
           titip: {bg:'#fef3c7', fg:'#b45309', bd:'#fcd34d'},
-          lunas: {bg:'#dcfce7', fg:'#15803d', bd:'#86efac'}
+          lunas: {bg:'#dbeafe', fg:'#1d4ed8', bd:'#93c5fd'}
         };
         const pc = posColors[arPosCls] || posColors.belum;
         html += '<div><label>Tgl AR</label><b>'+escScan(formatScanDate(r.ar.tanggal))+'</b></div>';
