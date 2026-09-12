@@ -794,6 +794,15 @@
             </select>
           </div>
           <div class="fg">
+            <label for="fltProdukSumberData">Produk</label>
+            <select id="fltProdukSumberData" onchange="scheduleScanFilters(50)">
+              <option value="">Semua Produk</option>
+              <option value="FITRI">Minyak Fitri</option>
+              <option value="RUPA_RUPA">Rupa Rupa</option>
+              <option value="CAMPURAN">Campuran</option>
+            </select>
+          </div>
+          <div class="fg">
             <label for="fltBulanUmBtn">Bulan UM</label>
             <div class="scan-month-dropdown" id="scanMonthUmDropdown">
               <button type="button" class="scan-month-btn" id="fltBulanUmBtn" onclick="toggleScanUmMonthDropdown(event)">Semua bulan UM</button>
@@ -830,12 +839,6 @@
 
       <div class="scan-panel active" id="scan-sumber-data">
         <div class="scan-sub-toolbar">
-          <select id="fltProdukSumberData" onchange="scheduleScanFilters(50)" style="margin-right:8px">
-            <option value="">Semua Produk</option>
-            <option value="FITRI">Minyak Fitri</option>
-            <option value="RUPA_RUPA">Rupa Rupa</option>
-            <option value="CAMPURAN">Campuran</option>
-          </select>
           <input type="search" id="fltCariSumberData" placeholder="🔍 Cari: No Faktur / Customer / Toko / Alamat…" oninput="onScanSearchInputFromPanel(this)" autocomplete="off">
         </div>
         <div id="scanSumberDataTable" class="scan-table-wrap-multi"><div class="scan-empty">Klik SCAN DATA untuk membaca 4 Sumber Data (Penjualan, Uang Masuk, DTH, Rekap AR).</div></div>
