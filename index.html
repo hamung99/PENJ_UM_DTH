@@ -319,11 +319,31 @@
   .scan-table tfoot td{font-weight:700;background:#fff3cd}
   
   /* ===== TABEL 4 SUMBER DATA ===== */
-  .scan-table-multi{border-collapse:collapse;width:100%;font-size:11px;table-layout:auto;min-width:2000px}
-  .scan-table-multi th{padding:8px 6px;position:sticky;top:0;text-align:left;z-index:10;white-space:nowrap;font-weight:700;color:#fff}
-  .scan-table-multi td{padding:5px 6px;border-bottom:1px solid #e2e8f0;white-space:nowrap;vertical-align:middle}
+  .scan-table-multi{border-collapse:collapse;width:100%;font-size:11px;table-layout:fixed;min-width:1460px}
+  .scan-table-multi th{padding:6px 5px;position:sticky;top:0;text-align:left;z-index:10;white-space:nowrap;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis}
+  .scan-table-multi td{padding:4px 5px;border-bottom:1px solid #e2e8f0;white-space:nowrap;vertical-align:middle;overflow:hidden;text-overflow:ellipsis}
   .scan-table-multi td.num{text-align:right;font-variant-numeric:tabular-nums}
-  
+
+  /* Lebar proporsional per kolom (15 kolom data) */
+  .scan-table-multi col.c-no{width:36px}
+  .scan-table-multi col.c-tgl{width:78px}
+  .scan-table-multi col.c-faktur{width:118px}
+  .scan-table-multi col.c-sales{width:90px}
+  .scan-table-multi col.c-nom{width:100px}
+  .scan-table-multi col.c-bayar{width:88px}
+  .scan-table-multi col.c-cust{width:120px}
+  .scan-table-multi col.c-alamat{width:130px}
+  .scan-table-multi col.c-um-tgl{width:78px}
+  .scan-table-multi col.c-um-nom{width:100px}
+  .scan-table-multi col.c-um-ket{width:120px}
+  .scan-table-multi col.c-dth-tgl{width:78px}
+  .scan-table-multi col.c-dth-ket{width:120px}
+  .scan-table-multi col.c-ar-tgl{width:78px}
+  .scan-table-multi col.c-ar-ket{width:120px}
+
+  /* Header grup (baris 1: colspan) rata tengah */
+  .scan-table-multi thead tr:first-child th{text-align:center;letter-spacing:.02em}
+
   /* Header Penjualan (biru muda) */
   .scan-table-multi th.h-pen{background:#5B9BD5;color:#fff}
   .scan-table-multi td.pen-no,.scan-table-multi td.pen-tgl,.scan-table-multi td.pen-faktur,.scan-table-multi td.pen-sales,.scan-table-multi td.pen-nom,.scan-table-multi td.pen-bayar,.scan-table-multi td.pen-cust,.scan-table-multi td.pen-alamat{background:#E7F0F8}
@@ -2604,8 +2624,16 @@ function renderSumberDataTable(){
     return;
   }
   
-  // Generate tabel dengan 4 kolom
-  let html = '<table class="scan-table-multi"><thead><tr>' +
+  // Generate tabel dengan 4 sumber — lebar kolom proporsional via colgroup
+  let html = '<table class="scan-table-multi">' +
+    '<colgroup>' +
+      '<col class="c-no"><col class="c-tgl"><col class="c-faktur"><col class="c-sales">' +
+      '<col class="c-nom"><col class="c-bayar"><col class="c-cust"><col class="c-alamat">' +
+      '<col class="c-um-tgl"><col class="c-um-nom"><col class="c-um-ket">' +
+      '<col class="c-dth-tgl"><col class="c-dth-ket">' +
+      '<col class="c-ar-tgl"><col class="c-ar-ket">' +
+    '</colgroup>' +
+    '<thead><tr>' +
     '<th colspan="8" class="h-pen">📋 PENJUALAN</th>' +
     '<th colspan="3" class="h-um">💰 UANG MASUK</th>' +
     '<th colspan="2" class="h-dth">📦 DTH</th>' +
@@ -2638,13 +2666,15 @@ function renderSumberDataTable(){
     
     // Kolom Penjualan (8 kolom)
     if(row.type === 'penjualan'){
+      const cust = row.customer || '';
+      const alamat = row.alamat || '';
       html += '<td class="pen-tgl">' + formatScanDate(row.tanggal) + '</td>';
-      html += '<td class="pen-faktur">' + (row.noFaktur || '') + '</td>';
-      html += '<td class="pen-sales">' + (row.sales || '') + '</td>';
+      html += '<td class="pen-faktur" title="' + String(row.noFaktur||'').replace(/"/g,'&quot;') + '">' + (row.noFaktur || '') + '</td>';
+      html += '<td class="pen-sales" title="' + String(row.sales||'').replace(/"/g,'&quot;') + '">' + (row.sales || '') + '</td>';
       html += '<td class="pen-nom num">' + rupiahScan(row.nominalFaktur) + '</td>';
       html += '<td class="pen-bayar">' + (row.pembayaran || '') + '</td>';
-      html += '<td class="pen-cust">' + (row.customer || '') + '</td>';
-      html += '<td class="pen-alamat">' + (row.alamat || '') + '</td>';
+      html += '<td class="pen-cust" title="' + cust.replace(/"/g,'&quot;') + '">' + cust + '</td>';
+      html += '<td class="pen-alamat" title="' + alamat.replace(/"/g,'&quot;') + '">' + alamat + '</td>';
     }else{
       html += '<td class="pen-tgl"></td><td class="pen-faktur"></td><td class="pen-sales"></td><td class="pen-nom"></td>' +
               '<td class="pen-bayar"></td><td class="pen-cust"></td><td class="pen-alamat"></td>';
@@ -2652,25 +2682,28 @@ function renderSumberDataTable(){
     
     // Kolom UM (3 kolom)
     if(row.type === 'um'){
+      const ketUm = row.keterangan || '';
       html += '<td class="um-tgl">' + formatScanDate(row.tanggal) + '</td>';
       html += '<td class="um-nom num">' + rupiahScan(row.nominal) + '</td>';
-      html += '<td class="um-ket">' + (row.keterangan || '') + '</td>';
+      html += '<td class="um-ket" title="' + ketUm.replace(/"/g,'&quot;') + '">' + ketUm + '</td>';
     }else{
       html += '<td class="um-tgl"></td><td class="um-nom"></td><td class="um-ket"></td>';
     }
     
     // Kolom DTH (2 kolom)
     if(row.type === 'dth'){
+      const ketDth = row.keterangan || row.noFaktur || '';
       html += '<td class="dth-tgl">' + formatScanDate(row.tanggal) + '</td>';
-      html += '<td class="dth-ket">' + (row.keterangan || row.noFaktur || '') + '</td>';
+      html += '<td class="dth-ket" title="' + ketDth.replace(/"/g,'&quot;') + '">' + ketDth + '</td>';
     }else{
       html += '<td class="dth-tgl"></td><td class="dth-ket"></td>';
     }
     
     // Kolom Rekap AR (2 kolom)
     if(row.type === 'ar'){
+      const ketAr = row.keterangan || '';
       html += '<td class="ar-tgl">' + formatScanDate(row.tanggal) + '</td>';
-      html += '<td class="ar-ket">' + (row.keterangan || '') + '</td>';
+      html += '<td class="ar-ket" title="' + ketAr.replace(/"/g,'&quot;') + '">' + ketAr + '</td>';
     }else{
       html += '<td class="ar-tgl"></td><td class="ar-ket"></td>';
     }
