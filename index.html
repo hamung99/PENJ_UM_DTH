@@ -2600,7 +2600,7 @@ function populateSumberDataList(){
   
   // 4. Rekap AR - coba ambil dari iframe AR jika tersedia
   try {
-    const arFrame = document.getElementById('iframe-ar');
+    const arFrame = document.getElementById('iframe-rekap-ar');
     if(arFrame && arFrame.contentWindow && typeof arFrame.contentWindow.__SCAN_GET_AR === 'function'){
       const arRaw = arFrame.contentWindow.__SCAN_GET_AR() || [];
       arRaw.forEach(ar => {

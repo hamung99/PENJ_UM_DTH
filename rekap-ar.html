@@ -2194,6 +2194,29 @@ initTheme();
   render();
 })();
 
+// ========== JEMBATAN UNTUK SUB-TAB "SUMBER DATA" DI SCAN DATA ==========
+// Dipanggil dari index.html (populateSumberDataList) lewat iframe#iframe-rekap-ar.
+window.__SCAN_GET_AR = function(){
+  try {
+    return allRows().map(function(r){
+      const d = excelSerialToDate(r.tglFaktur);
+      const tanggal = d ? fmtDateFromDateObj(d) : '';
+      return {
+        tanggal: tanggal,
+        noFaktur: r.noFaktur || '',
+        customer: r.toko || '',
+        alamat: r.alamat || '',
+        sales: r.sales || '',
+        nominal: r.nominal || 0,
+        keterangan: r.keterangan || ''
+      };
+    });
+  } catch(e){
+    console.warn('__SCAN_GET_AR gagal', e);
+    return [];
+  }
+};
+
 // ========== REGISTER SERVICE WORKER ==========
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js')
