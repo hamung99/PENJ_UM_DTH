@@ -565,6 +565,7 @@
   }
   .pjum-toolbar #fltPjumTanggal{width:100px;min-width:100px}
   .pjum-toolbar #fltPjumBayar{width:110px;min-width:110px}
+  .pjum-toolbar #fltPjumKategori{width:120px;min-width:120px}
   .pjum-toolbar #fltPjumCari{width:180px;min-width:140px}
   .pjum-toolbar .fg-export{margin-left:0}
   html[data-theme="dark"] .pjum-toolbar select,
@@ -1111,6 +1112,15 @@
                 <option value="">Semua jenis</option>
                 <option value="CASH">CASH</option>
                 <option value="TEMPO">TEMPO</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label for="fltPjumKategori">KATEGORI PRODUK</label>
+              <select id="fltPjumKategori" onchange="renderPjumTable()">
+                <option value="">Semua kategori</option>
+                <option value="FITRI">Fitri</option>
+                <option value="RUPA_RUPA">Rupa Rupa</option>
+                <option value="CAMPURAN">Campuran</option>
               </select>
             </div>
             <div class="fg">
@@ -3583,6 +3593,7 @@ function getPjumPenRows(){
     customer:r.customer||'',
     alamat:r.alamat||'',
     produk:pjumProdukLabel(r),
+    kategori:r.produkKategori||'',
     nominal:scanNum(r.total),
     pembayaran:r.jenis||r.pembayaran||''
   }));
@@ -3614,6 +3625,7 @@ function getPjumUmRows(){
     customer:r.customer||'',
     alamat:r.alamat||'',
     produk:pjumProdukLabel(r),
+    kategori:r.produkKategori||'',
     nominal:scanNum(r.total),
     pembayaran:r.jenis||r.pembayaran||''
   }));
@@ -3659,9 +3671,11 @@ function filterPjumSide(rows, opts){
   opts=opts||{};
   const applyDate=opts.date!==false;
   const applyBayar=opts.payment!==false;
+  const applyKategori=opts.kategori!==false;
   const applySearch=opts.search!==false;
   const tgl=(document.getElementById('fltPjumTanggal')||{}).value||'';
   const bayar=(document.getElementById('fltPjumBayar')||{}).value||'';
+  const kategori=(document.getElementById('fltPjumKategori')||{}).value||'';
   const q=String((document.getElementById('fltPjumCari')||{}).value||'').trim().toLowerCase();
   return rows.filter(r=>{
     if(applyDate && tgl && pjumDateKey(r.tanggal)!==tgl) return false;
@@ -3670,6 +3684,7 @@ function filterPjumSide(rows, opts){
       if(bayar==='CASH' && b!=='CASH') return false;
       if(bayar==='TEMPO' && b!=='TEMPO') return false;
     }
+    if(applyKategori && kategori && String(r.kategori||'').toUpperCase()!==kategori) return false;
     if(applySearch && q){
       const hay=[r.faktur,r.customer,r.alamat,r.sales,r.produk].join(' ').toLowerCase();
       if(!hay.includes(q)) return false;
@@ -3682,17 +3697,12 @@ function normalizePjumString(s){
   return String(s||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
 }
 function parsePjumDate(d){
-  if(!d) return null;
-  if(d instanceof Date) return d;
-  if(typeof d==='string'){
-    const p=d.split(/[-\/]/);
-    if(p.length===3){
-      const [dd,mm,yy]=p;
-      const y=yy.length===2?parseInt('20'+yy):parseInt(yy);
-      return new Date(y,parseInt(mm)-1,parseInt(dd));
-    }
-  }
-  return null;
+  // Pakai parseScanDate (dipakai juga oleh formatScanDate di seluruh aplikasi)
+  // supaya dukung Date object, angka Excel serial, dan string dd/mm/yy secara konsisten.
+  // Sebelumnya fungsi ini punya parser sendiri yang TIDAK paham angka Excel serial,
+  // sehingga saat tanggal tersimpan sebagai angka, pDate/uDate jadi null dan
+  // findMatchingUm() gagal total (semua baris PJ selalu "Belum Ada UM").
+  return parseScanDate(d);
 }
 function daysDiff(d1, d2){
   const date1=parsePjumDate(d1), date2=parsePjumDate(d2);
@@ -3804,8 +3814,8 @@ function renderPjumTable(){
   // Filter CASH/TEMPO + tanggal + Cari berlaku untuk Penjualan.
   // UM sengaja tetap utuh dari bulan scan agar dapat menjadi pasangan transaksi,
   // termasuk pembayaran Cash yang masuk H+1/H+2 dan UM yang tidak punya kolom jenis bayar.
-  const pen=filterPjumSide(getPjumPenRows(), {date:true, payment:true, search:true});
-  const um=filterPjumSide(getPjumUmRows(), {date:false, payment:false, search:false});
+  const pen=filterPjumSide(getPjumPenRows(), {date:true, payment:true, kategori:true, search:true});
+  const um=filterPjumSide(getPjumUmRows(), {date:false, payment:false, kategori:false, search:false});
   // Urutkan per tanggal lalu faktur
   const sortFn=(a,b)=>{
     const da=pjumDateKey(a.tanggal), db=pjumDateKey(b.tanggal);
