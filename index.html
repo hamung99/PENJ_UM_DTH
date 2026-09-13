@@ -604,12 +604,25 @@
   .pjum-table td.num{text-align:right;font-variant-numeric:tabular-nums}
   .pjum-table td.pen-side{background:#F8FAFC;color:#334155}
   .pjum-table td.um-side{background:#F0FDFA;color:#334155}
-  .pjum-table td.ket-side{background:#FFF7ED;color:#9A3412;font-weight:600;text-align:center;font-size:10px}
+  .pjum-table td.ket-side{font-weight:700;text-align:center;font-size:10px;letter-spacing:.02em}
+  .pjum-table td.ket-cocok{background:#dcfce7;color:#15803d}
+  .pjum-table td.ket-pj-um{background:#dbeafe;color:#1d4ed8}   /* PJ ada di UM */
+  .pjum-table td.ket-um-pj{background:#f3e8ff;color:#7e22ce}   /* UM ada di PJ */
+  .pjum-table td.ket-beda{background:#ffedd5;color:#c2410c}     /* Beda baris */
+  .pjum-table td.ket-hanya-pj{background:#fef3c7;color:#b45309} /* Hanya PJ */
+  .pjum-table td.ket-hanya-um{background:#fce7f3;color:#be185d} /* Hanya UM */
+  .pjum-table td.ket-default{background:#f1f5f9;color:#475569}
   html[data-theme="dark"] .pjum-table thead tr:nth-child(2) th{background:#1e293b;color:#94a3b8;border-color:#334155}
   html[data-theme="dark"] .pjum-table td{border-bottom-color:#334155;color:#e2e8f0}
   html[data-theme="dark"] .pjum-table td.pen-side{background:#0f172a}
   html[data-theme="dark"] .pjum-table td.um-side{background:#0f1f1c}
-  html[data-theme="dark"] .pjum-table td.ket-side{background:#431407;color:#fdba74}
+  html[data-theme="dark"] .pjum-table td.ket-cocok{background:#14532d;color:#bbf7d0}
+  html[data-theme="dark"] .pjum-table td.ket-pj-um{background:#1e3a5f;color:#bfdbfe}
+  html[data-theme="dark"] .pjum-table td.ket-um-pj{background:#3b0764;color:#e9d5ff}
+  html[data-theme="dark"] .pjum-table td.ket-beda{background:#7c2d12;color:#fed7aa}
+  html[data-theme="dark"] .pjum-table td.ket-hanya-pj{background:#78350f;color:#fde68a}
+  html[data-theme="dark"] .pjum-table td.ket-hanya-um{background:#831843;color:#fbcfe8}
+  html[data-theme="dark"] .pjum-table td.ket-default{background:#1e293b;color:#94a3b8}
 
   /* Stempel miring hanya untuk konteks non-tabel; di tabel pakai pill ringkas */
   .scan-stamp-lunas{display:inline-block;padding:2px 12px;border:3px double #c0392b;border-radius:5px;color:#c0392b;font-weight:400;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;transform:rotate(-7deg);background:rgba(192,57,43,0.04)}
@@ -3720,7 +3733,14 @@ function renderPjumTable(){
     } else {
       html+='<td class="um-side" colspan="7" style="opacity:.35;text-align:center">—</td>';
     }
-    html+='<td class="ket-side">'+escScan(ket)+'</td></tr>';
+    let ketCls='ket-default';
+    if(ket==='COCOK') ketCls='ket-cocok';
+    else if(ket==='PJ ada di UM') ketCls='ket-pj-um';
+    else if(ket==='UM ada di PJ') ketCls='ket-um-pj';
+    else if(ket==='Beda baris') ketCls='ket-beda';
+    else if(ket==='Hanya PJ') ketCls='ket-hanya-pj';
+    else if(ket==='Hanya UM') ketCls='ket-hanya-um';
+    html+='<td class="ket-side '+ketCls+'">'+escScan(ket)+'</td></tr>';
   }
   html+='</tbody></table>';
   box.innerHTML=html;
