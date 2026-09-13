@@ -622,7 +622,7 @@
   .pjum-filter-count{display:none;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:#ea580c;color:#fff;font-size:9px;line-height:17px;text-align:center}
   .pjum-filter-count.show{display:inline-block}
   .pjum-filter-menu{
-    display:none;position:absolute;left:0;top:38px;width:300px;max-width:calc(100vw - 28px);
+    display:none;position:fixed;left:0;top:0;width:300px;max-width:calc(100vw - 28px);
     padding:10px;background:#fff;border:1px solid #dce4f0;border-radius:9px;
     box-shadow:0 10px 28px rgba(15,23,42,.18);z-index:1500;
   }
@@ -1192,7 +1192,7 @@
             </div>
             <div class="fg">
               <label for="fltPjumCari">Cari</label>
-              <input type="search" id="fltPjumCari" placeholder="Faktur / Customer / Sales…" oninput="renderPjumTable()" autocomplete="off">
+              <input type="search" id="fltPjumCari" placeholder="Faktur / Customer / Sales…" oninput="scanPage.pjum=1; renderPjumTable()" autocomplete="off">
             </div>
             <div class="fg fg-export">
               <label>&nbsp;</label>
@@ -1204,6 +1204,7 @@
         <div id="scanPjumTable" class="pjum-table-wrap">
           <div class="scan-empty">Klik SCAN DATA, lalu buka tab PJ-UM untuk membandingkan Penjualan vs Uang Masuk per tanggal.</div>
         </div>
+        <div class="scan-pager" id="pager-pjum" style="display:none"></div>
       </div>
     </div>
   </div>
@@ -1690,7 +1691,7 @@ let scanBusy=false;
 const BULAN_ID=['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const SCAN_PAGE_SIZE_DEFAULT=100;
 let scanPageSize=SCAN_PAGE_SIZE_DEFAULT;
-let scanPage={ada:1,tidak:1,umOnly:1};
+let scanPage={ada:1,tidak:1,umOnly:1,pjum:1};
 
 function scanNum(v){
   if(v===null||v===undefined||v==='') return 0;
@@ -2005,6 +2006,18 @@ window.togglePjumFilterMenu = function(ev){
   const willOpen=!menu.classList.contains('open');
   window.closePjumFilterMenu();
   if(willOpen){
+    // Posisi dihitung manual (position:fixed) karena menu ini berada di dalam
+    // .pjum-topbar yang overflow-x:auto — itu otomatis membuat overflow-y ikut
+    // ter-clip oleh browser, sehingga dropdown absolute akan terpotong/tak
+    // terlihat. Dengan fixed + koordinat dari getBoundingClientRect, dropdown
+    // digambar relatif ke viewport, bebas dari clipping toolbar.
+    const r=btn.getBoundingClientRect();
+    const menuWidth=Math.min(300, window.innerWidth-28);
+    let left=r.left;
+    if(left+menuWidth > window.innerWidth-14) left=window.innerWidth-14-menuWidth;
+    if(left<14) left=14;
+    menu.style.left=left+'px';
+    menu.style.top=(r.bottom+6)+'px';
     menu.classList.add('open');
     btn.classList.add('open');
   }
@@ -2031,6 +2044,7 @@ window.updatePjumFilterCount = function(){
 };
 window.onPjumFilterChange = function(){
   window.updatePjumFilterCount();
+  scanPage.pjum = 1;
   if(typeof renderPjumTable==='function') renderPjumTable();
 };
 window.resetPjumFilters = function(){
@@ -2039,6 +2053,7 @@ window.resetPjumFilters = function(){
     if(el) el.value='';
   });
   window.updatePjumFilterCount();
+  scanPage.pjum = 1;
   if(typeof renderPjumTable==='function') renderPjumTable();
 };
 
@@ -2800,7 +2815,7 @@ function applyScanFilters(){
   scanResults.tidak=tidakFiltered;
   scanResults.tidakAll=tidak;
   scanResults.umOnly=umOnly;
-  scanPage={ada:1,tidak:1,umOnly:1,sumberData:1};
+  scanPage={ada:1,tidak:1,umOnly:1,sumberData:1,pjum:1};
   renderScanResults();
   updateKandidatBulkBar();
   updateNolBar();
@@ -3135,7 +3150,7 @@ function scanDataRun(){
       _umIndexKey:null, _umByFaktur:null, _umByTotal:null,
       _penHistKey:null, _penHistoryByFaktur:null
     };
-    scanPage={ada:1,tidak:1,umOnly:1,sumberData:1};
+    scanPage={ada:1,tidak:1,umOnly:1,sumberData:1,pjum:1};
     try{ populateSumberDataList(); }catch(e){ console.warn('populateSumberDataList gagal, Sumber Data dilewati', e); scanResults.sumberData=[]; }
     populateScanFilterOptions();
     // Kunci UI bulan = bulan yang benar-benar di-scan (hindari “Agustus di UI, September di data”).
@@ -4037,6 +4052,7 @@ function renderPjumTable(){
 
   if(!pen.length && !um.length){
     box.innerHTML='<div class="scan-empty">Tidak ada data untuk filter tanggal / jenis ini.</div>';
+    renderPager('pager-pjum','pjum',0);
     return;
   }
 
@@ -4154,8 +4170,10 @@ function renderPjumTable(){
     '<th>KET</th></tr></thead><tbody>';
 
   _pjumLastRows = pjMatches;
-  for(let rowIndex=0; rowIndex<pjMatches.length; rowIndex++){
-    const row = pjMatches[rowIndex];
+  const pjumPg = pageSlice(pjMatches, 'pjum');
+  for(let sliceIndex=0; sliceIndex<pjumPg.rows.length; sliceIndex++){
+    const rowIndex = pjumPg.start + sliceIndex; // index asli di pjMatches, dipakai modal detail faktur
+    const row = pjumPg.rows[sliceIndex];
     const p = row.p, u = row.u;
     let ket='';
     let statusOverdue='';
@@ -4240,6 +4258,7 @@ function renderPjumTable(){
   }
   html+='</tbody></table>';
   box.innerHTML=html;
+  renderPager('pager-pjum','pjum', pjMatches.length);
 }
 
 /* ===== Modal Detail Faktur di tabel PJ-UM (kolom DATA PENJUALAN) =====
@@ -4471,11 +4490,12 @@ function scanGoPage(key, page){
   else if(key==='tidak') renderScanTable('scanTidakTable',scanResults.tidak,false,'tidak','pager-tidak');
   else if(key==='umOnly') renderScanTableUmOnly('scanUmOnlyTable',scanResults.umOnly||[],'umOnly','pager-umonly');
   else if(key==='sumberData') renderSumberDataTable();
+  else if(key==='pjum') renderPjumTable();
 }
 
 function changeScanPageSize(v){
   scanPageSize=Number(v)||SCAN_PAGE_SIZE_DEFAULT;
-  scanPage={ada:1,tidak:1,umOnly:1,sumberData:1};
+  scanPage={ada:1,tidak:1,umOnly:1,sumberData:1,pjum:1};
   renderScanResults();
   renderSumberDataTable();
 }
