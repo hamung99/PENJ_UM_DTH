@@ -631,8 +631,10 @@
   .pjum-table td.ket-beda{background:#ffedd5;color:#c2410c}     /* Beda baris */
   .pjum-table td.ket-hanya-pj{background:#fef3c7;color:#b45309} /* Hanya PJ */
   .pjum-table td.ket-hanya-um{background:#fce7f3;color:#be185d} /* Hanya UM */
+  .pjum-table td.ket-overdue{background:#fecaca;color:#991b1b;font-weight:700} /* OVERDUE */
   .pjum-table td.ket-default{background:#f1f5f9;color:#475569}
   html[data-theme="dark"] .pjum-table thead tr:nth-child(2) th{background:#1e293b;color:#94a3b8;border-color:#334155}
+  html[data-theme="dark"] .pjum-table td.ket-overdue{background:#7f1d1d;color:#fca5a5;font-weight:700}
   html[data-theme="dark"] .pjum-table td{border-bottom-color:#334155;color:#e2e8f0}
   html[data-theme="dark"] .pjum-table td.pen-side{background:#0f172a}
   html[data-theme="dark"] .pjum-table td.um-side{background:#0f1f1c}
@@ -3665,6 +3667,74 @@ function filterPjumSide(rows){
     return true;
   });
 }
+/* ===== FUNGSI MATCHING ADVANCED ===== */
+function normalizePjumString(s){
+  return String(s||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+}
+function parsePjumDate(d){
+  if(!d) return null;
+  if(d instanceof Date) return d;
+  if(typeof d==='string'){
+    const p=d.split(/[-\/]/);
+    if(p.length===3){
+      const [dd,mm,yy]=p;
+      const y=yy.length===2?parseInt('20'+yy):parseInt(yy);
+      return new Date(y,parseInt(mm)-1,parseInt(dd));
+    }
+  }
+  return null;
+}
+function daysDiff(d1, d2){
+  const date1=parsePjumDate(d1), date2=parsePjumDate(d2);
+  if(!date1 || !date2) return null;
+  const ms=Math.abs(date2-date1);
+  return Math.floor(ms/(1000*60*60*24));
+}
+function findMatchingUm(p, umList){
+  // Cari UM yang match dengan PJ berdasarkan CUSTOMER, SALES, ALAMAT
+  // Dan range tanggal sesuai jenis pembayaran
+  const pNormCust=normalizePjumString(p.customer);
+  const pNormSales=normalizePjumString(p.sales);
+  const pNormAlamat=normalizePjumString(p.alamat);
+  const pPayment=pjumNormBayar(p.pembayaran);
+  const pDate=parsePjumDate(p.tanggal);
+  
+  if(!pDate) return null;
+  
+  for(let u of umList){
+    const uNormCust=normalizePjumString(u.customer);
+    const uNormSales=normalizePjumString(u.sales);
+    const uNormAlamat=normalizePjumString(u.alamat);
+    const uDate=parsePjumDate(u.tanggal);
+    
+    // Harus match: CUSTOMER + SALES + ALAMAT
+    if(pNormCust!==uNormCust || pNormSales!==uNormSales || pNormAlamat!==uNormAlamat) continue;
+    
+    if(!uDate) continue;
+    
+    const diff=daysDiff(pDate, uDate);
+    if(diff===null) continue;
+    
+    // Cek range tanggal berdasarkan jenis pembayaran
+    if(pPayment==='CASH'){
+      // CASH: range ±2 hari dari tanggal PJ
+      if(diff <= 2) return { um:u, daysLate:0 };
+    } else if(pPayment==='TEMPO'){
+      // TEMPO: Jatuh tempo = TGL PJ + 12 hari
+      // Jika uang masuk <= 12 hari, OK. > 12 hari = OVERDUE
+      if(diff <= 12){
+        return { um:u, daysLate:0 };
+      } else {
+        return { um:u, daysLate: diff - 12 };
+      }
+    } else {
+      // Pembayaran tidak jelas, pakai default (mirip CASH ±3 hari)
+      if(diff <= 3) return { um:u, daysLate:0 };
+    }
+  }
+  return null;
+}
+
 function renderPjumTable(){
   const box=document.getElementById('scanPjumTable');
   const sum=document.getElementById('pjumSummary');
@@ -3700,11 +3770,29 @@ function renderPjumTable(){
     return;
   }
 
-  // Set faktur di masing-masing sisi untuk kolom KET
-  const penFk=new Set(pen.map(r=>normScan(r.faktur)).filter(Boolean));
-  const umFk=new Set(um.map(r=>normScan(r.faktur)).filter(Boolean));
+  // Matching advanced: cari UM yang match dengan setiap PJ berdasarkan CUSTOMER+SALES+ALAMAT
+  const matchedMap = new Map(); // Track UM yang sudah dipakai
+  const pjMatches = [];
+  
+  for(let p of pen){
+    const match = findMatchingUm(p, um.filter((u, idx) => !matchedMap.has(idx)));
+    if(match){
+      const umIdx = um.indexOf(match.um);
+      matchedMap.set(umIdx, true);
+      pjMatches.push({ p, u: match.um, daysLate: match.daysLate });
+    } else {
+      pjMatches.push({ p, u: null, daysLate: 0 });
+    }
+  }
+  
+  // Tambah UM yang tidak ter-match
+  for(let i=0; i<um.length; i++){
+    if(!matchedMap.has(i)){
+      pjMatches.push({ p: null, u: um[i], daysLate: 0 });
+    }
+  }
 
-  const n=Math.max(pen.length, um.length);
+  const n = pjMatches.length;
   let html='<table class="pjum-table"><colgroup>'+
     '<col class="c-tgl"><col class="c-sales"><col class="c-faktur"><col class="c-cust"><col class="c-alamat"><col class="c-prod"><col class="c-nom">'+
     '<col class="c-tgl"><col class="c-sales"><col class="c-faktur"><col class="c-cust"><col class="c-alamat"><col class="c-prod"><col class="c-nom">'+
@@ -3716,32 +3804,41 @@ function renderPjumTable(){
     '<th>TGL</th><th>SALES</th><th>FAKTUR</th><th>CUSTOMER/TOKO</th><th>ALAMAT</th><th>KATEGORI PRODUK</th><th class="num">NOMINAL</th>'+
     '<th>KET</th></tr></thead><tbody>';
 
-  for(let i=0;i<n;i++){
-    const p=pen[i], u=um[i];
+  for(let row of pjMatches){
+    const p = row.p, u = row.u;
     let ket='';
+    let statusOverdue='';
+    
     if(p && u){
-      const pf=normScan(p.faktur), uf=normScan(u.faktur);
-      if(pf && uf && pf===uf) ket='COCOK';
-      else if(pf && umFk.has(pf)) ket='PJ ada di UM';
-      else if(uf && penFk.has(uf)) ket='UM ada di PJ';
-      else ket='Beda baris';
+      const pPayment = pjumNormBayar(p.pembayaran);
+      if(pPayment==='CASH'){
+        ket = 'COCOK (CASH)';
+      } else if(pPayment==='TEMPO'){
+        if(row.daysLate <= 0){
+          ket = 'COCOK (TEMPO - ON TIME)';
+        } else {
+          ket = 'COCOK (TEMPO)';
+          statusOverdue = ' ⚠️ OVERDUE +'+row.daysLate+'h';
+        }
+      } else {
+        ket = 'COCOK';
+      }
     } else if(p && !u){
-      ket = (normScan(p.faktur) && umFk.has(normScan(p.faktur))) ? 'PJ ada di UM' : 'Hanya PJ';
+      ket = 'Hanya PJ - Belum Ada UM';
     } else if(u && !p){
-      ket = (normScan(u.faktur) && penFk.has(normScan(u.faktur))) ? 'UM ada di PJ' : 'Hanya UM';
+      ket = 'Hanya UM - Tidak Ada PJ';
     }
+    
     html+='<tr>';
     if(p){
-      // Tentukan warna berdasarkan STATUS KET:
-      // BIRU jika ada uang masuk (COCOK, PJ ada di UM, Beda baris)
-      // MERAH jika tidak ada uang masuk (Hanya PJ)
-      const hasUangMasuk = (ket==='COCOK' || ket==='PJ ada di UM' || ket==='Beda baris');
+      // Tentukan warna berdasarkan ada/tidak ada uang masuk
+      const hasUangMasuk = (u !== null);
       const fakturClass = hasUangMasuk ? 'faktur-found' : 'faktur-notfound';
       const fakturTitle = hasUangMasuk ? '✓ Ada Uang Masuk' : '✗ Tidak Ada Uang Masuk';
       
       html+='<td class="pen-side">'+escScan(formatScanDate(p.tanggal))+'</td>'+
         '<td class="pen-side" title="'+escScan(p.sales)+'">'+escScan(p.sales)+'</td>'+
-        '<td class="pen-side '+fakturClass+'" title="'+fakturTitle+' ('+ket+') | '+escScan(p.faktur)+'">'+escScan(p.faktur)+'</td>'+
+        '<td class="pen-side '+fakturClass+'" title="'+fakturTitle+' | '+escScan(p.faktur)+'">'+escScan(p.faktur)+'</td>'+
         '<td class="pen-side" title="'+escScan(p.customer)+'">'+escScan(p.customer)+'</td>'+
         '<td class="pen-side" title="'+escScan(p.alamat)+'">'+escScan(p.alamat)+'</td>'+
         '<td class="pen-side" title="'+escScan(p.produk)+'">'+escScan(p.produk)+'</td>'+
@@ -3761,13 +3858,18 @@ function renderPjumTable(){
       html+='<td class="um-side" colspan="7" style="opacity:.35;text-align:center">—</td>';
     }
     let ketCls='ket-default';
-    if(ket==='COCOK') ketCls='ket-cocok';
-    else if(ket==='PJ ada di UM') ketCls='ket-pj-um';
-    else if(ket==='UM ada di PJ') ketCls='ket-um-pj';
-    else if(ket==='Beda baris') ketCls='ket-beda';
-    else if(ket==='Hanya PJ') ketCls='ket-hanya-pj';
-    else if(ket==='Hanya UM') ketCls='ket-hanya-um';
-    html+='<td class="ket-side '+ketCls+'">'+escScan(ket)+'</td></tr>';
+    let ketDisplay = ket;
+    
+    if(ket.includes('COCOK')){
+      ketCls = row.daysLate > 0 ? 'ket-overdue' : 'ket-cocok';
+      ketDisplay = ket + statusOverdue;
+    } else if(ket==='Hanya PJ - Belum Ada UM'){
+      ketCls='ket-hanya-pj';
+    } else if(ket==='Hanya UM - Tidak Ada PJ'){
+      ketCls='ket-hanya-um';
+    }
+    
+    html+='<td class="ket-side '+ketCls+'">'+escScan(ketDisplay)+'</td></tr>';
   }
   html+='</tbody></table>';
   box.innerHTML=html;
