@@ -960,7 +960,7 @@
         </div>
         <div class="fg fg-btn" id="metaExportWrap" style="display:flex">
           <label>&nbsp;</label>
-          <button type="button" id="btnScanData" onclick="scanDataRun()">SCAN DATA</button>
+          <button type="button" id="btnScanData" onclick="scanDataRun()" title="Wajib pilih Bulan Penjualan dulu (maks. 3 bulan). Scan dibatasi ke bulan terpilih agar tetap cepat.">SCAN DATA</button>
           <div class="scan-gear-wrap" id="scanGearWrap">
             <button type="button" class="btn-scan-gear" id="btnScanGear" onclick="toggleScanGearMenu(event)" title="Opsi Scan Data" aria-label="Opsi Scan Data">⚙️</button>
             <div class="scan-gear-menu" id="scanGearMenu" onclick="event.stopPropagation()">
@@ -1618,6 +1618,63 @@ function oneEditVariantsScan(s, alphabet){
   return out;
 }
 
+/** Bulan sebelumnya "YYYY-MM" → string yang sama formatnya, atau ''. */
+function prevMonthKey(mk){
+  if(!mk || !/^\d{4}-\d{2}$/.test(mk)) return '';
+  const y=Number(mk.slice(0,4)), m=Number(mk.slice(5,7));
+  if(!y || !m) return '';
+  if(m<=1) return (y-1)+'-12';
+  return y+'-'+String(m-1).padStart(2,'0');
+}
+
+/**
+ * Bangun index typo DTH hanya saat dibutuhkan (lazy).
+ * Batas: hanya faktur DTH di bulan relevan (bulan scan + 1 bulan sebelumnya),
+ * max DTH_TYPO_MAX_FAKTUR agar tidak meledak memori.
+ */
+const DTH_TYPO_MAX_FAKTUR = 2500;
+function ensureDthTypoIndex(){
+  if(!scanResults) return new Map();
+  if(scanResults.dthTypoIndexBuilt && scanResults.dthTypoIndex) return scanResults.dthTypoIndex;
+  const all = scanResults.dthRawAll || [];
+  if(!all.length){
+    scanResults.dthTypoIndex = new Map();
+    scanResults.dthTypoIndexBuilt = true;
+    return scanResults.dthTypoIndex;
+  }
+  // Bulan relevan: bulan aktif scan / filter + 1 bulan sebelumnya (TEMPO).
+  const monthSet = new Set();
+  (scanResults.scanMonths || []).forEach(m=>{ if(m){ monthSet.add(m); const p=prevMonthKey(m); if(p) monthSet.add(p); }});
+  if(scanResults.activeUmMonth){
+    monthSet.add(scanResults.activeUmMonth);
+    const p=prevMonthKey(scanResults.activeUmMonth);
+    if(p) monthSet.add(p);
+  }
+  let list = all;
+  if(monthSet.size){
+    const filtered = all.filter(d=>{
+      const mk = monthKeyFromDate(d && (d.tanggal || d.tanggal_dropping));
+      return mk && monthSet.has(mk);
+    });
+    // Jika filter bulan terlalu ketat (0 baris) jatuh ke semua — exact match tetap ada di dthByFaktur.
+    if(filtered.length) list = filtered;
+  }
+  // Cap jumlah faktur unik yang di-index (ambil yang paling baru dulu)
+  const seen = new Set();
+  const capped = [];
+  for(let i=list.length-1;i>=0 && capped.length<DTH_TYPO_MAX_FAKTUR;i--){
+    const d=list[i];
+    const f=normScan(d && d.faktur);
+    if(!f || seen.has(f)) continue;
+    seen.add(f);
+    capped.push(d);
+  }
+  capped.reverse();
+  scanResults.dthTypoIndex = buildDthTypoIndex(capped);
+  scanResults.dthTypoIndexBuilt = true;
+  return scanResults.dthTypoIndex;
+}
+
 function buildDthTypoIndex(dthRaw){
   const idx=new Map();
   const alphabetSet=new Set('0123456789');
@@ -1983,8 +2040,8 @@ function scanDthMatchForPenjualan(pen){
     // Prioritas 1: No Faktur exact — O(1)
     if(exactMap && exactMap.has(fk)) return {row:exactMap.get(fk), typo:false};
 
-    // Prioritas 2: typo 1-edit via index — O(1). Tanpa full-scan fallback (hindari O(N×M)).
-    const idx=scanResults.dthTypoIndex;
+    // Prioritas 2: typo 1-edit via index lazy — O(1). Tanpa full-scan fallback.
+    const idx=ensureDthTypoIndex();
     const pool=(idx && idx.get(fk)) || null;
     if(!pool || !pool.length) return null;
 
@@ -2632,35 +2689,86 @@ function scanDataRun(){
       if(dNew && (!dOld || dNew.getTime()>dOld.getTime())) dthByFaktur.set(k,x);
     });
 
-    // Gunakan bulan yang sedang aktif pada Rekap Uang Masuk sebagai basis Scan.
-    // Tidak ada lagi kontrol "Rentang" di Scan Data.
+    // Basis bulan Scan: wajib dari filter Bulan Penjualan, atau fallback bulan aktif UM.
+    // Tanpa bulan → hentikan SCAN (hindari proses 100k+ baris penuh di main thread).
     let activeUmMonth='';
     try{
       if(typeof uw.__SCAN_GET_ACTIVE_MONTH==='function') activeUmMonth=String(uw.__SCAN_GET_ACTIVE_MONTH()||'').trim();
     }catch(e){ activeUmMonth=''; }
 
-    const monthOf = r => monthKeyFromDate(r && r.tanggal) || '';
-    const umRawActive = activeUmMonth ? umRaw.filter(r=>monthOf(r)===activeUmMonth) : umRaw.slice();
-    const penRawActive = activeUmMonth ? penRaw.filter(r=>monthOf(r)===activeUmMonth) : penRaw.slice();
+    const selectedPenMonths=[...(document.getElementById('fltBulanPenj')||{}).selectedOptions||[]]
+      .map(o=>o.value).filter(Boolean);
+    let scanMonths = selectedPenMonths.length ? selectedPenMonths.slice() : (activeUmMonth ? [activeUmMonth] : []);
+    // Jika belum ada pilihan (pertama kali / dropdown masih kosong): ambil bulan terakhir dari data.
+    if(!scanMonths.length){
+      const monthSetTmp=new Set();
+      (penRaw||[]).forEach(r=>{
+        const mk=monthKeyFromDate(r && r.tanggal);
+        if(mk) monthSetTmp.add(mk);
+      });
+      const sortedMonths=[...monthSetTmp].sort();
+      if(sortedMonths.length){
+        scanMonths=[sortedMonths[sortedMonths.length-1]];
+        try{
+          // Sinkronkan UI agar user tahu bulan yang dipakai
+          const el=document.getElementById('fltBulanPenj');
+          if(el){
+            // Pastikan opsi ada
+            if(![...el.options].some(o=>o.value===scanMonths[0])){
+              const opt=document.createElement('option');
+              opt.value=scanMonths[0]; opt.textContent=scanMonths[0]; opt.selected=true;
+              el.appendChild(opt);
+            } else {
+              [...el.options].forEach(o=>{ o.selected = (o.value===scanMonths[0]); });
+            }
+          }
+          if(typeof fillScanMonthDropdown==='function') fillScanMonthDropdown(sortedMonths);
+          if(typeof updateScanMonthButton==='function'){
+            document.querySelectorAll('#fltBulanPenjOptions input[type="checkbox"]').forEach(cb=>{
+              cb.checked = (cb.value===scanMonths[0]);
+            });
+            updateScanMonthButton();
+          }
+        }catch(e){}
+      }
+    }
+    if(!scanMonths.length){
+      alert('Pilih minimal 1 bulan di filter "Bulan Penjualan" sebelum menekan SCAN DATA.\n\nIni wajib agar scan tidak memproses seluruh histori (bisa puluhan/ratusan ribu baris).');
+      scanBusy=false; setScanButtonBusy(false);
+      try{
+        const btn=document.getElementById('fltBulanPenjBtn');
+        if(btn) btn.focus();
+      }catch(e){}
+      return;
+    }
 
-    // Penjualan aktif dipakai untuk sub-tab Penjualan-Ada / Penjualan-Tidak Ada UM.
-    // Untuk UM-Tidak Ada di Penjualan, simpan juga seluruh histori Penjualan agar
-    // UM bulan berjalan (mis. September) dapat dicocokkan dengan Penjualan bulan
-    // sebelumnya (mis. Agustus) yang pembayarannya TEMPO.
+    const monthOf = r => monthKeyFromDate(r && r.tanggal) || '';
+    const scanMonthSet = new Set(scanMonths);
+    // Histori +1 bulan sebelumnya per bulan terpilih (TEMPO: UM September vs Penjualan Agustus)
+    const historyMonthSet = new Set(scanMonths);
+    scanMonths.forEach(m=>{ const p=prevMonthKey(m); if(p) historyMonthSet.add(p); });
+
+    const penRawActive = penRaw.filter(r=>scanMonthSet.has(monthOf(r)));
+    const penRawHistory = penRaw.filter(r=>historyMonthSet.has(monthOf(r)));
+    // UM default: bulan aktif UM jika ada, else bulan scan
+    const umMonthFocus = activeUmMonth || scanMonths[scanMonths.length-1];
+    const umRawActive = umMonthFocus ? umRaw.filter(r=>monthOf(r)===umMonthFocus) : umRaw.slice();
+
+    // Penjualan aktif = bulan yang dipilih user.
+    // Histori terbatas (bulan terpilih + 1 bulan sebelumnya) untuk matching UM TEMPO.
     let pen=groupByInvoice(penRawActive,false);
-    let penHistoryAll=groupByInvoice(penRaw,false);
-    // UM: index semua bulan agar filter Bulan UM bisa multi-pilih;
-    // matching default tetap bisa difilter lewat UI.
+    let penHistoryAll=groupByInvoice(penRawHistory,false);
+    // UM: tetap index semua bulan agar filter Bulan UM multi-pilih berfungsi,
+    // tapi matching default memakai um aktif.
     let umAllGrouped=groupByInvoice(umRaw,true);
     let um=groupByInvoice(umRawActive,true);
     const penByMonth=buildMonthIndex(penHistoryAll);
     const penHistoryByMonth=penByMonth;
     const umByMonth=buildMonthIndex(umAllGrouped);
     const penKeys=new Set(pen.map(x=>normScan(x.faktur)).filter(Boolean));
-    // Index baris mentah dari SELURUH histori Penjualan (bukan hanya bulan aktif UM),
-    // supaya modal detail & deteksi baris minus/Rp 0 tetap akurat lintas bulan.
+    // Index baris mentah hanya untuk bulan histori terbatas (bukan seluruh 150k).
     const penRawByFaktur=new Map();
-    (penRaw||[]).forEach(r=>{
+    (penRawHistory||[]).forEach(r=>{
       const k=normScan(r.faktur);
       if(!k) return;
       if(!penRawByFaktur.has(k)) penRawByFaktur.set(k,[]);
@@ -2671,21 +2779,25 @@ function scanDataRun(){
       // Default: nominal Rp 0 tidak tampil di tabel utama (kelompok terpisah)
       tidakViewMode:'normal', modeKandidatMinus:false, tidakNolCount:0,
       penAll:pen,
-      // Histori lengkap Penjualan khusus mesin UM-Tidak Ada di Penjualan.
+      // Histori terbatas (bulan scan + prev) untuk mesin UM-Tidak Ada di Penjualan.
       penHistoryAll,
       penRawActive,
-      penRawAll:penRaw,
+      // Sumber Data & export: hanya bulan yang dipilih (bukan seluruh histori)
+      penRawAll:penRawActive,
       penRawByFaktur,
       // Semua baris/faktur UM (semua bulan) agar filter Bulan UM multi-bulan berfungsi
       umRawAll:umRaw,
       umAll:umAllGrouped,
       activeUmMonth,
+      scanMonths:scanMonths.slice(),
       penByMonth,penHistoryByMonth,umByMonth,penKeys,
       dthLoaded:dthDataReady,
       dthFakturSet,dthByFaktur,
-      // Data mentah DTH + index typo 1-edit (dibangun sekali, lookup O(1))
+      // Data mentah DTH. Index typo 1-edit dibangun LAZY (saat lookup typo pertama),
+      // dan hanya untuk DTH di bulan relevan — hindari freeze di data besar.
       dthRawAll:dthRaw,
-      dthTypoIndex:(dthDataReady && dthRaw && dthRaw.length) ? buildDthTypoIndex(dthRaw) : new Map(),
+      dthTypoIndex:null,
+      dthTypoIndexBuilt:false,
       dthCount:dthRaw.length,
       // cache filter indexes (diisi ulang di applyScanFilters)
       _umIndexKey:null, _umByFaktur:null, _umByTotal:null,
@@ -4512,6 +4624,35 @@ async function chooseBackupFolder(){
 }
 
 /* ---- backup langsung ke folder Google Drive yang sudah dipilih ---- */
+/** JSON.stringify data besar di Web Worker agar UI tidak freeze. */
+function stringifyBackupInWorker(data){
+  return new Promise(function(resolve, reject){
+    try{
+      if(typeof Worker === 'undefined'){
+        resolve(JSON.stringify(data));
+        return;
+      }
+      const code = 'self.onmessage=function(e){try{var s=JSON.stringify(e.data);self.postMessage({ok:true,json:s});}catch(err){self.postMessage({ok:false,message:String(err&&err.message||err)});}};';
+      const blob = new Blob([code], { type:'application/javascript' });
+      const url = URL.createObjectURL(blob);
+      const worker = new Worker(url);
+      const cleanup = function(){ try{ worker.terminate(); }catch(x){} try{ URL.revokeObjectURL(url); }catch(x){} };
+      worker.onmessage = function(ev){
+        cleanup();
+        if(ev.data && ev.data.ok) resolve(ev.data.json);
+        else reject(new Error((ev.data && ev.data.message) || 'Worker stringify gagal'));
+      };
+      worker.onerror = function(err){
+        cleanup();
+        try{ resolve(JSON.stringify(data)); }catch(e2){ reject(e2); }
+      };
+      worker.postMessage(data);
+    }catch(e){
+      try{ resolve(JSON.stringify(data)); }catch(e2){ reject(e2); }
+    }
+  });
+}
+
 async function backupToFolder(){
   if (!backupDirHandle) {
     const useNow = confirm('Folder Google Drive belum dipilih. Pilih folder sekarang?');
@@ -4522,7 +4663,7 @@ async function backupToFolder(){
     const perm = await backupDirHandle.requestPermission({ mode:'readwrite' });
     if (perm !== 'granted') { alert('Izin akses folder ditolak.'); return; }
     const data = await collectAllBackupData();
-    const json = JSON.stringify(data);
+    const json = await stringifyBackupInWorker(data);
     const dateStr = todayStr();
 
     const fhLatest = await backupDirHandle.getFileHandle('Backup_Rekap_Terbaru.json', { create:true });
@@ -4547,7 +4688,8 @@ async function backupToFolder(){
 async function backupDownloadFile(){
   try {
     const data = await collectAllBackupData();
-    const blob = new Blob([JSON.stringify(data)], { type:'application/json' });
+    const json = await stringifyBackupInWorker(data);
+    const blob = new Blob([json], { type:'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
