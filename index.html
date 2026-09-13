@@ -1045,6 +1045,12 @@
                 </select>
               </div>
               <div class="fg">
+                <label for="fltTanggalSumberData">Tanggal</label>
+                <select id="fltTanggalSumberData" onchange="scheduleScanFilters(50)">
+                  <option value="">Semua tanggal</option>
+                </select>
+              </div>
+              <div class="fg">
                 <label for="fltBulanUmBtn">Bulan UM</label>
                 <div class="scan-month-dropdown" id="scanMonthUmDropdown">
                   <button type="button" class="scan-month-btn" id="fltBulanUmBtn" onclick="toggleScanUmMonthDropdown(event)">Semua bulan UM</button>
@@ -1564,7 +1570,7 @@ function updateScanFilterMenuState(){
   const um=[...(document.getElementById('fltBulanUM')||{}).selectedOptions||[]].filter(o=>o.value).length;
   if(pen) count++;
   if(um) count++;
-  ['fltPembayaran','fltSales','fltProdukSumberData'].forEach(id=>{ if((document.getElementById(id)||{}).value) count++; });
+  ['fltPembayaran','fltSales','fltProdukSumberData','fltTanggalSumberData'].forEach(id=>{ if((document.getElementById(id)||{}).value) count++; });
   countEl.textContent=String(count);
   countEl.classList.toggle('show',count>0);
 }
@@ -1902,6 +1908,36 @@ function monthLabel(key){
   const y=Number(p[0]), m=Number(p[1]);
   return (BULAN_ID[m]||key)+' '+y;
 }
+/** Key tanggal YYYY-MM-DD untuk filter Sumber Data. */
+function sumberDateKey(v){
+  const d=parseScanDate(v);
+  if(!d) return '';
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function sumberDateLabel(key){
+  if(!key) return '';
+  const p=String(key).split('-');
+  if(p.length!==3) return key;
+  return p[2]+'/'+p[1]+'/'+String(p[0]).slice(-2);
+}
+/** Isi dropdown Tanggal di filter Sumber Data dari data hasil scan. */
+function populateSumberDateOptions(){
+  const sel=document.getElementById('fltTanggalSumberData');
+  if(!sel) return;
+  const keys=new Set();
+  const all=scanResults && scanResults.sumberDataAll ? scanResults.sumberDataAll : [];
+  all.forEach(r=>{
+    if(r.tanggal){ const k=sumberDateKey(r.tanggal); if(k) keys.add(k); }
+    if(r.um && r.um.tanggal){ const k=sumberDateKey(r.um.tanggal); if(k) keys.add(k); }
+    if(r.dth && r.dth.tanggal){ const k=sumberDateKey(r.dth.tanggal); if(k) keys.add(k); }
+    if(r.ar && r.ar.tanggal){ const k=sumberDateKey(r.ar.tanggal); if(k) keys.add(k); }
+  });
+  const sorted=[...keys].sort();
+  const cur=sel.value;
+  sel.innerHTML='<option value="">Semua tanggal</option>'+
+    sorted.map(k=>'<option value="'+k+'">'+sumberDateLabel(k)+'</option>').join('');
+  if(cur && sorted.includes(cur)) sel.value=cur;
+}
 
 function buildMonthIndex(rows){
   const idx=new Map();
@@ -2138,7 +2174,7 @@ function populateScanFilterOptions(){
 
 function resetScanFilters(){
   ['fltPembayaran','fltSales','fltBulanUM','fltCariKandidat','fltCariSumberData','fltCariScan',
-   'fltStatusJT','fltSalesTidak','fltDiDTH','fltProdukTidak','fltProdukSumberData',
+   'fltStatusJT','fltSalesTidak','fltDiDTH','fltProdukTidak','fltProdukSumberData','fltTanggalSumberData',
    'fltSalesAda','fltJenisUmAda','fltProdukAda','fltStatusAda','fltSalesUmOnly','fltJenisUmOnly'
   ].forEach(id=>{
     const el=document.getElementById(id);
@@ -3264,6 +3300,7 @@ function populateSumberDataList(){
   arIdx.noFakturRows.forEach(noFakturPushAr);
 
   scanResults.sumberDataAll = rows.sort((a,b)=>(b.sortDate.getTime()||0)-(a.sortDate.getTime()||0));
+  try{ populateSumberDateOptions(); }catch(e){}
   applySumberDataFilters();
 }
 
@@ -3280,6 +3317,7 @@ function applySumberDataFilters(){
   const fSales=(document.getElementById('fltSales')||{}).value||'';
   const fBulanUM=[...(document.getElementById('fltBulanUM')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
   const fProduk=(document.getElementById('fltProdukSumberData')||{}).value||'';
+  const fTanggal=(document.getElementById('fltTanggalSumberData')||{}).value||'';
   const fCari=String(
     (document.getElementById('fltCariScan')||{}).value ||
     (document.getElementById('fltCariSumberData')||{}).value ||
@@ -3305,6 +3343,20 @@ function applySumberDataFilters(){
   }
   if(fProduk && !onlyArTanpaPen){
     out = out.filter(r => (r.produkKategori||'') === fProduk);
+  }
+  // Filter tanggal (penjualan / UM / DTH / AR)
+  if(fTanggal){
+    out = out.filter(r=>{
+      const kPen = r.tanggal ? sumberDateKey(r.tanggal) : '';
+      if(kPen && kPen === fTanggal) return true;
+      const kUm = r.um && r.um.tanggal ? sumberDateKey(r.um.tanggal) : '';
+      if(kUm && kUm === fTanggal) return true;
+      const kDth = r.dth && r.dth.tanggal ? sumberDateKey(r.dth.tanggal) : '';
+      if(kDth && kDth === fTanggal) return true;
+      const kAr = r.ar && r.ar.tanggal ? sumberDateKey(r.ar.tanggal) : '';
+      if(kAr && kAr === fTanggal) return true;
+      return false;
+    });
   }
   // Tombol khusus: Penjualan Ada · UM Kosong (DTH & AR boleh ada/tidak)
   if(onlyPenAdaUmKosong){
