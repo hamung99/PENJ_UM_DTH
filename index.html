@@ -590,6 +590,7 @@
   .pjum-table thead tr:first-child th{text-align:center;top:0;height:28px;font-size:11px;text-transform:uppercase;letter-spacing:.3px}
   .pjum-table thead tr:nth-child(2) th{top:28px;z-index:10;font-size:10px;background:#f8fafc;color:#475569;border-bottom:1px solid #e2e8f0;border-right:1px solid #e2e8f0;text-transform:uppercase}
   .pjum-table thead tr:first-child th.h-pen{background:#1E3A8A}
+  .pjum-table thead tr:first-child th.h-jt{background:#B45309}
   .pjum-table thead tr:first-child th.h-um{background:#0F766E}
   .pjum-table thead tr:first-child th.h-ket{background:#9A3412}
   /* Lebar kolom: TGL & SALES sempit di kedua sisi */
@@ -600,7 +601,17 @@
   .pjum-table col.c-alamat{width:80px}
   .pjum-table col.c-prod{width:88px}
   .pjum-table col.c-nom{width:78px}
+  .pjum-table col.c-jt{width:78px}
+  .pjum-table col.c-od{width:58px}
   .pjum-table col.c-ket{width:72px}
+  .pjum-table thead tr:nth-child(2) th.h-jt-col{text-align:center !important}
+  .pjum-table td.jt-side{background:#FFF7ED;color:#9A3412;text-align:center !important;font-weight:600;font-size:10.5px}
+  .pjum-table td.jt-side.od-late{background:#FEE2E2;color:#B91C1C;font-weight:700}
+  .pjum-table td.jt-side.od-ok{background:#DCFCE7;color:#15803D}
+  html[data-theme="dark"] .pjum-table td.jt-side{background:#431407;color:#FDBA74}
+  html[data-theme="dark"] .pjum-table td.jt-side.od-late{background:#7F1D1D;color:#FCA5A5}
+  html[data-theme="dark"] .pjum-table td.jt-side.od-ok{background:#14532D;color:#BBF7D0}
+  html[data-theme="dark"] .pjum-table thead tr:first-child th.h-jt{background:#9A3412}
   .pjum-table td{padding:4px 3px;border-bottom:1px solid #e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
   .pjum-table td.num{text-align:right;font-variant-numeric:tabular-nums}
   .pjum-table td.pen-side{background:#F8FAFC;color:#334155}
@@ -3678,8 +3689,6 @@ function getPjumUmRows(opts){
     if(targetDate){
       const base=parsePjumDate(targetDate);
       if(base){
-        // CASH/unknown: H+0..H+14. TEMPO: long window.
-        // Jangan buang UM berjenis kosong — matching faktur di langkah berikutnya.
         const maxDays=targetPayment==='TEMPO'?3650:14;
         raw=raw.filter(r=>{
           const d=parsePjumDate(r.tanggal);
@@ -3828,7 +3837,7 @@ function findMatchingUm(p, umList){
     // Uang masuk yang terjadi sebelum tanggal penjualan bukan pasangan transaksi ini.
     if(diff < 0) continue;
 
-    // Piutang↔TEMPO, Dropping↔CASH. Jenis UM kosong = jangan ditolak di sini.
+    // Piutang↔TEMPO, Dropping↔CASH. Jenis UM kosong = jangan ditolak.
     const uPay=pjumNormBayar(u.pembayaran);
     if((pPay==='CASH'||pPay==='TEMPO') && (uPay==='CASH'||uPay==='TEMPO') && uPay!==pPay) continue;
 
@@ -3837,7 +3846,6 @@ function findMatchingUm(p, umList){
     const identity=scanIdentityScore(p,u);
     if(identity < 0.85 && !invoiceExact) continue;
 
-    // Produk hanya dicek jika TIDAK ada No Faktur exact.
     const up=normScanIdentity(u.produk);
     let productScore=1;
     if(!invoiceExact && pp && up){
@@ -3932,8 +3940,7 @@ function renderPjumTable(){
     return;
   }
 
-  // Matching: 1) No Faktur exact (seperti Sumber Data), 2) fallback fuzzy.
-  // Sumber cadangan: seluruh histori UM mentah bila filter tanggal/jenis terlalu ketat.
+  // Matching: 1) No Faktur exact, 2) fallback fuzzy, 3) raw UM fallback
   const matchedMap = new Map();
   const pjMatches = [];
   const umByFaktur = new Map();
@@ -3943,7 +3950,6 @@ function renderPjumTable(){
     if(!umByFaktur.has(k)) umByFaktur.set(k, []);
     umByFaktur.get(k).push(idx);
   });
-  // Indeks cadangan dari raw UM (tanpa filter tanggal PJ-UM)
   const rawUmPool = Array.isArray(scanResults.umRawAllPjum)
     ? scanResults.umRawAllPjum
     : (Array.isArray(scanResults.umRawAll) ? scanResults.umRawAll : []);
@@ -3961,7 +3967,6 @@ function renderPjumTable(){
     const pf=normScan(p.faktur);
     const pDate=parsePjumDate(p.tanggal);
 
-    // 1a. Exact faktur dari daftar UM yang sudah difilter UI
     if(pf && umByFaktur.has(pf)){
       let bestIdx=-1, bestDiff=99999;
       for(const idx of umByFaktur.get(pf)){
@@ -3981,7 +3986,6 @@ function renderPjumTable(){
       }
     }
 
-    // 1b. Exact faktur dari RAW UM (mengabaikan filter tanggal/jenis yang terlalu ketat)
     if(!matched && pf && rawUmByFaktur.has(pf)){
       let best=null, bestDiff=99999;
       for(const r of rawUmByFaktur.get(pf)){
@@ -3994,17 +3998,12 @@ function renderPjumTable(){
         if(diff < bestDiff){
           bestDiff=diff;
           best={
-            tanggal:r.tanggal||'',
-            sales:r.sales||'',
-            faktur:r.faktur||'',
-            customer:r.customer||'',
-            alamat:r.alamat||'',
-            produk:pjumProdukLabel(r),
-            kategori:r.produkKategori||'',
-            nominal:scanNum(r.total),
-            pembayaran:r.jenis||r.pembayaran||''
+            tanggal:r.tanggal||'', sales:r.sales||'', faktur:r.faktur||'',
+            customer:r.customer||'', alamat:r.alamat||'',
+            produk:pjumProdukLabel(r), kategori:r.produkKategori||'',
+            nominal:scanNum(r.total), pembayaran:r.jenis||r.pembayaran||'',
+            _rawKey:rk
           };
-          best._rawKey = rk;
         }
       }
       if(best){
@@ -4016,7 +4015,6 @@ function renderPjumTable(){
       }
     }
 
-    // 2. Fallback fuzzy
     if(!matched){
       const available = um.filter((u, idx) => !matchedMap.has(idx));
       const match = findMatchingUm(p, available);
@@ -4031,7 +4029,6 @@ function renderPjumTable(){
     pjMatches.push({ p, u: matched, daysLate, matchInfo });
   }
 
-  // Tambah UM yang tidak ter-match (dari list terfilter UI)
   for(let i=0; i<um.length; i++){
     if(!matchedMap.has(i)){
       pjMatches.push({ p: null, u: um[i], daysLate: 0 });
@@ -4041,13 +4038,16 @@ function renderPjumTable(){
   const n = pjMatches.length;
   let html='<table class="pjum-table"><colgroup>'+
     '<col class="c-tgl"><col class="c-sales"><col class="c-faktur"><col class="c-cust"><col class="c-alamat"><col class="c-prod"><col class="c-nom">'+
-    '<col class="c-tgl"><col class="c-sales"><col class="c-faktur"><col class="c-cust"><col class="c-alamat"><col class="c-prod"><col class="c-nom">'+
+    '<col class="c-jt"><col class="c-od">'+
+    '<col class="c-tgl"><col class="c-sales"><col class="c-faktur"><col class="c-cust"><col class="c-alamat"><col class="c-nom">'+
     '<col class="c-ket"></colgroup><thead><tr>'+
     '<th colspan="7" class="h-pen">📋 DATA PENJUALAN</th>'+
-    '<th colspan="7" class="h-um">💰 DATA UANG MASUK</th>'+
+    '<th colspan="2" class="h-jt">⏳ JATUH TEMPO</th>'+
+    '<th colspan="6" class="h-um">💰 DATA UANG MASUK</th>'+
     '<th class="h-ket">KET</th></tr><tr>'+
     '<th>TGL</th><th>SALES</th><th>FAKTUR</th><th>CUSTOMER/TOKO</th><th>ALAMAT</th><th>KATEGORI PRODUK</th><th class="num">NOMINAL</th>'+
-    '<th>TGL</th><th>SALES</th><th>FAKTUR</th><th>CUSTOMER/TOKO</th><th>ALAMAT</th><th>KATEGORI PRODUK</th><th class="num">NOMINAL</th>'+
+    '<th class="h-jt-col">JT</th><th class="h-jt-col">OD</th>'+
+    '<th>TGL</th><th>SALES</th><th>FAKTUR</th><th>CUSTOMER/TOKO</th><th>ALAMAT</th><th class="num">NOMINAL</th>'+
     '<th>KET</th></tr></thead><tbody>';
 
   _pjumLastRows = pjMatches;
@@ -4095,16 +4095,44 @@ function renderPjumTable(){
     } else {
       html+='<td class="pen-side" colspan="7" style="opacity:.35;text-align:center">—</td>';
     }
+
+    // JATUH TEMPO: JT selalu untuk TEMPO; OD hanya jika BELUM ada UM
+    {
+      let jtTxt='—', odTxt='—', odCls='jt-side';
+      if(p && isPembayaranTempo(p.pembayaran)){
+        const jtDate = getJatuhTempo(p.tanggal);
+        if(jtDate){
+          const dd=String(jtDate.getDate()).padStart(2,'0');
+          const mm=String(jtDate.getMonth()+1).padStart(2,'0');
+          const yyyy=jtDate.getFullYear();
+          jtTxt = dd+'/'+mm+'/'+yyyy;
+          // OD hanya diisi jika belum ada uang masuk
+          if(!u){
+            const today = new Date();
+            const diff = daysBetween(jtDate, today);
+            if(diff > 0){
+              odTxt = diff+' HARI';
+              odCls = 'jt-side od-late';
+            } else {
+              odTxt = 'ON TIME';
+              odCls = 'jt-side od-ok';
+            }
+          }
+        }
+      }
+      html+='<td class="jt-side" style="text-align:center" title="Tanggal Jatuh Tempo (Tempo: T+11)">'+escScan(jtTxt)+'</td>'+
+        '<td class="'+odCls+'" style="text-align:center" title="Overdue — hanya jika belum ada UM">'+escScan(odTxt)+'</td>';
+    }
+
     if(u){
       html+='<td class="um-side">'+escScan(formatScanDate(u.tanggal))+'</td>'+
         '<td class="um-side" title="'+escScan(u.sales)+'">'+escScan(u.sales)+'</td>'+
         '<td class="um-side" title="'+escScan(u.faktur)+'">'+escScan(u.faktur)+'</td>'+
         '<td class="um-side" title="'+escScan(u.customer)+'">'+escScan(u.customer)+'</td>'+
         '<td class="um-side" title="'+escScan(u.alamat)+'">'+escScan(u.alamat)+'</td>'+
-        '<td class="um-side" title="'+escScan(u.produk)+'">'+escScan(u.produk)+'</td>'+
         '<td class="um-side num">'+rupiahScan(u.nominal)+'</td>';
     } else {
-      html+='<td class="um-side" colspan="7" style="opacity:.35;text-align:center">—</td>';
+      html+='<td class="um-side" colspan="6" style="opacity:.35;text-align:center">—</td>';
     }
     let ketCls='ket-default';
     let ketDisplay = ket;
@@ -4260,7 +4288,7 @@ function exportPjumExcel(){
   };
   pen.sort(sortFn); um.sort(sortFn);
   const n=Math.max(pen.length,um.length);
-  const wsData=[['TGL-PJ','SALES-PJ','FAKTUR-PJ','CUSTOMER-PJ','ALAMAT-PJ','PRODUK-PJ','NOM-PJ','TGL-UM','SALES-UM','FAKTUR-UM','CUSTOMER-UM','ALAMAT-UM','PRODUK-UM','NOM-UM','KET']];
+  const wsData=[['TGL-PJ','SALES-PJ','FAKTUR-PJ','CUSTOMER-PJ','ALAMAT-PJ','PRODUK-PJ','NOM-PJ','JT','OD','TGL-UM','SALES-UM','FAKTUR-UM','CUSTOMER-UM','ALAMAT-UM','NOM-UM','KET']];
   const penFk=new Set(pen.map(r=>normScan(r.faktur)).filter(Boolean));
   const umFk=new Set(um.map(r=>normScan(r.faktur)).filter(Boolean));
   for(let i=0;i<n;i++){
@@ -4269,9 +4297,21 @@ function exportPjumExcel(){
     if(p&&u){ ket=normScan(p.faktur)&&normScan(p.faktur)===normScan(u.faktur)?'COCOK':'Beda baris'; }
     else if(p) ket=umFk.has(normScan(p.faktur))?'PJ ada di UM':'Hanya PJ';
     else if(u) ket=penFk.has(normScan(u.faktur))?'UM ada di PJ':'Hanya UM';
+    let jt='', od='';
+    if(p && isPembayaranTempo(p.pembayaran)){
+      const jtDate=getJatuhTempo(p.tanggal);
+      if(jtDate){
+        jt=String(jtDate.getDate()).padStart(2,'0')+'/'+String(jtDate.getMonth()+1).padStart(2,'0')+'/'+jtDate.getFullYear();
+        if(!u){
+          const diff=daysBetween(jtDate, new Date());
+          od=diff>0?(diff+' HARI'):'ON TIME';
+        }
+      }
+    }
     wsData.push([
       p?formatScanDate(p.tanggal):'', p?p.sales:'', p?p.faktur:'', p?p.customer:'', p?p.alamat:'', p?p.produk:'', p?p.nominal:'',
-      u?formatScanDate(u.tanggal):'', u?u.sales:'', u?u.faktur:'', u?u.customer:'', u?u.alamat:'', u?u.produk:'', u?u.nominal:'',
+      jt, od,
+      u?formatScanDate(u.tanggal):'', u?u.sales:'', u?u.faktur:'', u?u.customer:'', u?u.alamat:'', u?u.nominal:'',
       ket
     ]);
   }
