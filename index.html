@@ -551,35 +551,60 @@
   .btn-pjum-tab.active{background:#0f766e;color:#fff;border-color:#0f766e}
   html[data-theme="dark"] .btn-pjum-tab{background:#1e293b;color:#e2e8f0;border-color:#475569}
   html[data-theme="dark"] .btn-pjum-tab.active{background:#0f766e;color:#ecfdf5;border-color:#14b8a6}
-  .pjum-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin:0 0 10px;padding:0 2px}
-  .pjum-toolbar .fg{display:flex;flex-direction:column;gap:2px}
+  /* Toolbar + ringkasan satu baris agar rapi */
+  .pjum-topbar{
+    display:flex;flex-wrap:nowrap;align-items:flex-end;gap:8px 10px;
+    margin:0 0 8px;padding:0 2px;overflow-x:auto;
+  }
+  .pjum-toolbar{display:flex;flex-wrap:nowrap;gap:8px;align-items:flex-end;flex:0 0 auto}
+  .pjum-toolbar .fg{display:flex;flex-direction:column;gap:2px;flex-shrink:0}
   .pjum-toolbar label{font-size:9px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.03em}
   .pjum-toolbar select,.pjum-toolbar input[type=search]{
     appearance:none;border:1px solid #dce4f0;background:#fff;color:#1e293b;
-    padding:5px 10px;border-radius:6px;font-size:12px;height:32px;min-width:140px;
+    padding:5px 8px;border-radius:6px;font-size:12px;height:32px;
   }
+  .pjum-toolbar #fltPjumTanggal{width:100px;min-width:100px}
+  .pjum-toolbar #fltPjumBayar{width:110px;min-width:110px}
+  .pjum-toolbar #fltPjumCari{width:180px;min-width:140px}
+  .pjum-toolbar .fg-export{margin-left:0}
   html[data-theme="dark"] .pjum-toolbar select,
   html[data-theme="dark"] .pjum-toolbar input[type=search]{background:#1e293b;color:#e2e8f0;border-color:#475569}
-  .pjum-summary{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}
-  .pjum-summary .card{border:1px solid #dce4f0;border-radius:6px;padding:4px 10px;background:#f8fafc;min-width:100px;height:32px;display:flex;flex-direction:column;justify-content:center}
-  .pjum-summary small{font-size:9px;color:#64748b}
-  .pjum-summary b{font-size:13px;color:#172033}
+  .pjum-summary{
+    display:flex;gap:6px;flex-wrap:nowrap;align-items:stretch;
+    margin:0;margin-left:auto;flex:0 0 auto;
+  }
+  .pjum-summary .card{
+    border:1px solid #dce4f0;border-radius:6px;padding:2px 8px;background:#f8fafc;
+    min-width:0;height:32px;display:flex;flex-direction:column;justify-content:center;
+    white-space:nowrap;
+  }
+  .pjum-summary small{font-size:8px;color:#64748b;line-height:1.1}
+  .pjum-summary b{font-size:12px;color:#172033;line-height:1.15}
   html[data-theme="dark"] .pjum-summary .card{background:#1e293b;border-color:#334155}
   html[data-theme="dark"] .pjum-summary b{color:#f1f5f9}
   .pjum-table-wrap{flex:1;overflow:auto;max-height:calc(100vh - 200px);border:1px solid #dce4f0;border-radius:6px}
   html[data-theme="dark"] .pjum-table-wrap{border-color:#334155;background:#0f172a}
-  .pjum-table{border-collapse:separate;border-spacing:0;width:100%;min-width:1400px;font-size:11px;table-layout:fixed}
+  .pjum-table{border-collapse:separate;border-spacing:0;width:100%;min-width:1180px;font-size:11px;table-layout:fixed}
   .pjum-table th{padding:5px 4px;position:sticky;top:0;z-index:10;white-space:nowrap;font-weight:700;color:#fff;text-align:left}
   .pjum-table thead tr:first-child th{text-align:center;top:0;height:28px;font-size:11px;text-transform:uppercase;letter-spacing:.3px}
   .pjum-table thead tr:nth-child(2) th{top:28px;z-index:10;font-size:10px;background:#f8fafc;color:#475569;border-bottom:1px solid #e2e8f0;border-right:1px solid #e2e8f0;text-transform:uppercase}
   .pjum-table thead tr:first-child th.h-pen{background:#1E3A8A}
   .pjum-table thead tr:first-child th.h-um{background:#0F766E}
   .pjum-table thead tr:first-child th.h-ket{background:#9A3412}
-  .pjum-table td{padding:4px 4px;border-bottom:1px solid #e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+  /* Lebar kolom: TGL & SALES sempit di kedua sisi */
+  .pjum-table col.c-tgl{width:58px}
+  .pjum-table col.c-sales{width:52px}
+  .pjum-table col.c-faktur{width:100px}
+  .pjum-table col.c-cust{width:90px}
+  .pjum-table col.c-alamat{width:80px}
+  .pjum-table col.c-prod{width:88px}
+  .pjum-table col.c-nom{width:78px}
+  .pjum-table col.c-ket{width:72px}
+  .pjum-table td{padding:4px 3px;border-bottom:1px solid #e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
   .pjum-table td.num{text-align:right;font-variant-numeric:tabular-nums}
   .pjum-table td.pen-side{background:#F8FAFC;color:#334155}
   .pjum-table td.um-side{background:#F0FDFA;color:#334155}
-  .pjum-table td.ket-side{background:#FFF7ED;color:#9A3412;font-weight:600;text-align:center}
+  .pjum-table td.ket-side{background:#FFF7ED;color:#9A3412;font-weight:600;text-align:center;font-size:10px}
   html[data-theme="dark"] .pjum-table thead tr:nth-child(2) th{background:#1e293b;color:#94a3b8;border-color:#334155}
   html[data-theme="dark"] .pjum-table td{border-bottom-color:#334155;color:#e2e8f0}
   html[data-theme="dark"] .pjum-table td.pen-side{background:#0f172a}
@@ -1037,31 +1062,33 @@
       </div>
 
       <div class="scan-panel" id="scan-pjum">
-        <div class="pjum-toolbar">
-          <div class="fg">
-            <label for="fltPjumTanggal">Tanggal</label>
-            <select id="fltPjumTanggal" onchange="renderPjumTable()">
-              <option value="">Semua tanggal (hasil scan)</option>
-            </select>
+        <div class="pjum-topbar">
+          <div class="pjum-toolbar">
+            <div class="fg">
+              <label for="fltPjumTanggal">Tanggal</label>
+              <select id="fltPjumTanggal" onchange="renderPjumTable()">
+                <option value="">Semua tanggal</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label for="fltPjumBayar">CASH / TEMPO</label>
+              <select id="fltPjumBayar" onchange="renderPjumTable()">
+                <option value="">Semua jenis</option>
+                <option value="CASH">CASH</option>
+                <option value="TEMPO">TEMPO</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label for="fltPjumCari">Cari</label>
+              <input type="search" id="fltPjumCari" placeholder="Faktur / Customer / Sales…" oninput="renderPjumTable()" autocomplete="off">
+            </div>
+            <div class="fg fg-export">
+              <label>&nbsp;</label>
+              <button type="button" class="btn-export-excel" id="btnExportPjum" onclick="exportPjumExcel()" style="height:32px;padding:5px 10px;font-size:11px">⬇️ Excel</button>
+            </div>
           </div>
-          <div class="fg">
-            <label for="fltPjumBayar">CASH / TEMPO</label>
-            <select id="fltPjumBayar" onchange="renderPjumTable()">
-              <option value="">Semua jenis</option>
-              <option value="CASH">CASH</option>
-              <option value="TEMPO">TEMPO</option>
-            </select>
-          </div>
-          <div class="fg" style="flex:1;min-width:160px">
-            <label for="fltPjumCari">Cari</label>
-            <input type="search" id="fltPjumCari" placeholder="Faktur / Customer / Sales…" oninput="renderPjumTable()" autocomplete="off">
-          </div>
-          <div class="fg">
-            <label>&nbsp;</label>
-            <button type="button" class="btn-export-excel" id="btnExportPjum" onclick="exportPjumExcel()" style="height:32px">⬇️ Excel PJ-UM</button>
-          </div>
+          <div class="pjum-summary" id="pjumSummary"></div>
         </div>
-        <div class="pjum-summary" id="pjumSummary"></div>
         <div id="scanPjumTable" class="pjum-table-wrap">
           <div class="scan-empty">Klik SCAN DATA, lalu buka tab PJ-UM untuk membandingkan Penjualan vs Uang Masuk per tanggal.</div>
         </div>
@@ -3451,42 +3478,49 @@ function pjumNormBayar(v){
   if(/CASH|TUNAI|DROPPING/.test(s)) return 'CASH';
   return s.trim();
 }
-function getPjumPenRows(){
-  // Pakai baris mentah hasil scan (bulan terbatas) bila ada; fallback penAll
-  const raw = scanResults.penRawActive || scanResults.penRawAll || [];
-  if(raw.length) return raw.map(r=>({
-    tanggal:r.tanggal||'',
-    sales:r.sales||'',
-    faktur:r.faktur||r.noFaktur||'',
-    customer:r.customer||'',
-    alamat:r.alamat||'',
-    produk:r.produk||r.produkKategori||'',
-    nominal:scanNum(r.total!=null?r.total:r.nominal),
-    pembayaran:r.pembayaran||r.jenis||''
-  }));
-  return (scanResults.penAll||[]).map(r=>({
-    tanggal:r.tanggal||'', sales:r.sales||'', faktur:r.faktur||'',
-    customer:r.customer||'', alamat:r.alamat||'',
-    produk:(r.produkList&&r.produkList[0])||r.produkKategori||'',
-    nominal:scanNum(r.total), pembayaran:r.jenis||r.pembayaran||''
-  }));
+function pjumProdukLabel(r){
+  const k=r && (r.produkKategori||'');
+  if(k==='FITRI') return 'Fitri';
+  if(k==='RUPA_RUPA') return 'Rupa Rupa';
+  if(k==='CAMPURAN') return 'Campuran';
+  if(k) return k;
+  if(r && r.produkList && r.produkList.length) return r.produkList.join(', ');
+  return r && r.produk ? String(r.produk) : '';
 }
-function getPjumUmRows(){
-  const raw = scanResults.umRawAll || [];
-  // Batasi ke bulan scan bila ada
-  const months = new Set(scanResults.scanMonths||[]);
-  const list = months.size ? raw.filter(r=>{
-    const mk=monthKeyFromDate(r.tanggal);
-    return !mk || months.has(mk);
-  }) : raw;
+function getPjumPenRows(){
+  // WAJIB per FAKTUR (agregasi), sama seperti Rekap Penjualan → sub-tab Penjualan/Faktur.
+  // Jangan pakai penRaw* (itu per item produk) — nominal harus total faktur.
+  const list = scanResults.penAll || [];
   return list.map(r=>({
     tanggal:r.tanggal||'',
     sales:r.sales||'',
-    faktur:r.faktur||r.noFaktur||'',
+    faktur:r.faktur||'',
     customer:r.customer||'',
     alamat:r.alamat||'',
-    produk:r.produk||'',
-    nominal:scanNum(r.total!=null?r.total:r.nominal),
+    produk:pjumProdukLabel(r),
+    nominal:scanNum(r.total),
+    pembayaran:r.jenis||r.pembayaran||''
+  }));
+}
+function getPjumUmRows(){
+  // Agregasi per faktur agar sejajar dengan sisi penjualan (bukan per baris item).
+  const months = new Set(scanResults.scanMonths||[]);
+  let list = scanResults.umAll || [];
+  if(months.size && Array.isArray(scanResults.umRawAll) && scanResults.umRawAll.length){
+    const raw = scanResults.umRawAll.filter(r=>{
+      const mk=monthKeyFromDate(r.tanggal);
+      return !mk || months.has(mk);
+    });
+    list = groupByInvoice(raw, true);
+  }
+  return list.map(r=>({
+    tanggal:r.tanggal||'',
+    sales:r.sales||'',
+    faktur:r.faktur||'',
+    customer:r.customer||'',
+    alamat:r.alamat||'',
+    produk:pjumProdukLabel(r),
+    nominal:scanNum(r.total),
     pembayaran:r.jenis||r.pembayaran||''
   }));
 }
@@ -3547,11 +3581,11 @@ function renderPjumTable(){
   const totUm=um.reduce((s,r)=>s+(r.nominal||0),0);
   if(sum){
     sum.innerHTML=
-      '<div class="card"><small>Baris Penjualan</small><b>'+pen.length.toLocaleString('id-ID')+'</b></div>'+
-      '<div class="card"><small>Nominal Penjualan</small><b>'+rupiahScan(totPen)+'</b></div>'+
-      '<div class="card"><small>Baris Uang Masuk</small><b>'+um.length.toLocaleString('id-ID')+'</b></div>'+
-      '<div class="card"><small>Nominal Uang Masuk</small><b>'+rupiahScan(totUm)+'</b></div>'+
-      '<div class="card"><small>Selisih (Pen − UM)</small><b>'+rupiahScan(totPen-totUm)+'</b></div>';
+      '<div class="card"><small>Baris PJ</small><b>'+pen.length.toLocaleString('id-ID')+'</b></div>'+
+      '<div class="card"><small>Nom. PJ</small><b>'+rupiahScan(totPen)+'</b></div>'+
+      '<div class="card"><small>Baris UM</small><b>'+um.length.toLocaleString('id-ID')+'</b></div>'+
+      '<div class="card"><small>Nom. UM</small><b>'+rupiahScan(totUm)+'</b></div>'+
+      '<div class="card"><small>Selisih</small><b>'+rupiahScan(totPen-totUm)+'</b></div>';
   }
 
   if(!pen.length && !um.length){
@@ -3564,11 +3598,14 @@ function renderPjumTable(){
   const umFk=new Set(um.map(r=>normScan(r.faktur)).filter(Boolean));
 
   const n=Math.max(pen.length, um.length);
-  let html='<table class="pjum-table"><thead><tr>'+
+  let html='<table class="pjum-table"><colgroup>'+
+    '<col class="c-tgl"><col class="c-sales"><col class="c-faktur"><col class="c-cust"><col class="c-alamat"><col class="c-prod"><col class="c-nom">'+
+    '<col class="c-tgl"><col class="c-sales"><col class="c-faktur"><col class="c-cust"><col class="c-alamat"><col class="c-prod"><col class="c-nom">'+
+    '<col class="c-ket"></colgroup><thead><tr>'+
     '<th colspan="7" class="h-pen">📋 DATA PENJUALAN</th>'+
     '<th colspan="7" class="h-um">💰 DATA UANG MASUK</th>'+
     '<th class="h-ket">KET</th></tr><tr>'+
-    '<th>TGL</th><th>SALES</th><th>FAKTUR</th><th>CUSTOMER/TOKO</th><th>ALAMAT</th><th>KATEGORI PRODUK</th><th class="num">NOMINAL FAKTUR</th>'+
+    '<th>TGL</th><th>SALES</th><th>FAKTUR</th><th>CUSTOMER/TOKO</th><th>ALAMAT</th><th>KATEGORI PRODUK</th><th class="num">NOMINAL</th>'+
     '<th>TGL</th><th>SALES</th><th>FAKTUR</th><th>CUSTOMER/TOKO</th><th>ALAMAT</th><th>KATEGORI PRODUK</th><th class="num">NOMINAL</th>'+
     '<th>KET</th></tr></thead><tbody>';
 
