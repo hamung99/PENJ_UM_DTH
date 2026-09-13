@@ -2973,6 +2973,71 @@ function updatePenAdaUmKosongBtn(filteredCount){
   }
 }
 
+
+// Status AR sebagai teks (dipakai export Excel + display). Scope global agar exportSumberDataExcel bisa memanggil.
+function getArStatusText(ar){
+  if(!ar) return '';
+  const rawSt = String(ar.status||'').trim();
+  const ketSt = String(ar.keterangan||'').trim();
+  const fullText = (rawSt + ' ' + ketSt).toUpperCase().replace(/\s+/g,' ');
+  let arPos = '';
+  // 1) SUDAH LUNAS / LUNAS (prioritas tinggi; "LUNAS" bisa muncul di "BELUM LUNAS")
+  if(/\bSUDAH\s*LUNAS\b|\bLUNAS\b|\bPAID\b/i.test(fullText) && !/BELUM/i.test(fullText)){ arPos='SUDAH LUNAS'; }
+  // 2) BAYAR TITIP / TITIP
+  else if(/BAYAR\s*TITIP|\bTITIP\b|\bPARTIAL\b|\bSEBAGIAN\b/i.test(fullText)){ arPos='BAYAR TITIP'; }
+  // 3) BELUM LUNAS
+  else if(/BELUM\s*LUNAS|BELUM\s*BAYAR|\bUNPAID\b/i.test(fullText)){ arPos='BELUM LUNAS'; }
+  // 4) Fallback: NOMINAL vs SISA
+  else if(ar.sisa!=null){
+    const nom = Number(ar.nominal)||0;
+    const sisa = Number(ar.sisa);
+    if(sisa<=0){ arPos='SUDAH LUNAS'; }
+    else if(nom>0 && sisa<nom){ arPos='BAYAR TITIP'; }
+    else { arPos='BELUM LUNAS'; }
+  }
+  // 5) status ada tapi tidak match keyword
+  else if(rawSt && !/^\s*$/.test(rawSt)){
+    if(/lunas/i.test(rawSt)){ arPos='SUDAH LUNAS'; }
+    else if(/titip/i.test(rawSt)){ arPos='BAYAR TITIP'; }
+    else { arPos = rawSt; }
+  }
+  // 6) Default
+  else { arPos = 'BELUM LUNAS'; }
+  return arPos;
+}
+
+// Badge HTML status AR (dipakai tabel Sumber Data). Scope global; escape via escScan.
+function getArStatusBadge(ar){
+  if(!ar) return '';
+  const rawSt = String(ar.status||'').trim();
+  const ketSt = String(ar.keterangan||'').trim();
+  const fullText = (rawSt + ' ' + ketSt).toUpperCase().replace(/\s+/g,' ');
+  let arPos = '', arPosCls = '';
+  if(/\bSUDAH\s*LUNAS\b|\bLUNAS\b|\bPAID\b/i.test(fullText) && !/BELUM/i.test(fullText)){ arPos='SUDAH LUNAS'; arPosCls='lunas'; }
+  else if(/BAYAR\s*TITIP|\bTITIP\b|\bPARTIAL\b|\bSEBAGIAN\b/i.test(fullText)){ arPos='BAYAR TITIP'; arPosCls='titip'; }
+  else if(/BELUM\s*LUNAS|BELUM\s*BAYAR|\bUNPAID\b/i.test(fullText)){ arPos='BELUM LUNAS'; arPosCls='belum'; }
+  else if(ar.sisa!=null){
+    const nom = Number(ar.nominal)||0;
+    const sisa = Number(ar.sisa);
+    if(sisa<=0){ arPos='SUDAH LUNAS'; arPosCls='lunas'; }
+    else if(nom>0 && sisa<nom){ arPos='BAYAR TITIP'; arPosCls='titip'; }
+    else { arPos='BELUM LUNAS'; arPosCls='belum'; }
+  }
+  else if(rawSt && !/^\s*$/.test(rawSt)){
+    if(/lunas/i.test(rawSt)){ arPos='SUDAH LUNAS'; arPosCls='lunas'; }
+    else if(/titip/i.test(rawSt)){ arPos='BAYAR TITIP'; arPosCls='titip'; }
+    else { arPos = rawSt.toUpperCase(); arPosCls = 'belum'; }
+  }
+  else { arPos = 'BELUM LUNAS'; arPosCls = 'belum'; }
+  const posColors = {
+    belum: {bg:'#fecaca', fg:'#b91c1c', bd:'#f87171'},
+    titip: {bg:'#fef3c7', fg:'#b45309', bd:'#fcd34d'},
+    lunas: {bg:'#dbeafe', fg:'#1d4ed8', bd:'#93c5fd'}
+  };
+  const pc = posColors[arPosCls] || posColors.belum;
+  return arPos ? '<span style="display:inline-block;background:'+pc.bg+';color:'+pc.fg+';border:1px solid '+pc.bd+';padding:1px 6px;border-radius:999px;font-size:10px;font-weight:600;letter-spacing:.02em">'+escScan(arPos)+'</span>' : '';
+}
+
 function renderSumberDataTable(){
   const container=document.getElementById('scanSumberDataTable'); if(!container)return;
   const allData=scanResults.sumberData||[];
@@ -2980,80 +3045,6 @@ function renderSumberDataTable(){
   const {rows:data}=pageSlice(allData,'sumberData');
   const esc=v=>escScan(v==null?'':String(v));
   const badge=(text,kind)=>text?'<span class="sd-badge sd-'+kind+'">'+esc(text)+'</span>':'';
-  
-  // Function untuk menentukan status AR sebagai text (untuk export & display)
-  const getArStatusText = (ar) => {
-    if(!ar) return '';
-    const rawSt = String(ar.status||'').trim();
-    const ketSt = String(ar.keterangan||'').trim();
-    const fullText = (rawSt + ' ' + ketSt).toUpperCase().replace(/\s+/g,' ');
-    let arPos = '';
-    
-    // 1) Cek keyword SUDAH LUNAS / LUNAS pertama (prioritas tinggi, karena "LUNAS" juga bisa muncul di "BELUM LUNAS")
-    if(/\bSUDAH\s*LUNAS\b|\bLUNAS\b|\bPAID\b/i.test(fullText) && !/BELUM/i.test(fullText)){ arPos='SUDAH LUNAS'; }
-    // 2) Cek keyword BAYAR TITIP / TITIP
-    else if(/BAYAR\s*TITIP|\bTITIP\b|\bPARTIAL\b|\bSEBAGIAN\b/i.test(fullText)){ arPos='BAYAR TITIP'; }
-    // 3) Cek keyword BELUM LUNAS
-    else if(/BELUM\s*LUNAS|BELUM\s*BAYAR|\bUNPAID\b/i.test(fullText)){ arPos='BELUM LUNAS'; }
-    // 4) Fallback: hitung dari NOMINAL vs SISA (jika ada)
-    else if(ar.sisa!=null){
-      const nom = Number(ar.nominal)||0;
-      const sisa = Number(ar.sisa);
-      if(sisa<=0){ arPos='SUDAH LUNAS'; }
-      else if(nom>0 && sisa<nom){ arPos='BAYAR TITIP'; }
-      else { arPos='BELUM LUNAS'; }
-    } 
-    // 5) Jika ar.status ada tp tidak match keyword, return apa adanya
-    else if(rawSt && !/^\s*$/.test(rawSt)){
-      if(/lunas/i.test(rawSt)){ arPos='SUDAH LUNAS'; }
-      else if(/titip/i.test(rawSt)){ arPos='BAYAR TITIP'; }
-      else { arPos = rawSt; }
-    }
-    // 6) Default fallback
-    else { arPos = 'BELUM LUNAS'; }
-    
-    return arPos;
-  };
-  
-  // Function untuk menentukan status AR dan return badge HTML
-  const getArStatusBadge = (ar) => {
-    if(!ar) return '';
-    const rawSt = String(ar.status||'').trim();
-    const ketSt = String(ar.keterangan||'').trim();
-    const fullText = (rawSt + ' ' + ketSt).toUpperCase().replace(/\s+/g,' ');
-    let arPos = '', arPosCls = '';
-    
-    // 1) Cek keyword SUDAH LUNAS / LUNAS pertama (prioritas tinggi)
-    if(/\bSUDAH\s*LUNAS\b|\bLUNAS\b|\bPAID\b/i.test(fullText) && !/BELUM/i.test(fullText)){ arPos='SUDAH LUNAS'; arPosCls='lunas'; }
-    // 2) Cek keyword BAYAR TITIP / TITIP
-    else if(/BAYAR\s*TITIP|\bTITIP\b|\bPARTIAL\b|\bSEBAGIAN\b/i.test(fullText)){ arPos='BAYAR TITIP'; arPosCls='titip'; }
-    // 3) Cek keyword BELUM LUNAS
-    else if(/BELUM\s*LUNAS|BELUM\s*BAYAR|\bUNPAID\b/i.test(fullText)){ arPos='BELUM LUNAS'; arPosCls='belum'; }
-    // 4) Fallback: hitung dari NOMINAL vs SISA
-    else if(ar.sisa!=null){
-      const nom = Number(ar.nominal)||0;
-      const sisa = Number(ar.sisa);
-      if(sisa<=0){ arPos='SUDAH LUNAS'; arPosCls='lunas'; }
-      else if(nom>0 && sisa<nom){ arPos='BAYAR TITIP'; arPosCls='titip'; }
-      else { arPos='BELUM LUNAS'; arPosCls='belum'; }
-    } 
-    // 5) Jika ar.status ada tp tidak match keyword
-    else if(rawSt && !/^\s*$/.test(rawSt)){
-      if(/lunas/i.test(rawSt)){ arPos='SUDAH LUNAS'; arPosCls='lunas'; }
-      else if(/titip/i.test(rawSt)){ arPos='BAYAR TITIP'; arPosCls='titip'; }
-      else { arPos = rawSt.toUpperCase(); arPosCls = 'belum'; }
-    }
-    // 6) Default fallback
-    else { arPos = 'BELUM LUNAS'; arPosCls = 'belum'; }
-    
-    const posColors = {
-      belum: {bg:'#fecaca', fg:'#b91c1c', bd:'#f87171'},
-      titip: {bg:'#fef3c7', fg:'#b45309', bd:'#fcd34d'},
-      lunas: {bg:'#dbeafe', fg:'#1d4ed8', bd:'#93c5fd'}
-    };
-    const pc = posColors[arPosCls] || posColors.belum;
-    return arPos ? '<span style="display:inline-block;background:'+pc.bg+';color:'+pc.fg+';border:1px solid '+pc.bd+';padding:1px 6px;border-radius:999px;font-size:10px;font-weight:600;letter-spacing:.02em">'+esc(arPos)+'</span>' : '';
-  };
   let html='<table class="scan-table-multi"><colgroup><col class="c-no"><col class="c-tgl"><col class="c-faktur"><col class="c-sales"><col class="c-nom"><col class="c-bayar"><col class="c-cust"><col class="c-alamat"><col class="c-um-tgl"><col class="c-um-nom"><col class="c-um-ket"><col class="c-dth-tgl"><col class="c-dth-ket"><col class="c-ar-tgl"><col class="c-ar-ket"></colgroup><thead><tr><th colspan="8" class="h-pen">📋 REKAP PENJUALAN</th><th colspan="3" class="h-um">💰 UANG MASUK</th><th colspan="2" class="h-dth">📦 DTH</th><th colspan="2" class="h-ar">🗂️ REKAP AR</th></tr><tr><th class="h-pen">NO</th><th class="h-pen">TGL FAKTUR</th><th class="h-pen">NO FAKTUR</th><th class="h-pen">SALES</th><th class="h-pen num">NOMINAL</th><th class="h-pen">JENIS BAYAR</th><th class="h-pen">CUSTOMER</th><th class="h-pen">ALAMAT</th><th class="h-um border-sep">TGL UM</th><th class="h-um num">NOMINAL UM</th><th class="h-um">KETERANGAN UM</th><th class="h-dth border-sep">TGL DTH</th><th class="h-dth">KETERANGAN DTH</th><th class="h-ar border-sep">TGL AR</th><th class="h-ar">KETERANGAN AR</th></tr></thead><tbody>';
   const pageStart=((scanPage.sumberData||1)-1)*(scanPageSize||SCAN_PAGE_SIZE_DEFAULT);
   let no=pageStart+1;
