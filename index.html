@@ -2972,9 +2972,15 @@ function scanDataRun(){
       // Sumber Data & export: hanya bulan yang dipilih (bukan seluruh histori)
       penRawAll:penRawActive,
       penRawByFaktur,
-      // Semua baris/faktur UM (semua bulan) agar filter Bulan UM multi-bulan berfungsi
+      // UM aktif tetap dipakai untuk Sumber Data agar perilaku tab lama tidak berubah.
+      // PJ-UM membutuhkan seluruh histori UM dari iframe karena pembayaran CASH
+      // dapat dicatat pada tanggal yang berbeda dari filter/bulan aktif UM.
       umRawAll:umRaw,
+      // PJ-UM memakai seluruh raw UM; bukan hanya bulan UM aktif.
+      // Rekap Harian dapat menampilkan Dropping meskipun filter UM sedang berbeda.
+      umRawAllPjum:umRaw,
       umAll:umAllGrouped,
+      umAllPjum:groupByInvoice(umRaw,true),
       activeUmMonth,
       scanMonths:scanMonths.slice(),
       penByMonth,penHistoryByMonth,umByMonth,penKeys,
@@ -3598,20 +3604,54 @@ function getPjumPenRows(){
     pembayaran:r.jenis||r.pembayaran||''
   }));
 }
-function getPjumUmRows(){
-  // Agregasi per faktur; batasi ke bulan scan yang sama dengan penjualan.
+function getPjumUmRows(opts){
+  // Agregasi per faktur. Untuk PJ-UM dengan TANGGAL spesifik, UM tidak
+  // boleh dibatasi oleh bulan UM karena pembayaran Cash bisa masuk H+1/H+2
+  // dan sumber Rekap Uang Masuk memakai tanggal laporan UM.
+  opts=opts||{};
+  const ignoreMonth=!!opts.ignoreMonth;
   const monthSet = getPjumScanMonthSet();
   let list = [];
-  if(Array.isArray(scanResults.umRawAll) && scanResults.umRawAll.length){
-    const raw = scanResults.umRawAll.filter(r=>{
-      if(!monthSet.size) return true;
+  // PJ-UM harus membaca SEMUA data Uang Masuk dari iframe, bukan hanya
+  // umRawActive. Filter tanggal CASH/TEMPO di bawah yang menentukan pasangan.
+  // Ini penting ketika filter Rekap Uang Masuk sedang berada pada bulan lain.
+  const pjumRawAll = Array.isArray(scanResults.umRawAllPjum)
+    ? scanResults.umRawAllPjum
+    : (Array.isArray(scanResults.umRawAll) ? scanResults.umRawAll : []);
+  if(pjumRawAll.length){
+    // PJ-UM membaca DATA MENTAH UM terlebih dahulu. Jangan mengandalkan
+    // bulan/filter aktif Rekap Uang Masuk dan jangan mengelompokkan sebelum
+    // filter tanggal pembayaran diterapkan. Jika tidak, Dropping pada tanggal
+    // yang benar dapat hilang/tergeser saat satu faktur memiliki beberapa baris.
+    let raw = pjumRawAll.filter(r=>{
+      if(ignoreMonth || !monthSet.size) return true;
       const mk=monthKeyFromDate(r.tanggal);
       return mk && monthSet.has(mk);
     });
+    const targetDate=String(opts.targetDate||'');
+    const targetPayment=String(opts.paymentType||'').toUpperCase();
+    if(targetDate){
+      const base=parsePjumDate(targetDate);
+      if(base){
+        const maxDays=targetPayment==='CASH'?2:(targetPayment==='TEMPO'?3650:3);
+        raw=raw.filter(r=>{
+          const d=parsePjumDate(r.tanggal);
+          if(!d) return false;
+          const diff=Math.floor((d-base)/(1000*60*60*24));
+          if(diff<0 || diff>maxDays) return false;
+          if(targetPayment){
+            const rb=pjumNormBayar(r.jenis||r.pembayaran);
+            if(targetPayment==='CASH' && rb!=='CASH') return false;
+            if(targetPayment==='TEMPO' && rb!=='TEMPO') return false;
+          }
+          return true;
+        });
+      }
+    }
     list = groupByInvoice(raw, true);
   } else {
-    list = scanResults.umAll || [];
-    if(monthSet.size){
+    list = scanResults.umAllPjum || scanResults.umAll || [];
+    if(monthSet.size && !ignoreMonth){
       list = list.filter(r=>{
         const mk = r._mk || monthKeyFromDate(r.tanggal);
         return mk && monthSet.has(mk);
@@ -3815,7 +3855,20 @@ function renderPjumTable(){
   // UM sengaja tetap utuh dari bulan scan agar dapat menjadi pasangan transaksi,
   // termasuk pembayaran Cash yang masuk H+1/H+2 dan UM yang tidak punya kolom jenis bayar.
   const pen=filterPjumSide(getPjumPenRows(), {date:true, payment:true, kategori:true, search:true});
-  const um=filterPjumSide(getPjumUmRows(), {date:false, payment:false, kategori:false, search:false});
+
+  // UM mengikuti filter Cash/Tempo dari PENJUALAN, tetapi sumber UM sendiri
+  // tidak punya filter tanggal PJ. Jika tanggal PJ dipilih, baca seluruh UM
+  // mentah lalu batasi berdasarkan tanggal pembayaran yang valid: Cash H+0..H+2,
+  // Tempo H+0 dan seterusnya. Ini membuat Dropping pada Rekap Harian benar-benar
+  // masuk ke sisi DATA UANG MASUK di PJ-UM.
+  const _pjumTgl=(document.getElementById('fltPjumTanggal')||{}).value||'';
+  const _pjumBayar=(document.getElementById('fltPjumBayar')||{}).value||'';
+  let um=getPjumUmRows({
+    ignoreMonth:!!_pjumTgl,
+    targetDate:_pjumTgl,
+    paymentType:_pjumBayar
+  });
+  um=filterPjumSide(um, {date:false, payment:false, kategori:false, search:false});
   // Urutkan per tanggal lalu faktur
   const sortFn=(a,b)=>{
     const da=pjumDateKey(a.tanggal), db=pjumDateKey(b.tanggal);
