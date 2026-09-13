@@ -1928,6 +1928,16 @@ function setScanButtonBusy(b){
   if(x){x.disabled=b;x.textContent=b?'MEMBACA...':'SCAN DATA';}
 }
 
+
+/** Baca bulan penjualan dari UI (checkbox dulu, lalu <select multiple>). */
+function getUiPenMonths(){
+  const fromCb=[...document.querySelectorAll('#fltBulanPenjOptions input[type="checkbox"]:checked')]
+    .map(c=>String(c.value||'').trim()).filter(Boolean);
+  if(fromCb.length) return fromCb;
+  const el=document.getElementById('fltBulanPenj');
+  return [...(el&&el.selectedOptions||[])].map(o=>String(o.value||'').trim()).filter(Boolean);
+}
+
 function fillScanMonthDropdown(values){
   const el=document.getElementById('fltBulanPenj');
   const box=document.getElementById('fltBulanPenjOptions');
@@ -2230,7 +2240,14 @@ function scheduleScanFilters(ms){
   }, delay);
 }
 function flushScanFilters(){
-  if(_scanFilterTimer){ clearTimeout(_scanFilterTimer); _scanFilterTimer=null; }
+  if(_scanFilterTimer){ clearTimeout(_scanFilterTimer); _scanFilterTimer=null; 
+  try{
+    if(document.getElementById('scan-pjum')&&document.getElementById('scan-pjum').classList.contains('active')){
+      populatePjumDateOptions();
+      renderPjumTable();
+    }
+  }catch(e){}
+}
   if(_scanFilterPending){
     _scanFilterPending=false;
     applyScanFilters();
@@ -2820,8 +2837,9 @@ function scanDataRun(){
       if(typeof uw.__SCAN_GET_ACTIVE_MONTH==='function') activeUmMonth=String(uw.__SCAN_GET_ACTIVE_MONTH()||'').trim();
     }catch(e){ activeUmMonth=''; }
 
-    const selectedPenMonths=[...(document.getElementById('fltBulanPenj')||{}).selectedOptions||[]]
-      .map(o=>o.value).filter(Boolean);
+    // Checkbox adalah sumber kebenaran UI (select multiple kadang tidak sinkron).
+    const selectedPenMonths = (typeof getUiPenMonths==='function' ? getUiPenMonths() : [])
+      .map(v=>String(v||'').trim()).filter(Boolean);
     let scanMonths = selectedPenMonths.length ? selectedPenMonths.slice() : (activeUmMonth ? [activeUmMonth] : []);
     // Jika belum ada pilihan (pertama kali / dropdown masih kosong): ambil bulan terakhir dari data.
     if(!scanMonths.length){
@@ -2930,13 +2948,23 @@ function scanDataRun(){
     scanPage={ada:1,tidak:1,umOnly:1,sumberData:1};
     try{ populateSumberDataList(); }catch(e){ console.warn('populateSumberDataList gagal, Sumber Data dilewati', e); scanResults.sumberData=[]; }
     populateScanFilterOptions();
+    // Kunci UI bulan = bulan yang benar-benar di-scan (hindari “Agustus di UI, September di data”).
+    try{
+      const sm = (scanResults.scanMonths||[]).slice();
+      const el = document.getElementById('fltBulanPenj');
+      if(el && sm.length){
+        el.querySelectorAll('option').forEach(o=>{ o.selected = sm.includes(o.value); });
+        document.querySelectorAll('#fltBulanPenjOptions input[type="checkbox"]').forEach(cb=>{
+          cb.checked = sm.includes(cb.value);
+        });
+        if(typeof updateScanMonthButton==='function') updateScanMonthButton();
+      }
+    }catch(e){}
     applyScanFilters();
     try{
+      populatePjumDateOptions();
       if(document.getElementById('scan-pjum') && document.getElementById('scan-pjum').classList.contains('active')){
-        populatePjumDateOptions();
         renderPjumTable();
-      } else {
-        populatePjumDateOptions();
       }
     }catch(e){}
     scanBusy=false; setScanButtonBusy(false);
@@ -3487,10 +3515,30 @@ function pjumProdukLabel(r){
   if(r && r.produkList && r.produkList.length) return r.produkList.join(', ');
   return r && r.produk ? String(r.produk) : '';
 }
+function getPjumScanMonthSet(){
+  // Utama: bulan hasil SCAN. Tambahan: jika user mengubah FILTER bulan (subset), hormati itu.
+  const scanned = (scanResults && scanResults.scanMonths) ? scanResults.scanMonths.slice() : [];
+  const ui = (typeof getUiPenMonths==='function' ? getUiPenMonths() : []).filter(Boolean);
+  let months = scanned.slice();
+  if(ui.length && scanned.length){
+    const inter = ui.filter(m=>scanned.includes(m));
+    if(inter.length) months = inter;
+    // Jika UI memilih bulan di luar hasil scan → tetap pakai scanned (perlu SCAN ulang)
+  } else if(ui.length && !scanned.length){
+    months = ui;
+  }
+  return new Set(months);
+}
 function getPjumPenRows(){
-  // WAJIB per FAKTUR (agregasi), sama seperti Rekap Penjualan → sub-tab Penjualan/Faktur.
-  // Jangan pakai penRaw* (itu per item produk) — nominal harus total faktur.
-  const list = scanResults.penAll || [];
+  // WAJIB per FAKTUR (agregasi), sama seperti Rekap Penjualan → Penjualan/Faktur.
+  const monthSet = getPjumScanMonthSet();
+  let list = scanResults.penAll || [];
+  if(monthSet.size){
+    list = list.filter(r=>{
+      const mk = r._mk || monthKeyFromDate(r.tanggal);
+      return mk && monthSet.has(mk);
+    });
+  }
   return list.map(r=>({
     tanggal:r.tanggal||'',
     sales:r.sales||'',
@@ -3503,15 +3551,24 @@ function getPjumPenRows(){
   }));
 }
 function getPjumUmRows(){
-  // Agregasi per faktur agar sejajar dengan sisi penjualan (bukan per baris item).
-  const months = new Set(scanResults.scanMonths||[]);
-  let list = scanResults.umAll || [];
-  if(months.size && Array.isArray(scanResults.umRawAll) && scanResults.umRawAll.length){
+  // Agregasi per faktur; batasi ke bulan scan yang sama dengan penjualan.
+  const monthSet = getPjumScanMonthSet();
+  let list = [];
+  if(Array.isArray(scanResults.umRawAll) && scanResults.umRawAll.length){
     const raw = scanResults.umRawAll.filter(r=>{
+      if(!monthSet.size) return true;
       const mk=monthKeyFromDate(r.tanggal);
-      return !mk || months.has(mk);
+      return mk && monthSet.has(mk);
     });
     list = groupByInvoice(raw, true);
+  } else {
+    list = scanResults.umAll || [];
+    if(monthSet.size){
+      list = list.filter(r=>{
+        const mk = r._mk || monthKeyFromDate(r.tanggal);
+        return mk && monthSet.has(mk);
+      });
+    }
   }
   return list.map(r=>({
     tanggal:r.tanggal||'',
@@ -3532,13 +3589,30 @@ function populatePjumDateOptions(){
   getPjumUmRows().forEach(r=>{ const k=pjumDateKey(r.tanggal); if(k) keys.add(k); });
   const sorted=[...keys].sort();
   const cur=sel.value;
-  sel.innerHTML='<option value="">Semua tanggal (hasil scan)</option>'+
+  const monthSet = getPjumScanMonthSet();
+  const monthHint = monthSet.size
+    ? [...monthSet].sort().map(m=> (typeof monthLabel==='function'?monthLabel(m):m)).join(', ')
+    : '';
+  sel.innerHTML='<option value="">Semua tgl'+(monthHint?(' · '+monthHint):'')+'</option>'+
     sorted.map(k=>'<option value="'+k+'">'+pjumDateLabel(k)+'</option>').join('');
   if(cur && sorted.includes(cur)) sel.value=cur;
   else if(sorted.length){
-    // Default: tanggal terakhir (sering yang sedang dicek)
     sel.value=sorted[sorted.length-1];
   }
+  // Label kecil di toolbar
+  let lab=document.getElementById('pjumMonthHint');
+  if(!lab){
+    const tb=document.querySelector('#scan-pjum .pjum-toolbar');
+    if(tb){
+      lab=document.createElement('div');
+      lab.id='pjumMonthHint';
+      lab.className='fg';
+      lab.innerHTML='<label>Bulan scan</label><div id="pjumMonthHintVal" style="height:32px;display:flex;align-items:center;font-size:12px;font-weight:700;color:#0f766e;white-space:nowrap;padding:0 4px"></div>';
+      tb.insertBefore(lab, tb.firstChild);
+    }
+  }
+  const valEl=document.getElementById('pjumMonthHintVal');
+  if(valEl) valEl.textContent = monthHint || '— (klik SCAN DATA)';
 }
 function filterPjumSide(rows){
   const tgl=(document.getElementById('fltPjumTanggal')||{}).value||'';
