@@ -3537,7 +3537,9 @@ function pjumDateLabel(key){
 }
 function pjumNormBayar(v){
   const s=String(v||'').toUpperCase();
-  if(/TEMPO|KREDIT|CREDIT/.test(s)) return 'TEMPO';
+  // Rekap Uang Masuk: "Piutang" = hasil tagihan dari Penjualan TEMPO.
+  if(/TEMPO|KREDIT|CREDIT|PIUTANG/.test(s)) return 'TEMPO';
+  // Rekap Uang Masuk: "Dropping" = hasil setoran dari Penjualan CASH.
   if(/CASH|TUNAI|DROPPING/.test(s)) return 'CASH';
   return s.trim();
 }
@@ -3726,6 +3728,13 @@ function findMatchingUm(p, umList){
     const diff=Math.floor((uDate-pDate)/(1000*60*60*24));
     // Uang masuk yang terjadi sebelum tanggal penjualan bukan pasangan transaksi ini.
     if(diff < 0) continue;
+
+    // Aturan kategori Rekap Uang Masuk: "Piutang" HARUS pasangan dari Penjualan TEMPO,
+    // "Dropping" HARUS pasangan dari Penjualan CASH. Jika kategori UM diketahui (CASH/TEMPO)
+    // dan berbeda dengan kategori Penjualan, UM ini bukan pasangan yang valid — meskipun
+    // No Faktur/identitas/nominal tampak cocok.
+    const uPay=pjumNormBayar(u.pembayaran);
+    if((pPay==='CASH'||pPay==='TEMPO') && (uPay==='CASH'||uPay==='TEMPO') && uPay!==pPay) continue;
 
     const uf=normScan(u.faktur);
     const invoiceExact=!!pf && !!uf && pf===uf;
