@@ -3735,111 +3735,7 @@ function findMatchingUm(p, umList){
   return null;
 }
 
-function openPjumModalFromFakturByIndex(idx){
-  // Ambil data dari cache dan buka modal
-  if(!window._pjumModalCache || !window._pjumModalCache[idx]) return;
-  const pjData = window._pjumModalCache[idx];
-  openPjumModalFromFaktur(pjData);
-}
-
-function openPjumModalFromFaktur(pjData){
-  // Open modal untuk menampilkan detail PJ yang tidak ada UM
-  const m = document.getElementById('scanFakturModal');
-  const body = document.getElementById('scanFakturModalBody');
-  const titleEl = document.getElementById('sfmTitle');
-  if(!m || !body) return;
-  
-  // Set title
-  titleEl.innerHTML = '📋 Detail Penjualan <span class="sfm-badge">❌ Tidak Ada UM</span>';
-  
-  // Build grid header
-  let html = '<div class="sfm-grid compact">';
-  html += '<div class="sfm-fld-tgl"><label>Tanggal</label><b>'+escScan(formatScanDate(pjData.tanggal))+'</b></div>';
-  html += '<div class="sfm-fld-faktur"><label>No. Faktur</label><b style="color:#dc2626;font-weight:700">'+escScan(pjData.faktur)+'</b></div>';
-  html += '<div class="sfm-fld-sales"><label>Sales</label><b>'+escScan(pjData.sales)+'</b></div>';
-  html += '<div class="sfm-fld-cust"><label>Customer/Toko</label><b>'+escScan(pjData.customer)+'</b></div>';
-  html += '<div class="sfm-fld-alamat"><label>Alamat</label><b>'+escScan(pjData.alamat)+'</b></div>';
-  html += '<div class="sfm-fld-jenis"><label>Pembayaran</label><b>'+escScan(pjumNormBayar(pjData.pembayaran))+'</b></div>';
-  html += '</div>';
-  
-  // Tabel Detail Produk
-  html += '<div class="sfm-section-title">📦 Detail Produk</div>';
-  html += '<table class="sfm-detail-table"><thead><tr>';
-  html += '<th>Produk</th>';
-  html += '<th class="num">QTY</th>';
-  html += '<th>Satuan</th>';
-  html += '<th class="num">Harga Jual</th>';
-  html += '<th class="num">Disc</th>';
-  html += '<th class="num">Total</th>';
-  html += '</tr></thead><tbody>';
-  
-  // Cari raw records berdasarkan faktur
-  const normFk = normScan(pjData.faktur);
-  let rawRows = [];
-  let totalNominal = 0;
-  
-  if(normFk && scanResults && scanResults.penRawAll){
-    // Filter baris mentah yang punya faktur yang sama
-    rawRows = scanResults.penRawAll.filter(r => {
-      const rFk = normScan(r.faktur || r.noFaktur || '');
-      return rFk === normFk;
-    });
-  }
-  
-  if(rawRows.length){
-    rawRows.forEach(rr => {
-      const hargaJual = scanNum(rr.harga || rr.hargajual || 0);
-      const qty = scanNum(rr.jumlah || rr.qty || 0);
-      const disc = scanNum(rr.disc || rr.diskon || 0);
-      const total = scanNum(rr.total || 0);
-      totalNominal += total;
-      
-      html += '<tr>';
-      html += '<td>'+escScan(rr.produk || '')+'</td>';
-      html += '<td class="num">'+Number(qty).toLocaleString('id-ID')+'</td>';
-      html += '<td>'+escScan(rr.satuan || rr.unit || '')+'</td>';
-      html += '<td class="num">'+rupiahScan(hargaJual)+'</td>';
-      html += '<td class="num">'+rupiahScan(disc)+'</td>';
-      html += '<td class="num">'+rupiahScan(total)+'</td>';
-      html += '</tr>';
-    });
-  } else {
-    // Jika tidak ada raw data, tampilkan agregasi
-    html += '<tr><td colspan="6" style="text-align:center;color:#94a3b8">Tidak ada detail produk (data terkunci di agregasi)</td></tr>';
-    totalNominal = pjData.nominal;
-  }
-  
-  html += '</tbody><tfoot><tr>';
-  html += '<td colspan="5" style="text-align:right;font-weight:700">TOTAL</td>';
-  html += '<td class="num" style="font-weight:700">'+rupiahScan(totalNominal)+'</td>';
-  html += '</tr></tfoot></table>';
-  
-  // Info penting
-  html += '<div class="sfm-section-title">⚠️ Informasi Penting</div>';
-  html += '<div style="background:#fff3cd;border:1px solid #f3d97a;border-radius:6px;padding:10px;font-size:12px;color:#7c5a00;line-height:1.5">';
-  html += '<strong>Faktur ini TIDAK DITEMUKAN di tabel Uang Masuk!</strong><br><br>';
-  
-  const payment = pjumNormBayar(pjData.pembayaran);
-  if(payment==='CASH'){
-    html += '• Pembayaran: <strong>CASH</strong><br>';
-    html += '• Range waktu: ±2 hari dari tgl transaksi ('+escScan(formatScanDate(pjData.tanggal))+')<br>';
-    html += '• <strong>Cek:</strong> Apakah UM sudah diinput? Apakah ada typo pada No. Faktur atau nama Customer?<br>';
-  } else if(payment==='TEMPO'){
-    html += '• Pembayaran: <strong>TEMPO</strong><br>';
-    html += '• Jatuh Tempo: '+escScan(formatScanDate(pjData.tanggal))+' + 12 hari<br>';
-    html += '• <strong>Cek:</strong> Apakah masih dalam masa kredit? Atau UM belum diinput dengan data yang tepat?<br>';
-  } else {
-    html += '• Pembayaran: <strong>'+escScan(payment)+'</strong><br>';
-    html += '• <strong>Cek:</strong> Apakah UM sudah diinput? Apakah ada typo pada data?<br>';
-  }
-  html += '</div>';
-  
-  body.innerHTML = html;
-  
-  // Show modal
-  m.classList.add('open');
-  m.style.display = 'flex';
-}
+function renderPjumTable(){
   const box=document.getElementById('scanPjumTable');
   const sum=document.getElementById('pjumSummary');
   if(!box) return;
@@ -3908,9 +3804,6 @@ function openPjumModalFromFaktur(pjData){
     '<th>TGL</th><th>SALES</th><th>FAKTUR</th><th>CUSTOMER/TOKO</th><th>ALAMAT</th><th>KATEGORI PRODUK</th><th class="num">NOMINAL</th>'+
     '<th>KET</th></tr></thead><tbody>';
 
-  // Cache untuk data modal (untuk menghindari inline JSON encoding issues)
-  window._pjumModalCache = [];
-  
   for(let row of pjMatches){
     const p = row.p, u = row.u;
     let ket='';
@@ -3941,21 +3834,11 @@ function openPjumModalFromFaktur(pjData){
       // Tentukan warna berdasarkan ada/tidak ada uang masuk
       const hasUangMasuk = (u !== null);
       const fakturClass = hasUangMasuk ? 'faktur-found' : 'faktur-notfound';
-      const fakturTitle = hasUangMasuk ? '✓ Ada Uang Masuk' : '✗ Tidak Ada Uang Masuk (Klik untuk detail)';
-      
-      // Jika merah (tidak ada UM), buat clickable
-      let fakturCellHtml = '<td class="pen-side '+fakturClass+'" title="'+fakturTitle+'" ';
-      if(!hasUangMasuk){
-        // Simpan data di cache, gunakan index untuk onclick
-        const cacheIdx = window._pjumModalCache.length;
-        window._pjumModalCache.push(p);
-        fakturCellHtml += 'onclick="openPjumModalFromFakturByIndex('+cacheIdx+')" style="cursor:pointer;text-decoration:underline" ';
-      }
-      fakturCellHtml += '>'+escScan(p.faktur)+'</td>';
+      const fakturTitle = hasUangMasuk ? '✓ Ada Uang Masuk' : '✗ Tidak Ada Uang Masuk';
       
       html+='<td class="pen-side">'+escScan(formatScanDate(p.tanggal))+'</td>'+
         '<td class="pen-side" title="'+escScan(p.sales)+'">'+escScan(p.sales)+'</td>'+
-        fakturCellHtml+
+        '<td class="pen-side '+fakturClass+'" title="'+fakturTitle+' | '+escScan(p.faktur)+'">'+escScan(p.faktur)+'</td>'+
         '<td class="pen-side" title="'+escScan(p.customer)+'">'+escScan(p.customer)+'</td>'+
         '<td class="pen-side" title="'+escScan(p.alamat)+'">'+escScan(p.alamat)+'</td>'+
         '<td class="pen-side" title="'+escScan(p.produk)+'">'+escScan(p.produk)+'</td>'+
