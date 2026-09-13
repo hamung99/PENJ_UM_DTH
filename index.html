@@ -609,29 +609,31 @@
   .pjum-table td.ket-pj-um{background:#dbeafe;color:#1d4ed8}   /* PJ ada di UM */
   
   /* ===== Warna Faktur: Ditemukan di UM (Biru) vs Tidak Ditemukan (Merah) ===== */
-  .pjum-table td.faktur-found{
-    background:#2563eb;
-    color:#fff;
-    font-weight:700;
-    box-shadow:inset 0 0 0 1px rgba(0,0,0,.15);
+  .pjum-table td.pen-side.faktur-found{
+    color:#2563eb !important;
+    font-weight:700 !important;
   }
-  .pjum-table td.faktur-notfound{
-    background:#dc2626;
-    color:#fff;
-    font-weight:700;
-    box-shadow:inset 0 0 0 1px rgba(0,0,0,.2),0 0 6px rgba(220,38,38,.4);
-    text-shadow:0 1px 2px rgba(0,0,0,.2);
+  .pjum-table td.pen-side.faktur-notfound{
+    color:#dc2626 !important;
+    font-weight:700 !important;
   }
-  html[data-theme="dark"] .pjum-table td.faktur-found{
-    background:#2563eb;
-    color:#fff;
-    box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);
+  .pjum-table td.um-side.faktur-found{
+    color:#2563eb !important;
+    font-weight:700 !important;
   }
-  html[data-theme="dark"] .pjum-table td.faktur-notfound{
-    background:#ff3333;
-    color:#fff;
-    box-shadow:inset 0 0 0 1px rgba(0,0,0,.3),0 0 8px rgba(255,51,51,.5);
-    text-shadow:0 1px 2px rgba(0,0,0,.3);
+  .pjum-table td.um-side.faktur-notfound{
+    color:#dc2626 !important;
+    font-weight:700 !important;
+  }
+  html[data-theme="dark"] .pjum-table td.pen-side.faktur-found,
+  html[data-theme="dark"] .pjum-table td.um-side.faktur-found{
+    color:#60a5fa !important;
+    font-weight:700 !important;
+  }
+  html[data-theme="dark"] .pjum-table td.pen-side.faktur-notfound,
+  html[data-theme="dark"] .pjum-table td.um-side.faktur-notfound{
+    color:#ff6b6b !important;
+    font-weight:700 !important;
   }
   .pjum-table td.ket-um-pj{background:#f3e8ff;color:#7e22ce}   /* UM ada di PJ */
   .pjum-table td.ket-beda{background:#ffedd5;color:#c2410c}     /* Beda baris */
