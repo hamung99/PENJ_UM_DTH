@@ -3804,7 +3804,9 @@ function renderPjumTable(){
     '<th>TGL</th><th>SALES</th><th>FAKTUR</th><th>CUSTOMER/TOKO</th><th>ALAMAT</th><th>KATEGORI PRODUK</th><th class="num">NOMINAL</th>'+
     '<th>KET</th></tr></thead><tbody>';
 
-  for(let row of pjMatches){
+  _pjumLastRows = pjMatches;
+  for(let rowIndex=0; rowIndex<pjMatches.length; rowIndex++){
+    const row = pjMatches[rowIndex];
     const p = row.p, u = row.u;
     let ket='';
     let statusOverdue='';
@@ -3838,7 +3840,8 @@ function renderPjumTable(){
       
       html+='<td class="pen-side">'+escScan(formatScanDate(p.tanggal))+'</td>'+
         '<td class="pen-side" title="'+escScan(p.sales)+'">'+escScan(p.sales)+'</td>'+
-        '<td class="pen-side '+fakturClass+'" title="'+fakturTitle+' | '+escScan(p.faktur)+'">'+escScan(p.faktur)+'</td>'+
+        '<td class="pen-side '+fakturClass+'" title="'+fakturTitle+' | '+escScan(p.faktur)+'">'
+        +'<a href="#" class="scan-faktur-link" title="Klik untuk detail lengkap faktur (Rekap Penjualan &rarr; Penjualan / Faktur)" onclick="openPjumFakturModal('+rowIndex+');return false;">'+escScan(p.faktur)+'</a></td>'+
         '<td class="pen-side" title="'+escScan(p.customer)+'">'+escScan(p.customer)+'</td>'+
         '<td class="pen-side" title="'+escScan(p.alamat)+'">'+escScan(p.alamat)+'</td>'+
         '<td class="pen-side" title="'+escScan(p.produk)+'">'+escScan(p.produk)+'</td>'+
@@ -3873,6 +3876,126 @@ function renderPjumTable(){
   }
   html+='</tbody></table>';
   box.innerHTML=html;
+}
+
+/* ===== Modal Detail Faktur di tabel PJ-UM (kolom DATA PENJUALAN) =====
+   Saat No Faktur di sisi Penjualan diklik, tampilkan detail lengkap faktur.
+   Data detail = baris mentah Rekap Penjualan (sub-tab Penjualan / Faktur)
+   yang tersimpan di scanResults.penRawByFaktur / penRawAll. */
+let _pjumLastRows = [];
+function openPjumFakturModal(rowIndex){
+  try{
+    const entry = (_pjumLastRows && _pjumLastRows[rowIndex]) || null;
+    if(!entry || !entry.p) return;
+    const p = entry.p;
+    const m = document.getElementById('scanFakturModal');
+    const body = document.getElementById('scanFakturModalBody');
+    const titleEl = document.getElementById('sfmTitle');
+    if(!m || !body) return;
+    _currentModalKind = 'penjualan';
+    _currentFakturModal = { faktur:p.faktur, tanggal:p.tanggal, sales:p.sales, customer:p.customer, alamat:p.alamat, pembayaran:p.pembayaran, total:p.nominal };
+    if(titleEl) titleEl.innerHTML = '📄 Detail Faktur ' + escScan(p.faktur) + ' <span class="sfm-badge">Data Penjualan</span>';
+
+    // Kategori & daftar produk dari baris mentah (sumber asli Penjualan / Faktur)
+    const rawRows = getPjumRawRows(p.faktur);
+    let pk='', pl=null, pillCls='', pkLbl='';
+    if(rawRows.length){
+      const pset = new Set();
+      rawRows.forEach(rr=>{ if(rr.produk) pset.add(String(rr.produk).trim()); });
+      pl = [...pset];
+      pk = produkKategoriFromSet(pset) || '';
+    }
+    if(pk==='FITRI'){ pillCls='fitri'; pkLbl='FITRI'; }
+    else if(pk==='RUPA_RUPA'){ pillCls='rupa'; pkLbl='Rupa Rupa'; }
+    else if(pk==='CAMPURAN'){ pillCls='campuran'; pkLbl='Campuran'; }
+    else if(pk){ pkLbl = pk; }
+    let produkListHtml = '';
+    if(pl && pl.length) produkListHtml = '<div class="sfm-produk-list-full">'+escScan(pl.join(', '))+'</div>';
+
+    // Info header: No Faktur • Tanggal • Customer • Alamat • Jenis • Sales (+ pill produk)
+    let html = '<div class="sfm-grid compact">';
+    html += '<div class="sfm-fld-faktur"><label>No Faktur</label><b>'+escScan(p.faktur)+'</b></div>';
+    html += '<div class="sfm-fld-tgl"><label>Tanggal Faktur</label><b>'+escScan(formatScanDate(p.tanggal))+'</b></div>';
+    html += '<div class="sfm-fld-cust"><label>Customer</label><b>'+escScan(p.customer||'-')+'</b></div>';
+    html += '<div class="sfm-fld-alamat"><label>Alamat</label><b>'+escScan(p.alamat||'-')+'</b></div>';
+    html += '<div class="sfm-fld-jenis"><label>Jenis Pembayaran</label><b>'+escScan(p.pembayaran||'-')+'</b></div>';
+    if(pillCls || pkLbl){
+      if(pillCls) html += '<div class="sfm-fld-pill"><span class="sfm-produk-pill '+pillCls+'" title="Kategori Produk">'+escScan(pkLbl)+'</span></div>';
+      else html += '<div class="sfm-fld-pill"><span style="font-size:11px;color:#94a3b8;font-weight:600">'+escScan(pkLbl)+'</span></div>';
+    }
+    html += produkListHtml;
+    html += '<div class="sfm-fld-sales" style="flex:1 1 100%"><label>Sales</label><b>'+escScan(p.sales||'-')+'</b></div>';
+    html += '</div>';
+    html += '<div class="sfm-total"><label>TOTAL NOMINAL FAKTUR</label><b>'+rupiahScan(p.nominal)+'</b></div>';
+
+    // Ringkasan pasangan Uang Masuk hasil matching PJ-UM
+    const u = entry.u;
+    html += '<div class="sfm-section-title">Status Uang Masuk (PJ-UM)</div>';
+    html += '<div class="sfm-grid">';
+    if(u){
+      const pPayment = pjumNormBayar(p.pembayaran);
+      let ket = 'COCOK', overdue = '';
+      if(pPayment==='CASH') ket='COCOK (CASH)';
+      else if(pPayment==='TEMPO'){
+        if(entry.daysLate<=0) ket='COCOK (TEMPO - ON TIME)';
+        else { ket='COCOK (TEMPO)'; overdue=' ⚠️ OVERDUE +'+entry.daysLate+'h'; }
+      }
+      html += '<div><label>Status</label><b style="color:#047857">✓ '+escScan(ket+overdue)+'</b></div>';
+      html += '<div><label>Tgl UM</label><b>'+escScan(formatScanDate(u.tanggal))+'</b></div>';
+      html += '<div><label>Nominal UM</label><b>'+rupiahScan(u.nominal)+'</b></div>';
+      html += '<div style="grid-column:1/-1"><label>Faktur UM</label><b>'+escScan(u.faktur||'-')+'</b></div>';
+    } else {
+      html += '<div><label>Status</label><b style="color:#b91c1c">✗ Hanya PJ - Belum Ada UM</b></div>';
+    }
+    html += '</div>';
+
+    // Rincian baris mentah — data yang sama dengan Rekap Penjualan → Penjualan / Faktur
+    if(rawRows.length){
+      html += '<div class="sfm-section-title">Rincian Baris Mentah ('+rawRows.length.toLocaleString('id-ID')+' baris diagregasi menjadi faktur ini)</div>';
+      html += '<table class="sfm-detail-table"><thead><tr>';
+      html += '<th>No</th><th>Tanggal</th><th>Produk</th><th>Qty</th><th>Sales</th><th>Customer</th><th>Alamat</th><th>Pembayaran</th><th>Nominal</th>';
+      html += '</tr></thead><tbody>';
+      rawRows.forEach((rr,ii)=>{
+        html += '<tr>';
+        html += '<td>'+(ii+1)+'</td>';
+        html += '<td>'+escScan(formatScanDate(rr.tanggal))+'</td>';
+        html += '<td>'+escScan(rr.produk||'-')+'</td>';
+        html += '<td class="num">'+escScan((rr.jumlah||rr.jumlah===0)?(Number(rr.jumlah).toLocaleString('id-ID')+(rr.satuan?(' '+escScan(rr.satuan)):'')):'-')+'</td>';
+        html += '<td>'+escScan(rr.sales||'')+'</td>';
+        html += '<td>'+escScan(rr.customer||'')+'</td>';
+        html += '<td>'+escScan(rr.alamat||'')+'</td>';
+        html += '<td>'+escScan(rr.pembayaran||'')+'</td>';
+        html += '<td class="num">'+rupiahScan(rr.total)+'</td>';
+        html += '</tr>';
+      });
+      const rawTot = rawRows.reduce((n,x)=>n+scanNum(x.total),0);
+      html += '</tbody><tfoot><tr><td colspan="8">TOTAL RINCIAN</td><td class="num">'+rupiahScan(rawTot)+'</td></tr></tfoot></table>';
+    } else {
+      html += '<div class="sfm-section-title">Rincian Baris Mentah</div>';
+      html += '<div class="sfm-empty">Tidak ada rincian baris mentah untuk faktur ini (data terkunci di ringkasan faktur).</div>';
+    }
+
+    body.innerHTML = html;
+    const footer = document.getElementById('scanFakturModalFooter');
+    if(footer){
+      footer.innerHTML = '<div class="sfm-footer-info">No Faktur <b>' + escScan(p.faktur) + '</b> &mdash; Detail lengkap dari Rekap Penjualan / Penjualan / Faktur (baris mentah).</div>'
+        + '<div style="display:flex;gap:8px;align-items:center"><button type="button" class="sfm-btn-gray" onclick="closeFakturModal()">Tutup</button></div>';
+    }
+    m.classList.add('open');
+  }catch(e){ console.error('openPjumFakturModal error:', e); }
+}
+function getPjumRawRows(faktur){
+  const k = normScan(faktur);
+  if(!k) return [];
+  try{
+    const fromMap = (scanResults && scanResults.penRawByFaktur) ? (scanResults.penRawByFaktur.get(k) || []) : [];
+    if(fromMap.length) return fromMap;
+  }catch(e){}
+  // Fallback: cari di seluruh baris mentah penjualan yang ter-scan
+  try{
+    const all = (scanResults && scanResults.penRawAll) ? (scanResults.penRawAll || []) : [];
+    return all.filter(r=>normScan(r.faktur)===k);
+  }catch(e){ return []; }
 }
 function exportPjumExcel(){
   if(!scanResults||!scanResults.scanned){alert('Klik SCAN DATA terlebih dahulu.');return;}
@@ -5540,6 +5663,7 @@ function triggerPwaInstall() {
 })();
 </script>
 
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
