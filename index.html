@@ -374,6 +374,30 @@
   html[data-theme="dark"] .btn-pen-um-kosong.active{
     background:#9a3412!important;color:#ffedd5!important;border-color:#c2410c!important;
   }
+  .scan-gear-menu .btn-ar-tanpa-pen{height:32px}
+  .btn-ar-tanpa-pen{
+    appearance:none;height:32px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;
+    border-radius:6px;white-space:nowrap;line-height:1.25;
+    border:1px solid #5b21b6;background:#f5f3ff;color:#5b21b6;
+    transition:background .15s,color .15s,border-color .15s,box-shadow .15s;
+  }
+  .btn-ar-tanpa-pen:hover{background:#ede9fe;border-color:#7c3aed}
+  .btn-ar-tanpa-pen.active{
+    background:#6d28d9;color:#fff;border-color:#5b21b6;
+    box-shadow:0 0 0 2px rgba(109,40,217,.35);
+  }
+  .btn-ar-tanpa-pen .cnt{
+    display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;
+    font-size:11px;font-weight:800;background:rgba(0,0,0,.12);
+  }
+  .btn-ar-tanpa-pen.active .cnt{background:rgba(255,255,255,.25)}
+  html[data-theme="dark"] .btn-ar-tanpa-pen{
+    background:#2e1065!important;color:#c4b5fd!important;border-color:#5b21b6!important;
+  }
+  html[data-theme="dark"] .btn-ar-tanpa-pen:hover{background:#3b0764!important}
+  html[data-theme="dark"] .btn-ar-tanpa-pen.active{
+    background:#6d28d9!important;color:#f5f3ff!important;border-color:#7c3aed!important;
+  }
   .scan-export-row{display:flex;justify-content:flex-end;margin:0 0 8px}
   .btn-export-excel{
     appearance:none;border:1px solid #15803d;background:#16a34a;color:#fff;
@@ -918,6 +942,9 @@
             <div class="scan-gear-menu" id="scanGearMenu" onclick="event.stopPropagation()">
               <button type="button" class="btn-pen-um-kosong gear-menu-action" id="btnPenAdaUmKosong" onclick="togglePenAdaUmKosong(); closeScanGearMenu();" title="Tampilkan hanya Penjualan yang belum ada di Uang Masuk — prioritas cek manual">
                 ⚠ Penjualan Ada · UM Kosong
+              </button>
+              <button type="button" class="btn-ar-tanpa-pen gear-menu-action" id="btnArTanpaPen" onclick="toggleArTanpaPen(); closeScanGearMenu();" title="Tampilkan hanya data AR yang tidak punya pasangan di Penjualan — prioritas cek manual">
+                ⚠ Ada AR · Tanpa Penjualan
               </button>
               <button type="button" class="btn-export-excel gear-menu-action" id="btnExportSumberData" onclick="exportSumberDataExcel(); closeScanGearMenu();">⬇️ Download Excel</button>
             </div>
@@ -1862,10 +1889,15 @@ function resetScanFilters(){
   if(umSel){ umSel.querySelectorAll('option').forEach(o=>o.selected=false); }
   document.querySelectorAll('#fltBulanUmOptions input[type=checkbox]').forEach(x=>x.checked=false);
   updateScanUmMonthButton();
-  // Matikan tombol khusus Penjualan Ada · UM Kosong
-  if(scanResults) scanResults.penAdaUmKosong = false;
+  // Matikan tombol khusus Penjualan Ada · UM Kosong & Ada AR · Tanpa Penjualan
+  if(scanResults){
+    scanResults.penAdaUmKosong = false;
+    scanResults.arTanpaPen = false;
+  }
   const btnPuk = document.getElementById('btnPenAdaUmKosong');
   if(btnPuk){ btnPuk.classList.remove('active'); btnPuk.innerHTML = '⚠ Penjualan Ada · UM Kosong'; }
+  const btnAtp = document.getElementById('btnArTanpaPen');
+  if(btnAtp){ btnAtp.classList.remove('active'); btnAtp.innerHTML = '⚠ Ada AR · Tanpa Penjualan'; }
   applyScanFilters();
 }
 
@@ -2888,7 +2920,7 @@ function populateSumberDataList(){
  */
 function applySumberDataFilters(){
   const all = scanResults.sumberDataAll || [];
-  if(!all.length){ scanResults.sumberData = []; updatePenAdaUmKosongBtn(0); return; }
+  if(!all.length){ scanResults.sumberData = []; updatePenAdaUmKosongBtn(0); updateArTanpaPenBtn(0); return; }
 
   const fBulanPen=[...(document.getElementById('fltBulanPenj')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
   const fBayar=(document.getElementById('fltPembayaran')||{}).value||'';
@@ -2901,14 +2933,15 @@ function applySumberDataFilters(){
     ''
   ).trim().toLowerCase();
   const onlyPenAdaUmKosong = !!(scanResults && scanResults.penAdaUmKosong);
+  const onlyArTanpaPen = !!(scanResults && scanResults.arTanpaPen);
 
   let out = all;
 
-  if(fBulanPen.length){
+  if(fBulanPen.length && !onlyArTanpaPen){
     const set = new Set(fBulanPen);
     out = out.filter(r => r.tanggal && set.has(monthKeyFromDate(r.tanggal)));
   }
-  if(fBayar){
+  if(fBayar && !onlyArTanpaPen){
     const nb = normScan(fBayar);
     out = out.filter(r => normScan(r.pembayaran) === nb);
   }
@@ -2916,7 +2949,7 @@ function applySumberDataFilters(){
     const ns = normScan(fSales);
     out = out.filter(r => normScan(r.sales) === ns);
   }
-  if(fProduk){
+  if(fProduk && !onlyArTanpaPen){
     out = out.filter(r => (r.produkKategori||'') === fProduk);
   }
   // Tombol khusus: Penjualan Ada · UM Kosong (DTH & AR boleh ada/tidak)
@@ -2926,7 +2959,16 @@ function applySumberDataFilters(){
       return hasPen && !r.um;
     });
   }
-  if(fBulanUM.length && !onlyPenAdaUmKosong){
+  // Tombol khusus: Ada AR · Tanpa Penjualan (prioritas cek manual)
+  // = ada data AR, tapi tidak punya pasangan di Rekap Penjualan.
+  if(onlyArTanpaPen){
+    out = out.filter(r=>{
+      if(!r.ar) return false;
+      const hasPen = r.rowType === 'gabungan' || (Number(r.nominalFaktur) > 0);
+      return !hasPen;
+    });
+  }
+  if(fBulanUM.length && !onlyPenAdaUmKosong && !onlyArTanpaPen){
     const set = new Set(fBulanUM);
     out = out.filter(r => r.um && r.um.tanggal && set.has(monthKeyFromDate(r.um.tanggal)));
   }
@@ -2934,7 +2976,8 @@ function applySumberDataFilters(){
     out = out.filter(r=>{
       const hay = [
         r.noFaktur, r.customer, r.alamat, r.sales,
-        r.um && r.um.keterangan, r.dth && r.dth.keterangan, r.ar && r.ar.keterangan
+        r.um && r.um.keterangan, r.dth && r.dth.keterangan, r.ar && r.ar.keterangan,
+        r.ar && r.ar.status
       ].map(v=>String(v||'').toLowerCase()).join(' ');
       return hay.includes(fCari);
     });
@@ -2942,12 +2985,15 @@ function applySumberDataFilters(){
 
   scanResults.sumberData = out;
   updatePenAdaUmKosongBtn(out.length);
+  updateArTanpaPenBtn(out.length);
 }
 
 /** Toggle filter khusus: hanya baris Penjualan Ada + UM Kosong (prioritas cek manual). */
 function togglePenAdaUmKosong(){
   if(!scanResults) scanResults = {};
-  scanResults.penAdaUmKosong = !scanResults.penAdaUmKosong;
+  const turningOn = !scanResults.penAdaUmKosong;
+  scanResults.penAdaUmKosong = turningOn;
+  if(turningOn) scanResults.arTanpaPen = false;
   scanPage.sumberData = 1;
   applySumberDataFilters();
   renderSumberDataTable();
@@ -2972,6 +3018,34 @@ function updatePenAdaUmKosongBtn(filteredCount){
     umBtn.title = on ? 'Nonaktif saat mode "UM Kosong" aktif' : '';
   }
 }
+
+/** Toggle filter khusus: hanya baris Ada AR · Tanpa Penjualan (prioritas cek manual). */
+function toggleArTanpaPen(){
+  if(!scanResults) scanResults = {};
+  const turningOn = !scanResults.arTanpaPen;
+  scanResults.arTanpaPen = turningOn;
+  // Saling eksklusif dengan filter Penjualan·UM Kosong agar tidak membingungkan
+  if(turningOn) scanResults.penAdaUmKosong = false;
+  scanPage.sumberData = 1;
+  applySumberDataFilters();
+  renderSumberDataTable();
+}
+
+function updateArTanpaPenBtn(filteredCount){
+  const btn = document.getElementById('btnArTanpaPen');
+  if(!btn) return;
+  const on = !!(scanResults && scanResults.arTanpaPen);
+  btn.classList.toggle('active', on);
+  if(on){
+    const n = (typeof filteredCount === 'number') ? filteredCount : ((scanResults.sumberData||[]).length);
+    btn.innerHTML = '⚠ Ada AR · Tanpa Penjualan <span class="cnt">'+n+'</span>';
+  } else {
+    btn.innerHTML = '⚠ Ada AR · Tanpa Penjualan';
+  }
+}
+
+// Saat toggle UM Kosong, matikan mode AR tanpa penjualan (saling eksklusif)
+
 
 
 // Status AR sebagai teks (dipakai export Excel + display). Scope global agar exportSumberDataExcel bisa memanggil.
