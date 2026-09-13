@@ -1908,7 +1908,6 @@ function monthLabel(key){
   const y=Number(p[0]), m=Number(p[1]);
   return (BULAN_ID[m]||key)+' '+y;
 }
-/** Key tanggal YYYY-MM-DD untuk filter Sumber Data. */
 function sumberDateKey(v){
   const d=parseScanDate(v);
   if(!d) return '';
@@ -1920,7 +1919,6 @@ function sumberDateLabel(key){
   if(p.length!==3) return key;
   return p[2]+'/'+p[1]+'/'+String(p[0]).slice(-2);
 }
-/** Isi dropdown Tanggal di filter Sumber Data dari data hasil scan. */
 function populateSumberDateOptions(){
   const sel=document.getElementById('fltTanggalSumberData');
   if(!sel) return;
@@ -3344,17 +3342,12 @@ function applySumberDataFilters(){
   if(fProduk && !onlyArTanpaPen){
     out = out.filter(r => (r.produkKategori||'') === fProduk);
   }
-  // Filter tanggal (penjualan / UM / DTH / AR)
   if(fTanggal){
     out = out.filter(r=>{
-      const kPen = r.tanggal ? sumberDateKey(r.tanggal) : '';
-      if(kPen && kPen === fTanggal) return true;
-      const kUm = r.um && r.um.tanggal ? sumberDateKey(r.um.tanggal) : '';
-      if(kUm && kUm === fTanggal) return true;
-      const kDth = r.dth && r.dth.tanggal ? sumberDateKey(r.dth.tanggal) : '';
-      if(kDth && kDth === fTanggal) return true;
-      const kAr = r.ar && r.ar.tanggal ? sumberDateKey(r.ar.tanggal) : '';
-      if(kAr && kAr === fTanggal) return true;
+      if(r.tanggal && sumberDateKey(r.tanggal)===fTanggal) return true;
+      if(r.um && r.um.tanggal && sumberDateKey(r.um.tanggal)===fTanggal) return true;
+      if(r.dth && r.dth.tanggal && sumberDateKey(r.dth.tanggal)===fTanggal) return true;
+      if(r.ar && r.ar.tanggal && sumberDateKey(r.ar.tanggal)===fTanggal) return true;
       return false;
     });
   }
@@ -3685,7 +3678,9 @@ function getPjumUmRows(opts){
     if(targetDate){
       const base=parsePjumDate(targetDate);
       if(base){
-        const maxDays=targetPayment==='CASH'?2:(targetPayment==='TEMPO'?3650:3);
+        // CASH/unknown: H+0..H+14. TEMPO: long window.
+        // Jangan buang UM berjenis kosong — matching faktur di langkah berikutnya.
+        const maxDays=targetPayment==='TEMPO'?3650:14;
         raw=raw.filter(r=>{
           const d=parsePjumDate(r.tanggal);
           if(!d) return false;
@@ -3693,8 +3688,10 @@ function getPjumUmRows(opts){
           if(diff<0 || diff>maxDays) return false;
           if(targetPayment){
             const rb=pjumNormBayar(r.jenis||r.pembayaran);
-            if(targetPayment==='CASH' && rb!=='CASH') return false;
-            if(targetPayment==='TEMPO' && rb!=='TEMPO') return false;
+            if(rb){
+              if(targetPayment==='CASH' && rb!=='CASH') return false;
+              if(targetPayment==='TEMPO' && rb!=='TEMPO') return false;
+            }
           }
           return true;
         });
@@ -3831,10 +3828,7 @@ function findMatchingUm(p, umList){
     // Uang masuk yang terjadi sebelum tanggal penjualan bukan pasangan transaksi ini.
     if(diff < 0) continue;
 
-    // Aturan kategori Rekap Uang Masuk: "Piutang" HARUS pasangan dari Penjualan TEMPO,
-    // "Dropping" HARUS pasangan dari Penjualan CASH. Jika kategori UM diketahui (CASH/TEMPO)
-    // dan berbeda dengan kategori Penjualan, UM ini bukan pasangan yang valid — meskipun
-    // No Faktur/identitas/nominal tampak cocok.
+    // Piutang↔TEMPO, Dropping↔CASH. Jenis UM kosong = jangan ditolak di sini.
     const uPay=pjumNormBayar(u.pembayaran);
     if((pPay==='CASH'||pPay==='TEMPO') && (uPay==='CASH'||uPay==='TEMPO') && uPay!==pPay) continue;
 
@@ -3843,41 +3837,34 @@ function findMatchingUm(p, umList){
     const identity=scanIdentityScore(p,u);
     if(identity < 0.85 && !invoiceExact) continue;
 
-    // Produk: gunakan sebagai verifikasi tambahan jika kedua sisi punya data.
+    // Produk hanya dicek jika TIDAK ada No Faktur exact.
     const up=normScanIdentity(u.produk);
     let productScore=1;
-    if(pp && up){
+    if(!invoiceExact && pp && up){
       productScore=similarityScan(pp,up);
-      // Produk benar-benar berbeda → jangan dianggap transaksi yang sama.
       if(productScore < 0.55) continue;
     }
 
     const uNom=Math.round(scanNum(u.nominal));
-    if(pNom>0 && uNom>pNom) continue;
+    if(!invoiceExact && pNom>0 && uNom>pNom) continue;
     const nominalExact=(pNom>0 && uNom===pNom);
     const nominalRatio=(pNom>0 ? Math.min(1,uNom/pNom) : 0);
 
-    // Tanggal sesuai jenis pembayaran.
     let dateOK=false, daysLate=0;
     if(pPay==='CASH'){
-      dateOK = diff<=2;
+      dateOK = diff<=14;
     }else if(pPay==='TEMPO'){
-      // Jatuh tempo 12 hari; pembayaran hari ke-13 dan seterusnya overdue.
       dateOK = true;
       daysLate = Math.max(0,diff-12);
     }else{
-      dateOK = diff<=3;
+      dateOK = diff<=14;
     }
     if(!dateOK) continue;
 
-    // Tanpa No Faktur exact, nominal harus mendukung bahwa ini transaksi yang sama.
     if(!invoiceExact){
       if(pNom<=0){
-        // Tanpa nominal, identitas + produk + tanggal harus sangat kuat.
         if(identity < 0.94 || (pp && up && productScore < 0.85)) continue;
       }else{
-        // UM parsial/titip boleh lebih kecil, tetapi harus minimal 50% dari faktur.
-        // Untuk pembayaran Cash/default, lebih ketat.
         const minRatio=(pPay==='TEMPO')?0.50:0.80;
         if(uNom<=0 || nominalRatio < minRatio) continue;
       }
@@ -3945,23 +3932,106 @@ function renderPjumTable(){
     return;
   }
 
-  // Matching ketat dan satu-UM-satu-PJ. Kandidat terbaik dipilih berdasarkan
-  // No Faktur, identitas, produk, nominal dan tanggal; bukan sekadar kandidat pertama.
+  // Matching: 1) No Faktur exact (seperti Sumber Data), 2) fallback fuzzy.
+  // Sumber cadangan: seluruh histori UM mentah bila filter tanggal/jenis terlalu ketat.
   const matchedMap = new Map();
   const pjMatches = [];
+  const umByFaktur = new Map();
+  um.forEach((u, idx)=>{
+    const k=normScan(u.faktur);
+    if(!k) return;
+    if(!umByFaktur.has(k)) umByFaktur.set(k, []);
+    umByFaktur.get(k).push(idx);
+  });
+  // Indeks cadangan dari raw UM (tanpa filter tanggal PJ-UM)
+  const rawUmPool = Array.isArray(scanResults.umRawAllPjum)
+    ? scanResults.umRawAllPjum
+    : (Array.isArray(scanResults.umRawAll) ? scanResults.umRawAll : []);
+  const rawUmByFaktur = new Map();
+  rawUmPool.forEach(r=>{
+    const k=normScan(r.faktur);
+    if(!k) return;
+    if(!rawUmByFaktur.has(k)) rawUmByFaktur.set(k, []);
+    rawUmByFaktur.get(k).push(r);
+  });
+  const usedRawKeys = new Set();
+
   for(let p of pen){
-    const available = um.filter((u, idx) => !matchedMap.has(idx));
-    const match = findMatchingUm(p, available);
-    if(match){
-      const umIdx = um.indexOf(match.um);
-      matchedMap.set(umIdx, true);
-      pjMatches.push({ p, u: match.um, daysLate: match.daysLate, matchInfo: match });
-    } else {
-      pjMatches.push({ p, u: null, daysLate: 0, matchInfo: null });
+    let matched=null, daysLate=0, matchInfo=null;
+    const pf=normScan(p.faktur);
+    const pDate=parsePjumDate(p.tanggal);
+
+    // 1a. Exact faktur dari daftar UM yang sudah difilter UI
+    if(pf && umByFaktur.has(pf)){
+      let bestIdx=-1, bestDiff=99999;
+      for(const idx of umByFaktur.get(pf)){
+        if(matchedMap.has(idx)) continue;
+        const u=um[idx];
+        const uDate=parsePjumDate(u.tanggal);
+        let diff=0;
+        if(pDate && uDate) diff=Math.floor((uDate-pDate)/(1000*60*60*24));
+        if(diff < -1) continue;
+        if(diff < bestDiff){ bestDiff=diff; bestIdx=idx; }
+      }
+      if(bestIdx>=0){
+        matched=um[bestIdx];
+        matchedMap.set(bestIdx, true);
+        daysLate = (pjumNormBayar(p.pembayaran)==='TEMPO') ? Math.max(0, bestDiff-12) : 0;
+        matchInfo={ um:matched, daysLate, score:2, invoiceExact:true };
+      }
     }
+
+    // 1b. Exact faktur dari RAW UM (mengabaikan filter tanggal/jenis yang terlalu ketat)
+    if(!matched && pf && rawUmByFaktur.has(pf)){
+      let best=null, bestDiff=99999;
+      for(const r of rawUmByFaktur.get(pf)){
+        const rk=normScan(r.faktur)+'|'+String(r.tanggal||'')+'|'+scanNum(r.total);
+        if(usedRawKeys.has(rk)) continue;
+        const uDate=parsePjumDate(r.tanggal);
+        let diff=0;
+        if(pDate && uDate) diff=Math.floor((uDate-pDate)/(1000*60*60*24));
+        if(diff < -1) continue;
+        if(diff < bestDiff){
+          bestDiff=diff;
+          best={
+            tanggal:r.tanggal||'',
+            sales:r.sales||'',
+            faktur:r.faktur||'',
+            customer:r.customer||'',
+            alamat:r.alamat||'',
+            produk:pjumProdukLabel(r),
+            kategori:r.produkKategori||'',
+            nominal:scanNum(r.total),
+            pembayaran:r.jenis||r.pembayaran||''
+          };
+          best._rawKey = rk;
+        }
+      }
+      if(best){
+        usedRawKeys.add(best._rawKey);
+        delete best._rawKey;
+        matched=best;
+        daysLate = (pjumNormBayar(p.pembayaran)==='TEMPO') ? Math.max(0, bestDiff-12) : 0;
+        matchInfo={ um:matched, daysLate, score:2, invoiceExact:true, fromRaw:true };
+      }
+    }
+
+    // 2. Fallback fuzzy
+    if(!matched){
+      const available = um.filter((u, idx) => !matchedMap.has(idx));
+      const match = findMatchingUm(p, available);
+      if(match){
+        const umIdx = um.indexOf(match.um);
+        if(umIdx>=0) matchedMap.set(umIdx, true);
+        matched = match.um;
+        daysLate = match.daysLate;
+        matchInfo = match;
+      }
+    }
+    pjMatches.push({ p, u: matched, daysLate, matchInfo });
   }
-  
-  // Tambah UM yang tidak ter-match
+
+  // Tambah UM yang tidak ter-match (dari list terfilter UI)
   for(let i=0; i<um.length; i++){
     if(!matchedMap.has(i)){
       pjMatches.push({ p: null, u: um[i], daysLate: 0 });
