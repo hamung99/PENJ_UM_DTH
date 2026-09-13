@@ -3732,14 +3732,16 @@ function renderPjumTable(){
     }
     html+='<tr>';
     if(p){
-      // Cek apakah FAKTUR penjualan ditemukan di Uang Masuk
-      const pFakturNorm = normScan(p.faktur);
-      const fakturClass = (pFakturNorm && umFk.has(pFakturNorm)) ? 'faktur-found' : 'faktur-notfound';
-      const fakturTitle = (pFakturNorm && umFk.has(pFakturNorm)) ? '✓ Ditemukan di Uang Masuk' : '✗ Tidak Ditemukan di Uang Masuk';
+      // Tentukan warna berdasarkan STATUS KET:
+      // BIRU jika ada uang masuk (COCOK, PJ ada di UM, Beda baris)
+      // MERAH jika tidak ada uang masuk (Hanya PJ)
+      const hasUangMasuk = (ket==='COCOK' || ket==='PJ ada di UM' || ket==='Beda baris');
+      const fakturClass = hasUangMasuk ? 'faktur-found' : 'faktur-notfound';
+      const fakturTitle = hasUangMasuk ? '✓ Ada Uang Masuk' : '✗ Tidak Ada Uang Masuk';
       
       html+='<td class="pen-side">'+escScan(formatScanDate(p.tanggal))+'</td>'+
         '<td class="pen-side" title="'+escScan(p.sales)+'">'+escScan(p.sales)+'</td>'+
-        '<td class="pen-side '+fakturClass+'" title="'+fakturTitle+' | '+escScan(p.faktur)+'">'+escScan(p.faktur)+'</td>'+
+        '<td class="pen-side '+fakturClass+'" title="'+fakturTitle+' ('+ket+') | '+escScan(p.faktur)+'">'+escScan(p.faktur)+'</td>'+
         '<td class="pen-side" title="'+escScan(p.customer)+'">'+escScan(p.customer)+'</td>'+
         '<td class="pen-side" title="'+escScan(p.alamat)+'">'+escScan(p.alamat)+'</td>'+
         '<td class="pen-side" title="'+escScan(p.produk)+'">'+escScan(p.produk)+'</td>'+
@@ -3748,14 +3750,9 @@ function renderPjumTable(){
       html+='<td class="pen-side" colspan="7" style="opacity:.35;text-align:center">—</td>';
     }
     if(u){
-      // Cek apakah FAKTUR Uang Masuk ditemukan di Penjualan
-      const uFakturNorm = normScan(u.faktur);
-      const umFakturClass = (uFakturNorm && penFk.has(uFakturNorm)) ? 'faktur-found' : 'faktur-notfound';
-      const umFakturTitle = (uFakturNorm && penFk.has(uFakturNorm)) ? '✓ Ditemukan di Penjualan' : '✗ Tidak Ditemukan di Penjualan';
-      
       html+='<td class="um-side">'+escScan(formatScanDate(u.tanggal))+'</td>'+
         '<td class="um-side" title="'+escScan(u.sales)+'">'+escScan(u.sales)+'</td>'+
-        '<td class="um-side '+umFakturClass+'" title="'+umFakturTitle+' | '+escScan(u.faktur)+'">'+escScan(u.faktur)+'</td>'+
+        '<td class="um-side" title="'+escScan(u.faktur)+'">'+escScan(u.faktur)+'</td>'+
         '<td class="um-side" title="'+escScan(u.customer)+'">'+escScan(u.customer)+'</td>'+
         '<td class="um-side" title="'+escScan(u.alamat)+'">'+escScan(u.alamat)+'</td>'+
         '<td class="um-side" title="'+escScan(u.produk)+'">'+escScan(u.produk)+'</td>'+
