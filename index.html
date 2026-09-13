@@ -609,6 +609,7 @@
   .pjum-table td.ket-pj-um{background:#dbeafe;color:#1d4ed8}   /* PJ ada di UM */
   
   /* ===== Warna Faktur: Ditemukan di UM (Biru) vs Tidak Ditemukan (Merah) ===== */
+  /* HANYA DI TABEL DATA PENJUALAN (pen-side) */
   .pjum-table td.pen-side.faktur-found{
     color:#2563eb !important;
     font-weight:700 !important;
@@ -617,21 +618,12 @@
     color:#dc2626 !important;
     font-weight:700 !important;
   }
-  .pjum-table td.um-side.faktur-found{
-    color:#2563eb !important;
-    font-weight:700 !important;
-  }
-  .pjum-table td.um-side.faktur-notfound{
-    color:#dc2626 !important;
-    font-weight:700 !important;
-  }
-  html[data-theme="dark"] .pjum-table td.pen-side.faktur-found,
-  html[data-theme="dark"] .pjum-table td.um-side.faktur-found{
+  /* Mode gelap - HANYA untuk DATA PENJUALAN */
+  html[data-theme="dark"] .pjum-table td.pen-side.faktur-found{
     color:#60a5fa !important;
     font-weight:700 !important;
   }
-  html[data-theme="dark"] .pjum-table td.pen-side.faktur-notfound,
-  html[data-theme="dark"] .pjum-table td.um-side.faktur-notfound{
+  html[data-theme="dark"] .pjum-table td.pen-side.faktur-notfound{
     color:#ff6b6b !important;
     font-weight:700 !important;
   }
