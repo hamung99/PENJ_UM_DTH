@@ -607,6 +607,26 @@
   .pjum-table td.ket-side{font-weight:700;text-align:center;font-size:10px;letter-spacing:.02em}
   .pjum-table td.ket-cocok{background:#dcfce7;color:#15803d}
   .pjum-table td.ket-pj-um{background:#dbeafe;color:#1d4ed8}   /* PJ ada di UM */
+  
+  /* ===== Warna Faktur: Ditemukan di UM (Biru) vs Tidak Ditemukan (Merah) ===== */
+  .pjum-table td.faktur-found{
+    background:#3b82f6;
+    color:#fff;
+    font-weight:600;
+  }
+  .pjum-table td.faktur-notfound{
+    background:#ef4444;
+    color:#fff;
+    font-weight:600;
+  }
+  html[data-theme="dark"] .pjum-table td.faktur-found{
+    background:#1e40af;
+    color:#bfdbfe;
+  }
+  html[data-theme="dark"] .pjum-table td.faktur-notfound{
+    background:#7f1d1d;
+    color:#fca5a5;
+  }
   .pjum-table td.ket-um-pj{background:#f3e8ff;color:#7e22ce}   /* UM ada di PJ */
   .pjum-table td.ket-beda{background:#ffedd5;color:#c2410c}     /* Beda baris */
   .pjum-table td.ket-hanya-pj{background:#fef3c7;color:#b45309} /* Hanya PJ */
@@ -3712,9 +3732,14 @@ function renderPjumTable(){
     }
     html+='<tr>';
     if(p){
+      // Cek apakah FAKTUR penjualan ditemukan di Uang Masuk
+      const pFakturNorm = normScan(p.faktur);
+      const fakturClass = (pFakturNorm && umFk.has(pFakturNorm)) ? 'faktur-found' : 'faktur-notfound';
+      const fakturTitle = (pFakturNorm && umFk.has(pFakturNorm)) ? '✓ Ditemukan di Uang Masuk' : '✗ Tidak Ditemukan di Uang Masuk';
+      
       html+='<td class="pen-side">'+escScan(formatScanDate(p.tanggal))+'</td>'+
         '<td class="pen-side" title="'+escScan(p.sales)+'">'+escScan(p.sales)+'</td>'+
-        '<td class="pen-side" title="'+escScan(p.faktur)+'">'+escScan(p.faktur)+'</td>'+
+        '<td class="pen-side '+fakturClass+'" title="'+fakturTitle+' | '+escScan(p.faktur)+'">'+escScan(p.faktur)+'</td>'+
         '<td class="pen-side" title="'+escScan(p.customer)+'">'+escScan(p.customer)+'</td>'+
         '<td class="pen-side" title="'+escScan(p.alamat)+'">'+escScan(p.alamat)+'</td>'+
         '<td class="pen-side" title="'+escScan(p.produk)+'">'+escScan(p.produk)+'</td>'+
@@ -3723,9 +3748,14 @@ function renderPjumTable(){
       html+='<td class="pen-side" colspan="7" style="opacity:.35;text-align:center">—</td>';
     }
     if(u){
+      // Cek apakah FAKTUR Uang Masuk ditemukan di Penjualan
+      const uFakturNorm = normScan(u.faktur);
+      const umFakturClass = (uFakturNorm && penFk.has(uFakturNorm)) ? 'faktur-found' : 'faktur-notfound';
+      const umFakturTitle = (uFakturNorm && penFk.has(uFakturNorm)) ? '✓ Ditemukan di Penjualan' : '✗ Tidak Ditemukan di Penjualan';
+      
       html+='<td class="um-side">'+escScan(formatScanDate(u.tanggal))+'</td>'+
         '<td class="um-side" title="'+escScan(u.sales)+'">'+escScan(u.sales)+'</td>'+
-        '<td class="um-side" title="'+escScan(u.faktur)+'">'+escScan(u.faktur)+'</td>'+
+        '<td class="um-side '+umFakturClass+'" title="'+umFakturTitle+' | '+escScan(u.faktur)+'">'+escScan(u.faktur)+'</td>'+
         '<td class="um-side" title="'+escScan(u.customer)+'">'+escScan(u.customer)+'</td>'+
         '<td class="um-side" title="'+escScan(u.alamat)+'">'+escScan(u.alamat)+'</td>'+
         '<td class="um-side" title="'+escScan(u.produk)+'">'+escScan(u.produk)+'</td>'+
