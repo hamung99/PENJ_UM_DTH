@@ -3432,6 +3432,23 @@ function applySumberDataFilters(){
 
   let out = all;
 
+  // FIX: Blok "REKAP PENJUALAN" (Tgl Faktur/No Faktur/Sales/Nominal/Jenis Bayar/
+  // Customer/Alamat) adalah DATA UTAMA dan wajib berasal dari sumber Data Penjualan —
+  // tidak boleh kosong. Baris yang hanya ketemu di Uang Masuk / DTH / Rekap AR
+  // (tanpa pasangan di Data Penjualan) TIDAK ditampilkan di tampilan normal, karena
+  // itu akan membuat kolom Nominal & Jenis Bayar kosong padahal seharusnya wajib ada.
+  // Baris seperti itu hanya boleh muncul lewat tombol diagnostik "⚠ Ada AR · Tanpa
+  // Penjualan" yang memang sengaja dipakai untuk mencari data yang belum match.
+  // Catatan: rowType hanya diisi 'gabungan' jika baris ini benar-benar punya
+  // pasangan di Data Penjualan (lihat populateSumberDataList). Baris 'um-only',
+  // 'dth-only', 'ar-only' TIDAK punya data Penjualan sama sekali — meski
+  // sales/customer/alamatnya bisa ikut terisi lewat fallback dari UM/DTH/AR,
+  // itu bukan data Penjualan asli, jadi harus disingkirkan dari tampilan normal.
+  const hasPenRow = r => r.rowType === 'gabungan';
+  if(!onlyPenAdaUmKosong && !onlyArTanpaPen && !onlyPenKosongSemua){
+    out = out.filter(hasPenRow);
+  }
+
   if(fBulanPen.length && !onlyArTanpaPen){
     const set = new Set(fBulanPen);
     out = out.filter(r => r.tanggal && set.has(monthKeyFromDate(r.tanggal)));
