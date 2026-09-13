@@ -1106,7 +1106,7 @@
               </select>
             </div>
             <div class="fg">
-              <label for="fltPjumBayar">CASH / TEMPO</label>
+              <label for="fltPjumBayar">CASH / TEMPO (PENJUALAN)</label>
               <select id="fltPjumBayar" onchange="renderPjumTable()">
                 <option value="">Semua jenis</option>
                 <option value="CASH">CASH</option>
@@ -3649,18 +3649,26 @@ function populatePjumDateOptions(){
   const valEl=document.getElementById('pjumMonthHintVal');
   if(valEl) valEl.textContent = monthHint || '— (klik SCAN DATA)';
 }
-function filterPjumSide(rows){
+function filterPjumSide(rows, opts){
+  // Filter CASH/TEMPO, tanggal dan pencarian adalah filter DATA PENJUALAN.
+  // Data Uang Masuk tidak boleh hilang hanya karena kolom pembayaran UM kosong
+  // atau tanggal UM berbeda dengan tanggal penjualan. UM harus tetap tersedia
+  // sebagai kandidat pasangan (misalnya Cash dibayar H+1/H+2).
+  opts=opts||{};
+  const applyDate=opts.date!==false;
+  const applyBayar=opts.payment!==false;
+  const applySearch=opts.search!==false;
   const tgl=(document.getElementById('fltPjumTanggal')||{}).value||'';
   const bayar=(document.getElementById('fltPjumBayar')||{}).value||'';
   const q=String((document.getElementById('fltPjumCari')||{}).value||'').trim().toLowerCase();
   return rows.filter(r=>{
-    if(tgl && pjumDateKey(r.tanggal)!==tgl) return false;
-    if(bayar){
+    if(applyDate && tgl && pjumDateKey(r.tanggal)!==tgl) return false;
+    if(applyBayar && bayar){
       const b=pjumNormBayar(r.pembayaran);
       if(bayar==='CASH' && b!=='CASH') return false;
       if(bayar==='TEMPO' && b!=='TEMPO') return false;
     }
-    if(q){
+    if(applySearch && q){
       const hay=[r.faktur,r.customer,r.alamat,r.sales,r.produk].join(' ').toLowerCase();
       if(!hay.includes(q)) return false;
     }
@@ -3691,48 +3699,88 @@ function daysDiff(d1, d2){
   return Math.floor(ms/(1000*60*60*24));
 }
 function findMatchingUm(p, umList){
-  // Cari UM yang match dengan PJ berdasarkan CUSTOMER, SALES, ALAMAT
-  // Dan range tanggal sesuai jenis pembayaran
-  const pNormCust=normalizePjumString(p.customer);
-  const pNormSales=normalizePjumString(p.sales);
-  const pNormAlamat=normalizePjumString(p.alamat);
-  const pPayment=pjumNormBayar(p.pembayaran);
+  /*
+   * MATCHING PJ ↔ UM (lebih ketat dan berurutan):
+   * 1. No Faktur exact adalah kunci terkuat, tetapi tetap diverifikasi identitas.
+   * 2. Jika No Faktur kosong/berbeda, cocokkan Customer + Alamat + Sales.
+   * 3. Produk/kategori dipakai sebagai penguat bila tersedia.
+   * 4. Nominal wajib masuk akal: sama persis = kuat; nominal UM lebih kecil
+   *    masih boleh untuk TITIP/parsial; nominal UM lebih besar ditolak.
+   * 5. Tanggal harus searah (UM tidak boleh sebelum PJ) dan mengikuti jenis bayar.
+   * 6. Jika banyak kandidat, pilih skor tertinggi; jangan asal kandidat pertama.
+   */
+  if(!p || !Array.isArray(umList)) return null;
   const pDate=parsePjumDate(p.tanggal);
-  
   if(!pDate) return null;
-  
-  for(let u of umList){
-    const uNormCust=normalizePjumString(u.customer);
-    const uNormSales=normalizePjumString(u.sales);
-    const uNormAlamat=normalizePjumString(u.alamat);
+  const pf=normScan(p.faktur);
+  const pc=normScanIdentity(p.customer), ps=normScanIdentity(p.sales), pa=normScanIdentity(p.alamat);
+  const pp=normScanIdentity(p.produk);
+  const pPay=pjumNormBayar(p.pembayaran);
+  const pNom=Math.round(scanNum(p.nominal));
+
+  const candidates=[];
+  for(const u of umList){
+    if(!u) continue;
     const uDate=parsePjumDate(u.tanggal);
-    
-    // Harus match: CUSTOMER + SALES + ALAMAT
-    if(pNormCust!==uNormCust || pNormSales!==uNormSales || pNormAlamat!==uNormAlamat) continue;
-    
     if(!uDate) continue;
-    
-    const diff=daysDiff(pDate, uDate);
-    if(diff===null) continue;
-    
-    // Cek range tanggal berdasarkan jenis pembayaran
-    if(pPayment==='CASH'){
-      // CASH: range ±2 hari dari tanggal PJ
-      if(diff <= 2) return { um:u, daysLate:0 };
-    } else if(pPayment==='TEMPO'){
-      // TEMPO: Jatuh tempo = TGL PJ + 12 hari
-      // Jika uang masuk <= 12 hari, OK. > 12 hari = OVERDUE
-      if(diff <= 12){
-        return { um:u, daysLate:0 };
-      } else {
-        return { um:u, daysLate: diff - 12 };
-      }
-    } else {
-      // Pembayaran tidak jelas, pakai default (mirip CASH ±3 hari)
-      if(diff <= 3) return { um:u, daysLate:0 };
+    const diff=Math.floor((uDate-pDate)/(1000*60*60*24));
+    // Uang masuk yang terjadi sebelum tanggal penjualan bukan pasangan transaksi ini.
+    if(diff < 0) continue;
+
+    const uf=normScan(u.faktur);
+    const invoiceExact=!!pf && !!uf && pf===uf;
+    const identity=scanIdentityScore(p,u);
+    if(identity < 0.85 && !invoiceExact) continue;
+
+    // Produk: gunakan sebagai verifikasi tambahan jika kedua sisi punya data.
+    const up=normScanIdentity(u.produk);
+    let productScore=1;
+    if(pp && up){
+      productScore=similarityScan(pp,up);
+      // Produk benar-benar berbeda → jangan dianggap transaksi yang sama.
+      if(productScore < 0.55) continue;
     }
+
+    const uNom=Math.round(scanNum(u.nominal));
+    if(pNom>0 && uNom>pNom) continue;
+    const nominalExact=(pNom>0 && uNom===pNom);
+    const nominalRatio=(pNom>0 ? Math.min(1,uNom/pNom) : 0);
+
+    // Tanggal sesuai jenis pembayaran.
+    let dateOK=false, daysLate=0;
+    if(pPay==='CASH'){
+      dateOK = diff<=2;
+    }else if(pPay==='TEMPO'){
+      // Jatuh tempo 12 hari; pembayaran hari ke-13 dan seterusnya overdue.
+      dateOK = true;
+      daysLate = Math.max(0,diff-12);
+    }else{
+      dateOK = diff<=3;
+    }
+    if(!dateOK) continue;
+
+    // Tanpa No Faktur exact, nominal harus mendukung bahwa ini transaksi yang sama.
+    if(!invoiceExact){
+      if(pNom<=0){
+        // Tanpa nominal, identitas + produk + tanggal harus sangat kuat.
+        if(identity < 0.94 || (pp && up && productScore < 0.85)) continue;
+      }else{
+        // UM parsial/titip boleh lebih kecil, tetapi harus minimal 50% dari faktur.
+        // Untuk pembayaran Cash/default, lebih ketat.
+        const minRatio=(pPay==='TEMPO')?0.50:0.80;
+        if(uNom<=0 || nominalRatio < minRatio) continue;
+      }
+    }
+
+    // Skor: faktur exact dominan; lalu identitas, nominal, produk, tanggal.
+    let score=identity*0.50 + (nominalExact?0.30:(nominalRatio*0.20)) + productScore*0.10 + Math.max(0,1-Math.min(diff,12)/12)*0.10;
+    if(invoiceExact) score += 1.00;
+    candidates.push({um:u, daysLate, score, invoiceExact, identity, productScore, nominalExact, nominalRatio, diff});
   }
-  return null;
+
+  if(!candidates.length) return null;
+  candidates.sort((a,b)=>b.score-a.score);
+  return candidates[0];
 }
 
 function renderPjumTable(){
@@ -3744,8 +3792,11 @@ function renderPjumTable(){
     if(sum) sum.innerHTML='';
     return;
   }
-  const pen=filterPjumSide(getPjumPenRows());
-  const um=filterPjumSide(getPjumUmRows());
+  // Filter CASH/TEMPO + tanggal + Cari berlaku untuk Penjualan.
+  // UM sengaja tetap utuh dari bulan scan agar dapat menjadi pasangan transaksi,
+  // termasuk pembayaran Cash yang masuk H+1/H+2 dan UM yang tidak punya kolom jenis bayar.
+  const pen=filterPjumSide(getPjumPenRows(), {date:true, payment:true, search:true});
+  const um=filterPjumSide(getPjumUmRows(), {date:false, payment:false, search:false});
   // Urutkan per tanggal lalu faktur
   const sortFn=(a,b)=>{
     const da=pjumDateKey(a.tanggal), db=pjumDateKey(b.tanggal);
@@ -3770,18 +3821,19 @@ function renderPjumTable(){
     return;
   }
 
-  // Matching advanced: cari UM yang match dengan setiap PJ berdasarkan CUSTOMER+SALES+ALAMAT
-  const matchedMap = new Map(); // Track UM yang sudah dipakai
+  // Matching ketat dan satu-UM-satu-PJ. Kandidat terbaik dipilih berdasarkan
+  // No Faktur, identitas, produk, nominal dan tanggal; bukan sekadar kandidat pertama.
+  const matchedMap = new Map();
   const pjMatches = [];
-  
   for(let p of pen){
-    const match = findMatchingUm(p, um.filter((u, idx) => !matchedMap.has(idx)));
+    const available = um.filter((u, idx) => !matchedMap.has(idx));
+    const match = findMatchingUm(p, available);
     if(match){
       const umIdx = um.indexOf(match.um);
       matchedMap.set(umIdx, true);
-      pjMatches.push({ p, u: match.um, daysLate: match.daysLate });
+      pjMatches.push({ p, u: match.um, daysLate: match.daysLate, matchInfo: match });
     } else {
-      pjMatches.push({ p, u: null, daysLate: 0 });
+      pjMatches.push({ p, u: null, daysLate: 0, matchInfo: null });
     }
   }
   
@@ -3930,6 +3982,7 @@ function openPjumFakturModal(rowIndex){
 
     // Ringkasan pasangan Uang Masuk hasil matching PJ-UM
     const u = entry.u;
+    const mi = entry.matchInfo || null;
     html += '<div class="sfm-section-title">Status Uang Masuk (PJ-UM)</div>';
     html += '<div class="sfm-grid">';
     if(u){
@@ -3944,6 +3997,11 @@ function openPjumFakturModal(rowIndex){
       html += '<div><label>Tgl UM</label><b>'+escScan(formatScanDate(u.tanggal))+'</b></div>';
       html += '<div><label>Nominal UM</label><b>'+rupiahScan(u.nominal)+'</b></div>';
       html += '<div style="grid-column:1/-1"><label>Faktur UM</label><b>'+escScan(u.faktur||'-')+'</b></div>';
+      if(mi){
+        const dasar = mi.invoiceExact ? 'NO FAKTUR + identitas + verifikasi nominal/tanggal' :
+          'CUSTOMER/TOKO + ALAMAT + SALES' + (mi.productScore<1 ? ' + PRODUK' : '') + (mi.nominalExact ? ' + NOMINAL PERSIS' : ' + NOMINAL (parsial/titip)') + ' + TANGGAL';
+        html += '<div style="grid-column:1/-1;padding:9px 11px;border-radius:8px;background:rgba(59,130,246,.08)"><label>Dasar Pencocokan</label><b>'+escScan(dasar)+'</b></div>';
+      }
     } else {
       html += '<div><label>Status</label><b style="color:#b91c1c">✗ Hanya PJ - Belum Ada UM</b></div>';
     }
@@ -3978,8 +4036,8 @@ function openPjumFakturModal(rowIndex){
     body.innerHTML = html;
     const footer = document.getElementById('scanFakturModalFooter');
     if(footer){
-      footer.innerHTML = '<div class="sfm-footer-info">No Faktur <b>' + escScan(p.faktur) + '</b> &mdash; Detail lengkap dari Rekap Penjualan / Penjualan / Faktur (baris mentah).</div>'
-        + '<div style="display:flex;gap:8px;align-items:center"><button type="button" class="sfm-btn-gray" onclick="closeFakturModal()">Tutup</button></div>';
+      footer.innerHTML = '<div class="sfm-footer-info">No Faktur <b>' + escScan(p.faktur) + '</b> &mdash; Detail lengkap + aksi status transaksi.</div>';
+      footer.innerHTML += renderFakturModalFooter(_currentFakturModal);
     }
     m.classList.add('open');
   }catch(e){ console.error('openPjumFakturModal error:', e); }
