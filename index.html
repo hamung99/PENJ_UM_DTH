@@ -541,6 +541,20 @@
   
   .scan-empty{text-align:center;color:#64748b;padding:28px 12px;font-size:13px}
 
+  /* Badge generik utk Sumber Data (ADA/PERIKSA/dsb di kolom UM/DTH) */
+  .sd-badge{display:inline-block;padding:1px 6px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.02em;vertical-align:middle}
+  .sd-badge.sd-ada{background:#dcfce7;color:#166534;border:1px solid #86efac}
+  .sd-badge.sd-dth{background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd}
+  /* Peringatan: No Faktur cocok tapi Customer/Alamat/Sales beda — kemungkinan salah ketik No Faktur di Uang Masuk */
+  .sd-badge.sd-warn-high{background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;animation:sdWarnPulse 1.8s ease-in-out infinite}
+  .sd-badge.sd-warn-low{background:#fef3c7;color:#b45309;border:1px solid #fcd34d}
+  @keyframes sdWarnPulse{0%,100%{opacity:1}50%{opacity:.55}}
+  .scan-table-multi td.um-ket.um-mismatch-high{background:#FEF2F2!important;box-shadow:inset 3px 0 0 #ef4444}
+  .scan-table-multi td.um-ket.um-mismatch-low{background:#FFFBEB!important;box-shadow:inset 3px 0 0 #f59e0b}
+  html[data-theme="dark"] .scan-table-multi td.um-ket.um-mismatch-high{background:#3f1414!important}
+  html[data-theme="dark"] .scan-table-multi td.um-ket.um-mismatch-low{background:#3a2a08!important}
+  .btn-um-mismatch.active{background:#b91c1c!important;color:#fff!important;border-color:#b91c1c!important}
+
   /* ===== PJ-UM: Penjualan vs Uang Masuk per tanggal ===== */
   .btn-pjum-tab{
     appearance:none;height:32px;padding:5px 12px;border-radius:6px;cursor:pointer;
@@ -1129,6 +1143,9 @@
               </button>
               <button type="button" class="btn-pen-kosong-semua gear-menu-action" id="btnPenKosongSemua" onclick="togglePenKosongSemua(); closeScanGearMenu();" title="Tampilkan hanya Penjualan yang belum ada di UM, DTH, maupun AR — prioritas cek manual">
                 ⚠ Penjualan · Tanpa UM/DTH/AR
+              </button>
+              <button type="button" class="btn-um-mismatch gear-menu-action" id="btnUmMismatch" onclick="toggleUmMismatch(); closeScanGearMenu();" title="Tampilkan hanya faktur yang No.-nya cocok dengan Uang Masuk, tapi Customer/Alamat/Sales berbeda — indikasi salah ketik No Faktur di Uang Masuk">
+                🚩 UM Beda Customer/Alamat/Sales
               </button>
               <button type="button" class="btn-export-excel gear-menu-action" id="btnExportSumberData" onclick="exportSumberDataExcel(); closeScanGearMenu();">⬇️ Download Excel</button>
             </div>
@@ -1828,6 +1845,46 @@ function fakturTypoMatch(f1, f2){
   return levenshteinScan(a, b, 1) === 1;
 }
 
+// ===== Deteksi "No Faktur cocok tapi Customer/Alamat/Sales beda" (tab Sumber Data) =====
+// Kasus nyata: petugas salah ketik No Faktur di Uang Masuk sehingga kebetulan sama
+// dengan No Faktur transaksi lain, padahal toko/alamat/salesnya sama sekali beda.
+// Dipakai oleh populateSumberDataList() — HANYA dijalankan pada baris yang sudah
+// match No Faktur (jumlahnya kecil), jadi aman secara performa meski scan umRaw penuh.
+function sumberDataUmMismatch(p, umHits){
+  if(!p || !umHits || !umHits.length) return null;
+  let bestScore=0, bestHit=null;
+  umHits.forEach(u=>{
+    const s=scanIdentityScore(p,u);
+    if(s>bestScore){ bestScore=s; bestHit=u; }
+  });
+  if(bestScore>=0.85) return null; // identitas cocok baik, bukan mismatch
+  const severity = bestScore<0.6 ? 'high' : 'low';
+  return {
+    severity, score:bestScore,
+    pen:{customer:p.customer||'',alamat:p.alamat||'',sales:p.sales||''},
+    um:{customer:bestHit?.customer||'',alamat:bestHit?.alamat||'',sales:bestHit?.sales||''}
+  };
+}
+
+// Cari kemungkinan "pasangan yang benar" di Uang Masuk: No Faktur beda TEPAT 1 karakter
+// (typo umum: 1 digit tertukar/kurang/lebih) TAPI Customer/Alamat/Sales sangat cocok.
+// Hanya dipanggil untuk baris yang sudah kadung ditandai mismatch (severity 'high'),
+// jadi tidak menambah beban scan untuk baris normal.
+function sumberDataFindTypoSuggestion(p, umRaw){
+  if(!p || !p.faktur || !umRaw || !umRaw.length) return null;
+  const f1=normScan(p.faktur);
+  let best=null, bestScore=0;
+  for(let i=0;i<umRaw.length;i++){
+    const u=umRaw[i];
+    const f2=normScan(u.faktur);
+    if(!f2 || f2===f1) continue;
+    if(!fakturTypoMatch(f1,f2)) continue;
+    const s=scanIdentityScore(p,u);
+    if(s>bestScore){ bestScore=s; best={faktur:u.faktur||'', tanggal:u.tanggal||'', score:s}; }
+  }
+  return (best && bestScore>=0.85) ? best : null;
+}
+
 /* ===== Index typo 1-edit untuk DTH (dibangun sekali saat SCAN) =====
    Lookup No Faktur Penjualan → kandidat DTH jadi O(1), bukan O(M).
    Varian: exact + hapus 1 char + ganti 1 char + sisip 1 char. */
@@ -2311,6 +2368,7 @@ function resetScanFilters(){
     scanResults.penAdaUmKosong = false;
     scanResults.arTanpaPen = false;
     scanResults.penKosongSemua = false;
+    scanResults.umMismatchOnly = false;
   }
   const btnPuk = document.getElementById('btnPenAdaUmKosong');
   if(btnPuk){ btnPuk.classList.remove('active'); btnPuk.innerHTML = '⚠ Penjualan Ada · UM Kosong'; }
@@ -2318,6 +2376,8 @@ function resetScanFilters(){
   if(btnAtp){ btnAtp.classList.remove('active'); btnAtp.innerHTML = '⚠ Ada AR · Tanpa Penjualan'; }
   const btnPks = document.getElementById('btnPenKosongSemua');
   if(btnPks){ btnPks.classList.remove('active'); btnPks.innerHTML = '⚠ Penjualan · Tanpa UM/DTH/AR'; }
+  const btnUmm = document.getElementById('btnUmMismatch');
+  if(btnUmm){ btnUmm.classList.remove('active'); btnUmm.innerHTML = '🚩 UM Beda Customer/Alamat/Sales'; }
   applyScanFilters();
 }
 
@@ -3371,6 +3431,13 @@ function populateSumberDataList(){
     // Faktur Penjualan dengan Nominal Rp 0 dianggap transaksi BATAL —
     // dikeluarkan total dari tabel Sumber Data & dari semua perhitungan/total.
     if(p && !penNom) return;
+    // Cek kecocokan identitas Customer/Alamat/Sales antara Penjualan & Uang Masuk
+    // yang No.Fakturnya sama persis. Kalau identitasnya jauh beda, kemungkinan
+    // besar No.Faktur di Uang Masuk salah ketik dan kebetulan sama dengan faktur ini.
+    const umMismatch = p ? sumberDataUmMismatch(p, umHits) : null;
+    if(umMismatch && umMismatch.severity==='high'){
+      umMismatch.suggestion = sumberDataFindTypoSuggestion(p, umRaw);
+    }
     rows.push({
       rowType: p?'gabungan':(umHits.length?'um-only':(dth?'dth-only':'ar-only')),
       tanggal:p?.tanggal||umHits[0]?.tanggal||dth?.tanggal||ar?.tanggal||'',
@@ -3383,6 +3450,7 @@ function populateSumberDataList(){
       produkKategori:penProdKat,
       produkList:penProdList,
       um:umHits.length?{tanggal:umHits[0].tanggal||'',nominal:umTotal,keterangan:umHits.map(x=>[x.customer,x.alamat,x.sales,x.jenis].filter(Boolean).join(' · ')).filter(Boolean).join(' | '),count:umHits.length}:null,
+      umMismatch,
       dth:dth?{tanggal:dth.tanggal||dth.tanggal_dropping||'',keterangan:[dth.faktur,dth.nama_outlet,dth.salesman,dth.tagihan!=null?rupiahScan(dth.tagihan):'',dth.ket].filter(Boolean).join(' · '),nominal:num(dth.tagihan)}:null,
       ar:ar?{tanggal:ar.tanggal||'',keterangan:[ar.faktur,ar.customer,ar.alamat,ar.sales,ar.nominal!=null?rupiahScan(ar.nominal):'',ar.keterangan].filter(Boolean).join(' · '),nominal:num(ar.nominal),sisa:ar.sisa!=null&&ar.sisa!==''?num(ar.sisa):null,status:String(ar.status||'').trim()}:null,
       sortDate:parseScanDate(p?.tanggal||umHits[0]?.tanggal||dth?.tanggal||ar?.tanggal)||new Date(0)
@@ -3428,7 +3496,7 @@ function populateSumberDataList(){
  */
 function applySumberDataFilters(){
   const all = scanResults.sumberDataAll || [];
-  if(!all.length){ scanResults.sumberData = []; updatePenAdaUmKosongBtn(0); updateArTanpaPenBtn(0); updatePenKosongSemuaBtn(0); return; }
+  if(!all.length){ scanResults.sumberData = []; updatePenAdaUmKosongBtn(0); updateArTanpaPenBtn(0); updatePenKosongSemuaBtn(0); updateUmMismatchBtn(0); return; }
 
   const fBulanPen=[...(document.getElementById('fltBulanPenj')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
   const fBayar=(document.getElementById('fltPembayaran')||{}).value||'';
@@ -3444,6 +3512,7 @@ function applySumberDataFilters(){
   const onlyPenAdaUmKosong = !!(scanResults && scanResults.penAdaUmKosong);
   const onlyArTanpaPen = !!(scanResults && scanResults.arTanpaPen);
   const onlyPenKosongSemua = !!(scanResults && scanResults.penKosongSemua);
+  const onlyUmMismatch = !!(scanResults && scanResults.umMismatchOnly);
 
   let out = all;
 
@@ -3513,6 +3582,10 @@ function applySumberDataFilters(){
       return hasPen && !r.um && !r.dth && !r.ar;
     });
   }
+  // Tombol khusus: UM Beda Customer/Alamat/Sales (indikasi salah ketik No Faktur di Uang Masuk)
+  if(onlyUmMismatch){
+    out = out.filter(r => !!r.umMismatch);
+  }
   if(fBulanUM.length && !onlyPenAdaUmKosong && !onlyArTanpaPen && !onlyPenKosongSemua){
     const set = new Set(fBulanUM);
     out = out.filter(r => r.um && r.um.tanggal && set.has(monthKeyFromDate(r.um.tanggal)));
@@ -3532,6 +3605,7 @@ function applySumberDataFilters(){
   updatePenAdaUmKosongBtn(out.length);
   updateArTanpaPenBtn(out.length);
   updatePenKosongSemuaBtn(out.length);
+  updateUmMismatchBtn(out.length);
 }
 
 /** Toggle filter khusus: hanya baris Penjualan Ada + UM Kosong (prioritas cek manual). */
@@ -3542,10 +3616,41 @@ function togglePenAdaUmKosong(){
   if(turningOn){
     scanResults.arTanpaPen = false;
     scanResults.penKosongSemua = false;
+    scanResults.umMismatchOnly = false;
   }
   scanPage.sumberData = 1;
   applySumberDataFilters();
   renderSumberDataTable();
+}
+
+/** Toggle filter khusus: hanya baris yang No.Fakturnya cocok tapi Customer/Alamat/Sales
+ *  di Uang Masuk beda dari Penjualan — indikasi salah ketik No Faktur di sisi Uang Masuk. */
+function toggleUmMismatch(){
+  if(!scanResults) scanResults = {};
+  const turningOn = !scanResults.umMismatchOnly;
+  scanResults.umMismatchOnly = turningOn;
+  if(turningOn){
+    scanResults.penAdaUmKosong = false;
+    scanResults.arTanpaPen = false;
+    scanResults.penKosongSemua = false;
+  }
+  scanPage.sumberData = 1;
+  applySumberDataFilters();
+  renderSumberDataTable();
+}
+
+function updateUmMismatchBtn(filteredCount){
+  const btn = document.getElementById('btnUmMismatch');
+  if(!btn) return;
+  const on = !!(scanResults && scanResults.umMismatchOnly);
+  btn.classList.toggle('active', on);
+  if(on){
+    const n = (typeof filteredCount === 'number') ? filteredCount : ((scanResults.sumberData||[]).length);
+    btn.innerHTML = '🚩 UM Beda Customer/Alamat/Sales <span class="cnt">'+n+'</span>';
+  } else {
+    const total = (scanResults.sumberDataAll||[]).filter(r=>!!r.umMismatch).length;
+    btn.innerHTML = '🚩 UM Beda Customer/Alamat/Sales' + (total ? ' <span class="cnt">'+total+'</span>' : '');
+  }
 }
 
 function updatePenAdaUmKosongBtn(filteredCount){
@@ -3577,6 +3682,7 @@ function toggleArTanpaPen(){
   if(turningOn){
     scanResults.penAdaUmKosong = false;
     scanResults.penKosongSemua = false;
+    scanResults.umMismatchOnly = false;
   }
   scanPage.sumberData = 1;
   applySumberDataFilters();
@@ -3604,6 +3710,7 @@ function togglePenKosongSemua(){
   if(turningOn){
     scanResults.penAdaUmKosong = false;
     scanResults.arTanpaPen = false;
+    scanResults.umMismatchOnly = false;
   }
   scanPage.sumberData = 1;
   applySumberDataFilters();
@@ -3706,13 +3813,35 @@ function renderSumberDataTable(){
   const pageStart=((scanPage.sumberData||1)-1)*(scanPageSize||SCAN_PAGE_SIZE_DEFAULT);
   let no=pageStart+1;
   data.forEach((row,rowIdx)=>{
-    const um=row.um,dth=row.dth,ar=row.ar;
+    const um=row.um,dth=row.dth,ar=row.ar,mm=row.umMismatch;
     const absIdx=pageStart+rowIdx;
     const fkDisp=row.noFaktur||'';
     const fkCell=fkDisp
       ? ('<a href="#" class="scan-faktur-link" title="Klik untuk detail faktur penjualan" onclick="openFakturModal(\'sumberData\','+absIdx+');return false;">'+esc(fkDisp)+'</a>')
       : '';
-    html+='<tr><td class="pen-no">'+(no++)+'</td><td class="pen-tgl">'+(row.tanggal?formatScanDate(row.tanggal):'')+'</td><td class="pen-faktur" title="'+esc(fkDisp)+'">'+fkCell+'</td><td class="pen-sales" title="'+esc(row.sales)+'">'+esc(row.sales)+'</td><td class="pen-nom num">'+(row.nominalFaktur?rupiahScan(row.nominalFaktur):'')+'</td><td class="pen-bayar">'+esc(row.pembayaran)+'</td><td class="pen-cust" title="'+esc(row.customer)+'">'+esc(row.customer)+'</td><td class="pen-alamat" title="'+esc(row.alamat)+'">'+esc(row.alamat)+'</td><td class="um-tgl">'+(um?formatScanDate(um.tanggal):'')+'</td><td class="um-nom num">'+(um?rupiahScan(um.nominal):'')+'</td><td class="um-ket" title="'+esc(um?um.keterangan:'')+'">'+(um?badge('ADA','ada'):'')+(um&&um.count>1?' <small>('+um.count+' UM)</small>':'')+(um&&um.keterangan?' '+esc(um.keterangan):'')+'</td><td class="dth-tgl">'+(dth?formatScanDate(dth.tanggal):'')+'</td><td class="dth-ket" title="'+esc(dth?dth.keterangan:'')+'">'+(dth?badge('ADA','dth')+' '+esc(dth.keterangan):'')+'</td><td class="ar-tgl">'+(ar?formatScanDate(ar.tanggal):'')+'</td><td class="ar-ket" title="'+esc(ar?ar.keterangan:'')+'">'+(ar?getArStatusBadge(ar):'')+'</td></tr>';
+    // Kolom Keterangan UM: kalau ada indikasi No.Faktur cocok tapi Customer/Alamat/Sales
+    // beda (kemungkinan salah ketik No Faktur di sisi Uang Masuk), tampilkan badge
+    // peringatan + tooltip pembanding, bukan badge "ADA" biasa.
+    let umKetCls='um-ket', umKetTitle=esc(um?um.keterangan:''), umKetBody='';
+    if(um && mm){
+      umKetCls += mm.severity==='high' ? ' um-mismatch-high' : ' um-mismatch-low';
+      const badgeLbl = mm.severity==='high' ? '🚩 CEK: BEDA TOKO?' : '⚠ CEK: MIRIP TAPI BEDA';
+      const badgeCls = mm.severity==='high' ? 'sd-warn-high' : 'sd-warn-low';
+      let tip = 'No.Faktur sama, tapi datanya beda:\n'
+        + 'Penjualan   → '+ (row.customer||'-') +' / '+ (row.alamat||'-') +' / '+ (row.sales||'-') +'\n'
+        + 'Uang Masuk → '+ (mm.um.customer||'-') +' / '+ (mm.um.alamat||'-') +' / '+ (mm.um.sales||'-');
+      if(mm.suggestion){
+        tip += '\n\nKemungkinan No.Faktur yang benar di Uang Masuk: '+mm.suggestion.faktur
+             + ' (skor cocok '+Math.round(mm.suggestion.score*100)+'%)';
+      }
+      umKetTitle = esc(tip);
+      umKetBody = '<span class="sd-badge '+badgeCls+'">'+badgeLbl+'</span>'
+        + (um.count>1?' <small>('+um.count+' UM)</small>':'')
+        + (um.keterangan?' '+esc(um.keterangan):'');
+    } else {
+      umKetBody = (um?badge('ADA','ada'):'')+(um&&um.count>1?' <small>('+um.count+' UM)</small>':'')+(um&&um.keterangan?' '+esc(um.keterangan):'');
+    }
+    html+='<tr><td class="pen-no">'+(no++)+'</td><td class="pen-tgl">'+(row.tanggal?formatScanDate(row.tanggal):'')+'</td><td class="pen-faktur" title="'+esc(fkDisp)+'">'+fkCell+'</td><td class="pen-sales" title="'+esc(row.sales)+'">'+esc(row.sales)+'</td><td class="pen-nom num">'+(row.nominalFaktur?rupiahScan(row.nominalFaktur):'')+'</td><td class="pen-bayar">'+esc(row.pembayaran)+'</td><td class="pen-cust" title="'+esc(row.customer)+'">'+esc(row.customer)+'</td><td class="pen-alamat" title="'+esc(row.alamat)+'">'+esc(row.alamat)+'</td><td class="um-tgl">'+(um?formatScanDate(um.tanggal):'')+'</td><td class="um-nom num">'+(um?rupiahScan(um.nominal):'')+'</td><td class="'+umKetCls+'" title="'+umKetTitle+'">'+umKetBody+'</td><td class="dth-tgl">'+(dth?formatScanDate(dth.tanggal):'')+'</td><td class="dth-ket" title="'+esc(dth?dth.keterangan:'')+'">'+(dth?badge('ADA','dth')+' '+esc(dth.keterangan):'')+'</td><td class="ar-tgl">'+(ar?formatScanDate(ar.tanggal):'')+'</td><td class="ar-ket" title="'+esc(ar?ar.keterangan:'')+'">'+(ar?getArStatusBadge(ar):'')+'</td></tr>';
   });
   html+='</tbody></table>'; container.innerHTML=html; renderPager('pager-sumber-data','sumberData',allData.length);
 }
@@ -4429,8 +4558,17 @@ function exportPjumExcel(){
 function exportSumberDataExcel(){
   const data=scanResults.sumberData||[];
   if(!data.length){alert('Tidak ada data untuk di-export. Klik SCAN DATA terlebih dahulu.');return;}
-  const wsData=[['NO','TGL-PEN','NO.FAKTUR','SALES','NOM.FAK','PEMBAYARAN','CUSTOMER','ALAMAT','TGL-UM','NOM-UM','KET-UM','TGL-DTH','KET-DTH','TGL-AR','KET-AR']];
-  data.forEach((row,i)=>wsData.push([i+1,row.tanggal?formatScanDate(row.tanggal):'',row.noFaktur||'',row.sales||'',row.nominalFaktur||'',row.pembayaran||'',row.customer||'',row.alamat||'',row.um?formatScanDate(row.um.tanggal):'',row.um?row.um.nominal:'',row.um?row.um.keterangan:'',row.dth?formatScanDate(row.dth.tanggal):'',row.dth?row.dth.keterangan:'',row.ar?formatScanDate(row.ar.tanggal):'',row.ar?getArStatusText(row.ar):'']));
+  const wsData=[['NO','TGL-PEN','NO.FAKTUR','SALES','NOM.FAK','PEMBAYARAN','CUSTOMER','ALAMAT','TGL-UM','NOM-UM','KET-UM','CEK UM (Customer/Alamat/Sales)','TGL-DTH','KET-DTH','TGL-AR','KET-AR']];
+  data.forEach((row,i)=>{
+    const mm=row.umMismatch;
+    let cek='';
+    if(mm){
+      cek = (mm.severity==='high' ? 'BEDA TOKO? ' : 'MIRIP TAPI BEDA ')
+        + '— UM: '+(mm.um.customer||'-')+' / '+(mm.um.alamat||'-')+' / '+(mm.um.sales||'-')
+        + (mm.suggestion ? (' | Kemungkinan No.Faktur benar: '+mm.suggestion.faktur+' ('+Math.round(mm.suggestion.score*100)+'%)') : '');
+    }
+    wsData.push([i+1,row.tanggal?formatScanDate(row.tanggal):'',row.noFaktur||'',row.sales||'',row.nominalFaktur||'',row.pembayaran||'',row.customer||'',row.alamat||'',row.um?formatScanDate(row.um.tanggal):'',row.um?row.um.nominal:'',row.um?row.um.keterangan:'',cek,row.dth?formatScanDate(row.dth.tanggal):'',row.dth?row.dth.keterangan:'',row.ar?formatScanDate(row.ar.tanggal):'',row.ar?getArStatusText(row.ar):'']);
+  });
   const ws=XLSX.utils.aoa_to_sheet(wsData),wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Sumber Data'); XLSX.writeFile(wb,'Sumber_Data_'+new Date().toISOString().split('T')[0]+'.xlsx');
 }
 
