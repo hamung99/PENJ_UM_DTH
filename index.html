@@ -320,6 +320,24 @@
     white-space:nowrap;
   }
   .scan-filters .btn-reset:hover{background:#f1f5f9;border-color:#94a3b8}
+  /* Tombol cepat Jenis Pembayaran (gantikan dropdown lama) — Cash biru muda, Tempo merah muda */
+  .scan-filters .fg-bayar-toggle{flex-shrink:0}
+  .payment-toggle-group{display:flex;gap:6px;height:32px}
+  .btn-bayar-toggle{
+    appearance:none;border:1px solid transparent;border-radius:6px;padding:0 14px;height:32px;
+    font-size:11.5px;font-weight:700;letter-spacing:.03em;cursor:pointer;line-height:1;white-space:nowrap;
+    transition:background .15s,color .15s,border-color .15s,box-shadow .15s;
+  }
+  .btn-bayar-toggle.bayar-cash{background:#e0f2fe;color:#0369a1;border-color:#bae6fd}
+  .btn-bayar-toggle.bayar-cash:hover{background:#bae6fd}
+  .btn-bayar-toggle.bayar-cash.active{background:#0284c7;color:#fff;border-color:#0369a1;box-shadow:0 2px 6px rgba(2,132,199,.35)}
+  .btn-bayar-toggle.bayar-tempo{background:#fce7f3;color:#be185d;border-color:#fbcfe8}
+  .btn-bayar-toggle.bayar-tempo:hover{background:#fbcfe8}
+  .btn-bayar-toggle.bayar-tempo.active{background:#db2777;color:#fff;border-color:#be185d;box-shadow:0 2px 6px rgba(219,39,119,.35)}
+  html[data-theme="dark"] .btn-bayar-toggle.bayar-cash{background:#0c2b3d;color:#7dd3fc;border-color:#0e4a63}
+  html[data-theme="dark"] .btn-bayar-toggle.bayar-cash:hover{background:#0e4a63}
+  html[data-theme="dark"] .btn-bayar-toggle.bayar-tempo{background:#3a0f26;color:#f9a8d4;border-color:#5c1638}
+  html[data-theme="dark"] .btn-bayar-toggle.bayar-tempo:hover{background:#5c1638}
   /* Sub-toolbar Sumber Data: pencarian digabung di bar filter utama — jangan tampil baris kedua */
   #scan-sumber-data > .scan-sub-toolbar{display:none}
   #metaExportWrap{align-items:flex-end;margin-left:auto;flex-shrink:0;display:flex;gap:8px;flex-wrap:wrap}
@@ -1079,12 +1097,6 @@
                 </div>
               </div>
               <div class="fg">
-                <label for="fltPembayaran">Jenis Pembayaran</label>
-                <select id="fltPembayaran" onchange="scheduleScanFilters(50)">
-                  <option value="">Semua jenis</option>
-                </select>
-              </div>
-              <div class="fg">
                 <label for="fltSales">Sales</label>
                 <select id="fltSales" onchange="scheduleScanFilters(50)">
                   <option value="">Semua Sales</option>
@@ -1116,6 +1128,13 @@
                   <select id="fltBulanUM" multiple hidden></select>
                 </div>
               </div>
+            </div>
+          </div>
+          <div class="fg fg-bayar-toggle">
+            <label>&nbsp;</label>
+            <div class="payment-toggle-group">
+              <button type="button" class="btn-bayar-toggle bayar-cash" id="btnBayarCash" onclick="toggleBayarQuick('CASH')" title="Tampilkan hanya transaksi CASH">CASH</button>
+              <button type="button" class="btn-bayar-toggle bayar-tempo" id="btnBayarTempo" onclick="toggleBayarQuick('TEMPO')" title="Tampilkan hanya transaksi TEMPO">TEMPO</button>
             </div>
           </div>
           <div class="fg fg-search">
@@ -1649,9 +1668,24 @@ function updateScanFilterMenuState(){
   const um=[...(document.getElementById('fltBulanUM')||{}).selectedOptions||[]].filter(o=>o.value).length;
   if(pen) count++;
   if(um) count++;
-  ['fltPembayaran','fltSales','fltProdukSumberData','fltTanggalSumberData'].forEach(id=>{ if((document.getElementById(id)||{}).value) count++; });
+  ['fltSales','fltProdukSumberData','fltTanggalSumberData'].forEach(id=>{ if((document.getElementById(id)||{}).value) count++; });
+  if(scanBayarQuick) count++;
   countEl.textContent=String(count);
   countEl.classList.toggle('show',count>0);
+}
+/** Tombol cepat Jenis Pembayaran (CASH/TEMPO) — pengganti dropdown lama.
+ *  Klik untuk memfilter, klik lagi pada tombol yang sama utk kembali ke "semua". */
+function toggleBayarQuick(val){
+  scanBayarQuick = (scanBayarQuick===val) ? '' : val;
+  updateBayarQuickButtons();
+  updateScanFilterMenuState();
+  scheduleScanFilters(0);
+}
+function updateBayarQuickButtons(){
+  const bc=document.getElementById('btnBayarCash');
+  const bt=document.getElementById('btnBayarTempo');
+  if(bc) bc.classList.toggle('active', scanBayarQuick==='CASH');
+  if(bt) bt.classList.toggle('active', scanBayarQuick==='TEMPO');
 }
 function toggleScanFilterMenu(ev){
   if(ev){ev.preventDefault();ev.stopPropagation();}
@@ -1709,6 +1743,9 @@ const BULAN_ID=['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agu
 const SCAN_PAGE_SIZE_DEFAULT=100;
 let scanPageSize=SCAN_PAGE_SIZE_DEFAULT;
 let scanPage={ada:1,tidak:1,umOnly:1,pjum:1};
+// Filter cepat Jenis Pembayaran (CASH/TEMPO) — tombol, bukan dropdown, karena
+// dua nilai ini yang paling sering dipakai dalam kerja sehari-hari.
+let scanBayarQuick='';
 
 function scanNum(v){
   if(v===null||v===undefined||v==='') return 0;
@@ -2337,7 +2374,6 @@ function populateScanFilterOptions(){
   const salesAll=[...new Set([...salesPen, ...salesUm])].sort((a,b)=>a.localeCompare(b,'id'));
   const jenisAll=[...jenisUm].sort((a,b)=>a.localeCompare(b,'id'));
   fillSelect('fltBulanPenj', bulanPen, 'Semua bulan');
-  fillSelect('fltPembayaran', [...bayar].sort((a,b)=>a.localeCompare(b,'id')), 'Semua jenis');
   fillSelect('fltSales', salesAll, 'Semua Sales');
   fillSelect('fltBulanUM', bulanUm, 'Semua bulan UM');
   fillSelect('fltSalesTidak', [...salesPen].sort((a,b)=>a.localeCompare(b,'id')), 'Semua Sales');
@@ -2348,13 +2384,15 @@ function populateScanFilterOptions(){
 }
 
 function resetScanFilters(){
-  ['fltPembayaran','fltSales','fltBulanUM','fltCariKandidat','fltCariSumberData','fltCariScan',
+  ['fltSales','fltBulanUM','fltCariKandidat','fltCariSumberData','fltCariScan',
    'fltStatusJT','fltSalesTidak','fltDiDTH','fltProdukTidak','fltProdukSumberData','fltTanggalSumberData',
    'fltSalesAda','fltJenisUmAda','fltProdukAda','fltStatusAda','fltSalesUmOnly','fltJenisUmOnly'
   ].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.value='';
   });
+  scanBayarQuick='';
+  updateBayarQuickButtons();
   const monthSel=document.getElementById('fltBulanPenj');
   if(monthSel){ monthSel.querySelectorAll('option').forEach(o=>o.selected=false); }
   document.querySelectorAll('#fltBulanPenjOptions input[type=checkbox]').forEach(x=>x.checked=false);
@@ -2536,7 +2574,7 @@ function applyScanFilters(){
   updateScanFilterMenuState();
   if(!scanResults.scanned) return;
   const fBulanPen=[...(document.getElementById('fltBulanPenj')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
-  const fBayar=(document.getElementById('fltPembayaran')||{}).value||'';
+  const fBayar=scanBayarQuick||'';
   const fBulanUM=[...(document.getElementById('fltBulanUM')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
   const fCari=String((document.getElementById('fltCariScan')||document.getElementById('fltCariKandidat')||{}).value||'').trim().toLowerCase();
   const fStatusJT=(document.getElementById('fltStatusJT')||{}).value||'';
@@ -3499,7 +3537,7 @@ function applySumberDataFilters(){
   if(!all.length){ scanResults.sumberData = []; updatePenAdaUmKosongBtn(0); updateArTanpaPenBtn(0); updatePenKosongSemuaBtn(0); updateUmMismatchBtn(0); return; }
 
   const fBulanPen=[...(document.getElementById('fltBulanPenj')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
-  const fBayar=(document.getElementById('fltPembayaran')||{}).value||'';
+  const fBayar=scanBayarQuick||'';
   const fSales=(document.getElementById('fltSales')||{}).value||'';
   const fBulanUM=[...(document.getElementById('fltBulanUM')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
   const fProduk=(document.getElementById('fltProdukSumberData')||{}).value||'';
