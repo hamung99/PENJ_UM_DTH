@@ -1230,9 +1230,14 @@
               <label for="fltPjumCari">Cari</label>
               <input type="search" id="fltPjumCari" placeholder="Faktur / Customer / Sales…" oninput="scanPage.pjum=1; renderPjumTable()" autocomplete="off">
             </div>
-            <div class="fg fg-export">
+            <div class="fg fg-export" style="position:relative">
               <label>&nbsp;</label>
-              <button type="button" class="btn-export-excel" id="btnExportPjum" onclick="exportPjumExcel()" style="height:32px;padding:5px 10px;font-size:11px">⬇️ Excel</button>
+              <button type="button" class="btn-export-excel" id="btnExportPjum" onclick="togglePjumExportMenu(event)" style="height:32px;padding:5px 10px;font-size:11px">⬇️ Excel</button>
+              <div id="pjumExportMenu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:#fff;border:1px solid #dce4f0;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.2);padding:8px;min-width:230px;z-index:1500">
+                <div style="font-size:11px;font-weight:700;color:#64748b;padding:2px 6px 6px">Export Excel PJ-UM</div>
+                <button type="button" onclick="exportPjumExcel('filtered');closePjumExportMenu()" style="display:block;width:100%;text-align:left;padding:8px 10px;margin-bottom:6px;border:1px solid #bbf7d0;border-radius:6px;background:#f0fdf4;color:#065f46;font-size:12px;font-weight:600;cursor:pointer">✅ Sesuai tampilan (filter aktif)</button>
+                <button type="button" onclick="exportPjumExcel('all');closePjumExportMenu()" style="display:block;width:100%;text-align:left;padding:8px 10px;border:1px solid #dce4f0;border-radius:6px;background:#f8fafc;color:#1f2733;font-size:12px;font-weight:600;cursor:pointer">📦 Semua data (tanpa filter tambahan)</button>
+              </div>
             </div>
           </div>
           <div class="pjum-summary" id="pjumSummary"></div>
@@ -4171,27 +4176,27 @@ function findMatchingUm(p, umList){
   return candidates[0];
 }
 
-function renderPjumTable(){
-  const box=document.getElementById('scanPjumTable');
-  const sum=document.getElementById('pjumSummary');
-  if(!box) return;
-  if(!scanResults || !scanResults.scanned){
-    box.innerHTML='<div class="scan-empty">Klik SCAN DATA terlebih dahulu.</div>';
-    if(sum) sum.innerHTML='';
-    return;
-  }
+// Membangun pasangan PJ<->UM. respectFilters=true (default) memakai filter panel
+// PJ-UM (Tanggal/CASH-TEMPO/Kategori/Cari/Status UM) — sama persis dengan yang
+// tampil di layar. respectFilters=false mengabaikan filter panel tsb (tapi tetap
+// terbatas ke bulan yang sudah di-SCAN), dipakai untuk export "Semua data".
+function buildPjumMatches(respectFilters){
+  respectFilters = respectFilters !== false;
+  const sideOpts = respectFilters
+    ? {date:true, payment:true, kategori:true, search:true}
+    : {date:false, payment:false, kategori:false, search:false};
   // Filter CASH/TEMPO + tanggal + Cari berlaku untuk Penjualan.
   // UM sengaja tetap utuh dari bulan scan agar dapat menjadi pasangan transaksi,
   // termasuk pembayaran Cash yang masuk H+1/H+2 dan UM yang tidak punya kolom jenis bayar.
-  const pen=filterPjumSide(getPjumPenRows(), {date:true, payment:true, kategori:true, search:true});
+  const pen=filterPjumSide(getPjumPenRows(), sideOpts);
 
   // UM mengikuti filter Cash/Tempo dari PENJUALAN, tetapi sumber UM sendiri
   // tidak punya filter tanggal PJ. Jika tanggal PJ dipilih, baca seluruh UM
   // mentah lalu batasi berdasarkan tanggal pembayaran yang valid: Cash H+0..H+2,
   // Tempo H+0 dan seterusnya. Ini membuat Dropping pada Rekap Harian benar-benar
   // masuk ke sisi DATA UANG MASUK di PJ-UM.
-  const _pjumTgl=(document.getElementById('fltPjumTanggal')||{}).value||'';
-  const _pjumBayar=(document.getElementById('fltPjumBayar')||{}).value||'';
+  const _pjumTgl=respectFilters?((document.getElementById('fltPjumTanggal')||{}).value||''):'';
+  const _pjumBayar=respectFilters?((document.getElementById('fltPjumBayar')||{}).value||''):'';
   let um=getPjumUmRows({
     ignoreMonth:!!_pjumTgl,
     targetDate:_pjumTgl,
@@ -4208,20 +4213,6 @@ function renderPjumTable(){
 
   const totPen=pen.reduce((s,r)=>s+(r.nominal||0),0);
   const totUm=um.reduce((s,r)=>s+(r.nominal||0),0);
-  if(sum){
-    sum.innerHTML=
-      '<div class="card"><small>Baris PJ</small><b>'+pen.length.toLocaleString('id-ID')+'</b></div>'+
-      '<div class="card"><small>Nom. PJ</small><b>'+rupiahScan(totPen)+'</b></div>'+
-      '<div class="card"><small>Baris UM</small><b>'+um.length.toLocaleString('id-ID')+'</b></div>'+
-      '<div class="card"><small>Nom. UM</small><b>'+rupiahScan(totUm)+'</b></div>'+
-      '<div class="card"><small>Selisih</small><b>'+rupiahScan(totPen-totUm)+'</b></div>';
-  }
-
-  if(!pen.length && !um.length){
-    box.innerHTML='<div class="scan-empty">Tidak ada data untuk filter tanggal / jenis ini.</div>';
-    renderPager('pager-pjum','pjum',0);
-    return;
-  }
 
   const matchedMap = new Map();
   let pjMatches = [];
@@ -4302,24 +4293,54 @@ function renderPjumTable(){
   for(let i=0; i<um.length; i++){
     if(!matchedMap.has(i)) pjMatches.push({ p: null, u: um[i], daysLate: 0 });
   }
-  const stUm=(document.getElementById('fltPjumStatusUm')||{}).value||'';
-  if(stUm){
-    pjMatches = pjMatches.filter(row=>{
-      const p=row.p, u=row.u;
-      if(stUm==='BELUM_UM') return !!(p && !u);
-      if(stUm==='UM_BEDA'){
-        if(!(p && u)) return false;
-        const pn=Math.round(scanNum(p.nominal)), un=Math.round(scanNum(u.nominal));
-        return pn>0 && un>0 && un<pn;
-      }
-      if(stUm==='COCOK'){
-        if(!(p && u)) return false;
-        const pn=Math.round(scanNum(p.nominal)), un=Math.round(scanNum(u.nominal));
-        return pn>0 && un>=pn;
-      }
-      return true;
-    });
+  if(respectFilters){
+    const stUm=(document.getElementById('fltPjumStatusUm')||{}).value||'';
+    if(stUm){
+      pjMatches = pjMatches.filter(row=>{
+        const p=row.p, u=row.u;
+        if(stUm==='BELUM_UM') return !!(p && !u);
+        if(stUm==='UM_BEDA'){
+          if(!(p && u)) return false;
+          const pn=Math.round(scanNum(p.nominal)), un=Math.round(scanNum(u.nominal));
+          return pn>0 && un>0 && un<pn;
+        }
+        if(stUm==='COCOK'){
+          if(!(p && u)) return false;
+          const pn=Math.round(scanNum(p.nominal)), un=Math.round(scanNum(u.nominal));
+          return pn>0 && un>=pn;
+        }
+        return true;
+      });
+    }
   }
+  return {pen, um, pjMatches, totPen, totUm};
+}
+
+function renderPjumTable(){
+  const box=document.getElementById('scanPjumTable');
+  const sum=document.getElementById('pjumSummary');
+  if(!box) return;
+  if(!scanResults || !scanResults.scanned){
+    box.innerHTML='<div class="scan-empty">Klik SCAN DATA terlebih dahulu.</div>';
+    if(sum) sum.innerHTML='';
+    return;
+  }
+  const {pen, um, pjMatches, totPen, totUm} = buildPjumMatches(true);
+  if(sum){
+    sum.innerHTML=
+      '<div class="card"><small>Baris PJ</small><b>'+pen.length.toLocaleString('id-ID')+'</b></div>'+
+      '<div class="card"><small>Nom. PJ</small><b>'+rupiahScan(totPen)+'</b></div>'+
+      '<div class="card"><small>Baris UM</small><b>'+um.length.toLocaleString('id-ID')+'</b></div>'+
+      '<div class="card"><small>Nom. UM</small><b>'+rupiahScan(totUm)+'</b></div>'+
+      '<div class="card"><small>Selisih</small><b>'+rupiahScan(totPen-totUm)+'</b></div>';
+  }
+
+  if(!pen.length && !um.length){
+    box.innerHTML='<div class="scan-empty">Tidak ada data untuk filter tanggal / jenis ini.</div>';
+    renderPager('pager-pjum','pjum',0);
+    return;
+  }
+
   try{ window.updatePjumFilterCount && window.updatePjumFilterCount(); }catch(e){}
   const n = pjMatches.length;
   let html='<table class="pjum-table"><colgroup>'+
@@ -4553,26 +4574,46 @@ function getPjumRawRows(faktur){
     return all.filter(r=>normScan(r.faktur)===k);
   }catch(e){ return []; }
 }
-function exportPjumExcel(){
+function togglePjumExportMenu(ev){
+  if(ev){ev.preventDefault();ev.stopPropagation();}
+  const m=document.getElementById('pjumExportMenu');
+  if(!m) return;
+  const willOpen = m.style.display!=='block';
+  closePjumExportMenu();
+  m.style.display = willOpen ? 'block' : 'none';
+}
+function closePjumExportMenu(){
+  const m=document.getElementById('pjumExportMenu');
+  if(m) m.style.display='none';
+}
+document.addEventListener('click', function(e){
+  const m=document.getElementById('pjumExportMenu');
+  const btn=document.getElementById('btnExportPjum');
+  if(m && m.style.display==='block' && !m.contains(e.target) && e.target!==btn){
+    m.style.display='none';
+  }
+});
+
+// mode='filtered' (default): persis sama dengan yang tampil di tabel PJ-UM saat ini
+// (menghormati filter Tanggal/CASH-TEMPO/Kategori/Status UM/Cari).
+// mode='all': seluruh data pada bulan yang sudah di-SCAN, tanpa filter panel PJ-UM.
+function exportPjumExcel(mode){
   if(!scanResults||!scanResults.scanned){alert('Klik SCAN DATA terlebih dahulu.');return;}
-  const pen=filterPjumSide(getPjumPenRows());
-  const um=filterPjumSide(getPjumUmRows());
-  const sortFn=(a,b)=>{
-    const da=pjumDateKey(a.tanggal), db=pjumDateKey(b.tanggal);
-    if(da!==db) return da<db?-1:1;
-    return String(a.faktur).localeCompare(String(b.faktur));
-  };
-  pen.sort(sortFn); um.sort(sortFn);
-  const n=Math.max(pen.length,um.length);
+  const respectFilters = mode!=='all';
+  const {pjMatches} = buildPjumMatches(respectFilters);
+  if(!pjMatches.length){ alert('Tidak ada data untuk di-export dengan filter saat ini.'); return; }
   const wsData=[['TGL-PJ','SALES-PJ','FAKTUR-PJ','CUSTOMER-PJ','ALAMAT-PJ','PRODUK-PJ','NOM-PJ','JT','OD','TGL-UM','SALES-UM','FAKTUR-UM','CUSTOMER-UM','ALAMAT-UM','NOM-UM','KET']];
-  const penFk=new Set(pen.map(r=>normScan(r.faktur)).filter(Boolean));
-  const umFk=new Set(um.map(r=>normScan(r.faktur)).filter(Boolean));
-  for(let i=0;i<n;i++){
-    const p=pen[i], u=um[i];
+  pjMatches.forEach(row=>{
+    const p=row.p, u=row.u;
     let ket='';
-    if(p&&u){ ket=normScan(p.faktur)&&normScan(p.faktur)===normScan(u.faktur)?'COCOK':'Beda baris'; }
-    else if(p) ket=umFk.has(normScan(p.faktur))?'PJ ada di UM':'Hanya PJ';
-    else if(u) ket=penFk.has(normScan(u.faktur))?'UM ada di PJ':'Hanya UM';
+    if(p && u){
+      const pPayment=pjumNormBayar(p.pembayaran);
+      if(pPayment==='CASH'){ ket='COCOK (CASH)'; }
+      else if(pPayment==='TEMPO'){
+        ket = row.daysLate>0 ? ('COCOK (TEMPO) OVERDUE +'+row.daysLate+'h') : 'COCOK (TEMPO - ON TIME)';
+      } else { ket='COCOK'; }
+    } else if(p && !u){ ket='Hanya PJ - Belum Ada UM'; }
+    else if(u && !p){ ket='Hanya UM - Tidak Ada PJ'; }
     let jt='', od='';
     if(p && isPembayaranTempo(p.pembayaran)){
       const jtDate=getJatuhTempo(p.tanggal);
@@ -4587,10 +4628,11 @@ function exportPjumExcel(){
       u?formatScanDate(u.tanggal):'', u?u.sales:'', u?u.faktur:'', u?u.customer:'', u?u.alamat:'', u?u.nominal:'',
       ket
     ]);
-  }
+  });
   const ws=XLSX.utils.aoa_to_sheet(wsData), wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'PJ-UM');
-  XLSX.writeFile(wb,'PJ_UM_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  const suffix = respectFilters ? 'Filter' : 'Semua';
+  XLSX.writeFile(wb,'PJ_UM_'+suffix+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 
 function exportSumberDataExcel(){
