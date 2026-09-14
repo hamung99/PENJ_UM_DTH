@@ -3951,7 +3951,7 @@ function getPjumPenRows(){
     kategori:r.produkKategori||'',
     nominal:scanNum(r.total),
     pembayaran:r.jenis||r.pembayaran||''
-  }));
+  })).filter(r=>r.nominal!==0); // Faktur bernominal Rp 0 tidak relevan untuk pengecekan PJ vs UM, jangan ditampilkan.
 }
 function getPjumUmRows(opts){
   // Agregasi per faktur. Untuk PJ-UM dengan TANGGAL spesifik, UM tidak
