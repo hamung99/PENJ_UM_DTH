@@ -418,6 +418,37 @@
   .scan-gear-menu .gear-menu-action:last-child{margin-bottom:0}
   .scan-gear-menu .btn-pen-um-kosong{height:32px}
   .scan-gear-menu .btn-export-excel{height:32px}
+  /* ===== SCAN DATA > RINGKASAN ===== */
+  .scan-ringkasan{padding:12px 14px;overflow:auto;background:#fff}
+  .ringkasan-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px}
+  .ringkasan-title{font-size:15px;font-weight:800;color:#1e3a5f}
+  .ringkasan-subtitle{font-size:11px;color:#64748b;margin-top:2px}
+  .ringkasan-grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+  .ringkasan-card{border:1px solid #dce4f0;border-radius:8px;background:#f8fafc;padding:10px 12px;min-height:68px;box-sizing:border-box}
+  .ringkasan-card .rk-label{font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+  .ringkasan-card .rk-value{font-size:18px;font-weight:800;color:#172033;line-height:1.25;margin-top:3px}
+  .ringkasan-card .rk-note{font-size:10px;color:#64748b;margin-top:2px}
+  .ringkasan-section{border:1px solid #dce4f0;border-radius:8px;background:#fff;overflow:hidden;margin-bottom:12px}
+  .ringkasan-section-title{padding:8px 11px;background:#f1f5f9;border-bottom:1px solid #dce4f0;font-size:11px;font-weight:800;color:#334155}
+  .ringkasan-status-grid{display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:8px;padding:10px}
+  .ringkasan-status{border:1px solid #e2e8f0;border-radius:7px;padding:9px 10px;background:#fff}
+  .ringkasan-status .rs-label{font-size:10px;color:#64748b;font-weight:700}
+  .ringkasan-status .rs-value{font-size:16px;font-weight:800;color:#172033;margin-top:2px}
+  .ringkasan-status .rs-note{font-size:10px;color:#64748b}
+  .ringkasan-empty{padding:35px 15px;text-align:center;color:#64748b;font-size:12px}
+  html[data-theme="dark"] .scan-ringkasan{background:#0f172a;color:#e2e8f0}
+  html[data-theme="dark"] .ringkasan-title{color:#93c5fd}
+  html[data-theme="dark"] .ringkasan-subtitle{color:#94a3b8}
+  html[data-theme="dark"] .ringkasan-card{background:#1e293b;border-color:#334155}
+  html[data-theme="dark"] .ringkasan-card .rk-label,html[data-theme="dark"] .ringkasan-card .rk-note{color:#94a3b8}
+  html[data-theme="dark"] .ringkasan-card .rk-value{color:#f1f5f9}
+  html[data-theme="dark"] .ringkasan-section{background:#0f172a;border-color:#334155}
+  html[data-theme="dark"] .ringkasan-section-title{background:#1e293b;border-color:#334155;color:#cbd5e1}
+  html[data-theme="dark"] .ringkasan-status{background:#1e293b;border-color:#334155}
+  html[data-theme="dark"] .ringkasan-status .rs-label,html[data-theme="dark"] .ringkasan-status .rs-note{color:#94a3b8}
+  html[data-theme="dark"] .ringkasan-status .rs-value{color:#f1f5f9}
+  @media(max-width:900px){.ringkasan-grid{grid-template-columns:repeat(2,minmax(140px,1fr))}.ringkasan-status-grid{grid-template-columns:1fr 1fr}}
+  @media(max-width:560px){.ringkasan-grid,.ringkasan-status-grid{grid-template-columns:1fr}.ringkasan-head{align-items:flex-start;flex-direction:column}}
   html[data-theme="dark"] .btn-scan-gear{
     background:#1e293b!important;color:#e2e8f0!important;border-color:#475569!important;
   }
@@ -1101,6 +1132,10 @@
   }
   #themeToggleBtn:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.5)}
 
+
+  .ringkasan-month-control{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13px;font-weight:600;}
+  .ringkasan-month-control label{margin:0;color:inherit;}
+  .ringkasan-month-control select{min-width:150px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--card,#fff);color:inherit;font-weight:600;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -1286,6 +1321,7 @@
               <button type="button" class="btn-um-mismatch gear-menu-action" id="btnUmMismatch" onclick="toggleUmMismatch(); closeScanGearMenu();" title="Tampilkan hanya faktur yang No.-nya cocok dengan Uang Masuk, tapi Customer/Alamat/Sales berbeda — indikasi salah ketik No Faktur di Uang Masuk">
                 🚩 UM Beda Customer/Alamat/Sales
               </button>
+              <button type="button" class="gear-menu-action btn-ringkasan-scan" id="btnScanRingkasan" onclick="switchScanSubTab(this,'scan-ringkasan'); closeScanGearMenu();" title="Tampilkan ringkasan hasil Scan Data">📊 Ringkasan</button>
               <button type="button" class="btn-export-excel gear-menu-action" id="btnExportSumberData" onclick="exportSumberDataExcel(); closeScanGearMenu();">⬇️ Download Excel</button>
             </div>
           </div>
@@ -1298,6 +1334,12 @@
         </div>
         <div id="scanSumberDataTable" class="scan-table-wrap-multi"><div class="scan-empty">Klik SCAN DATA untuk membaca 4 Sumber Data (Penjualan, Uang Masuk, DTH, Rekap AR).</div></div>
         <div class="scan-pager" id="pager-sumber-data" style="display:none"></div>
+      </div>
+
+      <div class="scan-panel" id="scan-ringkasan">
+        <div class="scan-ringkasan" id="scanRingkasanContent">
+          <div class="ringkasan-empty">Klik SCAN DATA terlebih dahulu untuk membuat ringkasan.</div>
+        </div>
       </div>
 
       <div class="scan-panel" id="scan-pjum">
@@ -1758,12 +1800,13 @@ function switchScanSubTab(btn, targetId){
   document.querySelectorAll('#scanSubTabs button').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.btn-pjum-tab').forEach(b => b.classList.remove('active'));
   const isPjum = (targetId === 'scan-pjum');
+  const isRingkasan = (targetId === 'scan-ringkasan');
   const btnPjum = document.getElementById('btnPjumTab');
   const btnSumber = document.getElementById('btnSumberTab');
   if(isPjum){
     if(btnPjum) btnPjum.classList.add('active');
     else if(btn) btn.classList.add('active');
-  } else {
+  } else if(!isRingkasan){
     if(btnSumber) btnSumber.classList.add('active');
     else if(btn) btn.classList.add('active');
   }
@@ -1778,11 +1821,112 @@ function switchScanSubTab(btn, targetId){
     if(isPjum){
       populatePjumDateOptions();
       renderPjumTable();
+    } else if(isRingkasan){
+      renderScanRingkasan();
     } else {
       applySumberDataFilters();
       renderSumberDataTable();
     }
+  } else if(isRingkasan){
+    renderScanRingkasan();
   }
+}
+
+function renderScanRingkasan(){
+  const box=document.getElementById('scanRingkasanContent');
+  if(!box) return;
+  if(!scanResults || !scanResults.scanned){
+    box.innerHTML='<div class="ringkasan-empty">Klik SCAN DATA terlebih dahulu untuk membuat ringkasan.</div>';
+    return;
+  }
+  const rows=scanResults.sumberDataAll||[];
+
+  // Ringkasan punya filter bulan sendiri. Jadi setelah SCAN DATA selesai,
+  // pengguna dapat pindah Agustus/September/dst tanpa kembali ke FILTER
+  // dan tanpa menjalankan SCAN DATA lagi.
+  const monthNames=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const fmtMonthKey=k=>{
+    if(!k) return '';
+    const m=String(k).match(/^(\d{4})-(\d{1,2})$/);
+    return m ? monthNames[Number(m[2])-1]+' '+m[1] : String(k);
+  };
+  const scannedMonths=[...(scanResults.scanMonths||[])].filter(Boolean).sort();
+  if(!window._scanRingkasanMonth || !scannedMonths.includes(window._scanRingkasanMonth)){
+    window._scanRingkasanMonth=scannedMonths[scannedMonths.length-1] || '';
+  }
+  const ringMonth=window._scanRingkasanMonth;
+  const data=ringMonth ? rows.filter(r=>{
+    const keys=[];
+    if(r.tanggal){ const k=monthKeyFromDate(r.tanggal); if(k) keys.push(k); }
+    if(r.um && r.um.tanggal){ const k=monthKeyFromDate(r.um.tanggal); if(k) keys.push(k); }
+    if(r.dth && r.dth.tanggal){ const k=monthKeyFromDate(r.dth.tanggal); if(k) keys.push(k); }
+    if(r.ar && r.ar.tanggal){ const k=monthKeyFromDate(r.ar.tanggal); if(k) keys.push(k); }
+    return keys.includes(ringMonth);
+  }) : rows;
+  const num=v=>{ const n=scanNum(v); return Number.isFinite(n)?n:0; };
+  const money=v=>rupiahScan(num(v));
+  const penRows=data.filter(r=>r.rowType==='gabungan' || !!r.nominalFaktur);
+  const umRows=data.filter(r=>!!r.um);
+  const dthRows=data.filter(r=>!!r.dth);
+  const arRows=data.filter(r=>!!r.ar);
+  const penNom=penRows.reduce((a,r)=>a+num(r.nominalFaktur),0);
+  const umNom=umRows.reduce((a,r)=>a+num(r.um&&r.um.nominal),0);
+  const dthNom=dthRows.reduce((a,r)=>a+num(r.dth&&r.dth.nominal),0);
+  const arNom=arRows.reduce((a,r)=>a+num(r.ar&&r.ar.nominal),0);
+  const penUm=penRows.filter(r=>!!r.um);
+  const penNoUm=penRows.filter(r=>!r.um);
+  const umOnly=data.filter(r=>r.rowType==='um-only');
+  const mismatch=data.filter(r=>!!r.umMismatch);
+  const penNoDthAr=penRows.filter(r=>!r.um&&!r.dth&&!r.ar);
+  // Jangan merujuk variabel 'filtered' di Ringkasan; variabel tersebut tidak ada di scope ini.
+  // Ringkasan memakai 'rows' hasil scan sebagai sumber data.
+
+  // Bulan sumber yang tampil sekarang mengikuti pilihan Ringkasan.
+  const selectedMonthText=id=>{
+    const el=document.getElementById(id);
+    const vals=el ? [...el.selectedOptions].map(o=>o.value).filter(Boolean) : [];
+    return vals.length ? vals.map(fmtMonthKey).join(' + ') : 'Semua bulan';
+  };
+  const sourceMonths=(arr, getter)=>{
+    const set=new Set();
+    arr.forEach(r=>{
+      const v=getter(r);
+      const k=v ? monthKeyFromDate(v) : '';
+      if(k) set.add(k);
+    });
+    return [...set].sort().map(fmtMonthKey).join(' + ') || 'Tidak ada data';
+  };
+  const penMonthText=sourceMonths(penRows,r=>r.tanggal);
+  const umMonthText=sourceMonths(umRows,r=>r.um&&r.um.tanggal);
+  const dthMonthText=sourceMonths(dthRows,r=>r.dth&&r.dth.tanggal);
+  const arMonthText=sourceMonths(arRows,r=>r.ar&&r.ar.tanggal);
+
+  const monthOptions=scannedMonths.map(m=>'<option value="'+escScan(m)+'" '+(m===ringMonth?'selected':'')+'>'+escScan(fmtMonthKey(m))+'</option>').join('');
+  box.innerHTML=
+    '<div class="ringkasan-head"><div><div class="ringkasan-title">📊 Ringkasan Scan Data</div><div class="ringkasan-month-control"><label for="scanRingkasanMonth">Bulan:</label><select id="scanRingkasanMonth" onchange="changeScanRingkasanMonth(this.value)" '+(scannedMonths.length?'':'disabled')+'>'+monthOptions+'</select></div></div></div>'+
+    '<div class="ringkasan-grid">'+
+      '<div class="ringkasan-card"><div class="rk-label">Penjualan = '+escScan(penMonthText)+'</div><div class="rk-value">'+penRows.length.toLocaleString('id-ID')+'</div><div class="rk-note">Nominal '+money(penNom)+'</div></div>'+
+      '<div class="ringkasan-card"><div class="rk-label">Uang Masuk = '+escScan(umMonthText)+'</div><div class="rk-value">'+umRows.length.toLocaleString('id-ID')+'</div><div class="rk-note">Nominal '+money(umNom)+'</div></div>'+
+      '<div class="ringkasan-card"><div class="rk-label">DTH = '+escScan(dthMonthText)+'</div><div class="rk-value">'+dthRows.length.toLocaleString('id-ID')+'</div><div class="rk-note">Nominal '+money(dthNom)+'</div></div>'+
+      '<div class="ringkasan-card"><div class="rk-label">AR = '+escScan(arMonthText)+'</div><div class="rk-value">'+arRows.length.toLocaleString('id-ID')+'</div><div class="rk-note">Nominal '+money(arNom)+'</div></div>'+
+    '</div>'+
+    '<div class="ringkasan-section"><div class="ringkasan-section-title">Status Pencocokan Penjualan ↔ Uang Masuk</div><div class="ringkasan-status-grid">'+
+      '<div class="ringkasan-status"><div class="rs-label">🟢 Penjualan ada · UM ada</div><div class="rs-value">'+penUm.length.toLocaleString('id-ID')+'</div><div class="rs-note">Sudah memiliki pasangan UM</div></div>'+
+      '<div class="ringkasan-status"><div class="rs-label">🔴 Penjualan ada · UM kosong</div><div class="rs-value">'+penNoUm.length.toLocaleString('id-ID')+'</div><div class="rs-note">Prioritas pengecekan</div></div>'+
+      '<div class="ringkasan-status"><div class="rs-label">🟡 UM tanpa Penjualan</div><div class="rs-value">'+umOnly.length.toLocaleString('id-ID')+'</div><div class="rs-note">Data UM tidak punya pasangan penjualan</div></div>'+
+    '</div></div>'+
+    '<div class="ringkasan-section"><div class="ringkasan-section-title">Data Perlu Diperiksa</div><div class="ringkasan-status-grid">'+
+      '<div class="ringkasan-status"><div class="rs-label">🚩 UM beda Customer/Alamat/Sales</div><div class="rs-value">'+mismatch.length.toLocaleString('id-ID')+'</div><div class="rs-note">Indikasi salah ketik No Faktur di UM</div></div>'+
+      '<div class="ringkasan-status"><div class="rs-label">⚠ Penjualan tanpa UM/DTH/AR</div><div class="rs-value">'+penNoDthAr.length.toLocaleString('id-ID')+'</div><div class="rs-note">Belum muncul di sumber lainnya</div></div>'+
+      '<div class="ringkasan-status"><div class="rs-label">Total baris gabungan</div><div class="rs-value">'+rows.length.toLocaleString('id-ID')+'</div><div class="rs-note">Sumber Data sesuai filter aktif</div></div>'+
+    '</div></div>';
+}
+
+function changeScanRingkasanMonth(month){
+  const available=[...(scanResults && scanResults.scanMonths || [])].filter(Boolean);
+  if(!available.includes(month)) return;
+  window._scanRingkasanMonth=month;
+  renderScanRingkasan();
 }
 
 function updateScanFilterMenuState(){
@@ -3044,13 +3188,16 @@ function applyScanFilters(){
   scanResults.tidak=tidakFiltered;
   scanResults.tidakAll=tidak;
   scanResults.umOnly=umOnly;
-  scanPage={ada:1,tidak:1,umOnly:1,sumberData:1,pjum:1};
+  scanPage={ada:1,tidak:1,umOnly:1,sumberData:1,pjum:1,ringkasan:1};
   renderScanResults();
   updateKandidatBulkBar();
   updateNolBar();
   applySumberDataFilters();
   if(document.getElementById('scan-sumber-data') && document.getElementById('scan-sumber-data').classList.contains('active')){
     renderSumberDataTable();
+  }
+  if(document.getElementById('scan-ringkasan') && document.getElementById('scan-ringkasan').classList.contains('active')){
+    renderScanRingkasan();
   }
   try{ window.applyBatalHighlightToPenjualanIframe && window.applyBatalHighlightToPenjualanIframe(); }catch(e){}
 }
@@ -3379,7 +3526,7 @@ function scanDataRun(){
       _umIndexKey:null, _umByFaktur:null, _umByTotal:null,
       _penHistKey:null, _penHistoryByFaktur:null
     };
-    scanPage={ada:1,tidak:1,umOnly:1,sumberData:1,pjum:1};
+    scanPage={ada:1,tidak:1,umOnly:1,sumberData:1,pjum:1,ringkasan:1};
     try{ populateSumberDataList(); }catch(e){ console.warn('populateSumberDataList gagal, Sumber Data dilewati', e); scanResults.sumberData=[]; }
     populateScanFilterOptions();
     // Kunci UI bulan = bulan yang benar-benar di-scan (hindari “Agustus di UI, September di data”).
@@ -4935,7 +5082,7 @@ function scanGoPage(key, page){
 
 function changeScanPageSize(v){
   scanPageSize=Number(v)||SCAN_PAGE_SIZE_DEFAULT;
-  scanPage={ada:1,tidak:1,umOnly:1,sumberData:1,pjum:1};
+  scanPage={ada:1,tidak:1,umOnly:1,sumberData:1,pjum:1,ringkasan:1};
   renderScanResults();
   renderSumberDataTable();
 }
