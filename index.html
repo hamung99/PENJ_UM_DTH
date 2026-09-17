@@ -168,16 +168,23 @@
   .scan-signal{
     --bar-idle:#1e293b;
     --bar-active:#ef4444;
-    display:inline-flex;align-items:flex-end;gap:3px;height:32px;padding:2px 0 4px;
+    /* Sembunyi secara default — hanya tampil saat proses scan berjalan */
+    display:none;align-items:flex-end;gap:3px;height:32px;padding:2px 0 4px;
     flex-shrink:0;align-self:flex-end;
   }
+  /* Muncul & bergerak HANYA ketika SCAN DATA sedang membaca data */
+  .scan-signal.active{display:inline-flex}
   html[data-theme="dark"] .scan-signal{
     --bar-idle:#94a3b8;
     --bar-active:#f87171;
   }
   .scan-signal .bar{
     width:10px;height:26px;background-color:var(--bar-idle);border-radius:1px;
-    animation-duration:4s;animation-iteration-count:infinite;
+    /* Batang diam saat idle; animasi dipasang lewat .active di bawah */
+    animation:none;
+  }
+  .scan-signal.active .bar{
+    animation-duration:.9s;animation-iteration-count:infinite;animation-timing-function:linear;
   }
   .scan-signal .bar:nth-child(1){animation-name:scanIsi1}
   .scan-signal .bar:nth-child(2){animation-name:scanIsi2}
@@ -719,6 +726,16 @@
   .btn-sub-tab.active{background:#0f766e;color:#fff;border-color:#0f766e}
   html[data-theme="dark"] .btn-sub-tab{background:#1e293b;color:#e2e8f0;border-color:#475569}
   html[data-theme="dark"] .btn-sub-tab.active{background:#0f766e;color:#ecfdf5;border-color:#14b8a6}
+  /* Umpan balik visual tombol "Sumber Data" agar terasa bisa diklik */
+  #btnSumberTab:active{transform:translateY(1px)}
+  #btnSumberTab.st-nudge{box-shadow:0 0 0 3px rgba(245,158,11,.40);animation:stNudge 1.6s ease-in-out infinite}
+  @keyframes stNudge{0%,100%{box-shadow:0 0 0 3px rgba(245,158,11,.40)}50%{box-shadow:0 0 0 6px rgba(245,158,11,.12)}}
+  /* Tombol aksi cepat di dalam pesan kosong panel */
+  .scan-empty .btn-scan-now{
+    border:1px solid #0f766e;background:#0f766e;color:#fff;border-radius:7px;
+    padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;
+  }
+  .scan-empty .btn-scan-now:hover{background:#115e59;border-color:#115e59}
 
   /* Stempel miring hanya untuk konteks non-tabel; di tabel pakai pill ringkas */
   .scan-stamp-lunas{display:inline-block;padding:2px 12px;border:3px double #c0392b;border-radius:5px;color:#c0392b;font-weight:400;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;transform:rotate(-7deg);background:rgba(192,57,43,0.04)}
@@ -1657,8 +1674,25 @@ function switchScanSubTab(btn, targetId){
       applySumberDataFilters();
       renderSumberDataTable();
     }
+    // Umpan balik: beri tahu user bahwa tab benar-benar dibuka.
+    if(targetId === 'scan-sumber-data' && typeof showToast === 'function'){
+      try{
+        const n = (scanResults.sumberData || []).length;
+        showToast('Tab Sumber Data dibuka — ' + n.toLocaleString('id-ID') + ' baris gabungan dari 4 sumber.');
+      }catch(e){}
+    }
   } else if(isRingkasan){
     renderScanRingkasan();
+    if(typeof showToast === 'function'){
+      showToast('Belum ada hasil scan. Tekan SCAN DATA untuk mengisi Ringkasan.');
+    }
+  } else {
+    // Belum pernah SCAN DATA: tetap render panel Sumber Data supaya muncul
+    // pesan yang jelas + tombol aksi (bukan layar yang diam tanpa reaksi).
+    if(typeof renderSumberDataTable === 'function') renderSumberDataTable();
+    if(typeof showToast === 'function'){
+      showToast('Belum ada data Sumber Data. Tekan SCAN DATA terlebih dahulu.');
+    }
   }
 }
 
@@ -2260,6 +2294,9 @@ function groupByInvoice(rows, isUM){
 function setScanButtonBusy(b){
   const x=document.getElementById('btnScanData');
   if(x){x.disabled=b;x.textContent=b?'MEMBACA...':'SCAN DATA';}
+  // Animasi sinyal 7 batang: tampil & bergerak hanya saat proses scan.
+  const sig=document.querySelector('.scan-signal');
+  if(sig) sig.classList.toggle('active', !!b);
 }
 
 
@@ -3971,7 +4008,19 @@ function getArStatusBadge(ar){
 function renderSumberDataTable(){
   const container=document.getElementById('scanSumberDataTable'); if(!container)return;
   const allData=scanResults.sumberData||[];
-  if(!allData.length){container.innerHTML='<div class="scan-empty">Tidak ada data Sumber Data. Klik SCAN DATA terlebih dahulu.</div>';renderPager('pager-sumber-data','sumberData',0);return;}
+  if(!allData.length){
+    const belumScan = !(typeof scanResults!=='undefined' && scanResults && scanResults.scanned);
+    container.innerHTML='<div class="scan-empty">'
+      + '<div style="font-size:22px;line-height:1;margin-bottom:8px" aria-hidden="true">🗂️</div>'
+      + (belumScan
+          ? 'Belum ada data <b>Sumber Data</b>.<br>Tekan tombol <b>SCAN DATA</b> di atas untuk membaca 4 sumber:<br>Penjualan, Uang Masuk, DTH &amp; Rekap AR.'
+          : 'Hasil scan kosong untuk filter yang aktif.<br>Ubah filter (Bulan / Sales / Cari) atau tekan <b>SCAN DATA</b> lagi.')
+      + '<div style="margin-top:14px">'
+      + '<button type="button" class="btn-scan-now" onclick="scanDataRun()">▶ Scan Data Sekarang</button>'
+      + '</div></div>';
+    renderPager('pager-sumber-data','sumberData',0);
+    return;
+  }
   const {rows:data}=pageSlice(allData,'sumberData');
   const esc=v=>escScan(v==null?'':String(v));
   const badge=(text,kind)=>text?'<span class="sd-badge sd-'+kind+'">'+esc(text)+'</span>':'';
@@ -5658,6 +5707,7 @@ function triggerPwaInstall() {
 })();
 </script>
 
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
