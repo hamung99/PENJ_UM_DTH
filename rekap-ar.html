@@ -370,7 +370,7 @@
     border-color: var(--green);
   }
 
-  .filter-select, .searchbox, .umur-input {
+  .filter-select, .searchbox {
     font-family: inherit;
     font-size: 12px;
     padding: 5px 10px;
@@ -381,17 +381,13 @@
     outline: none;
     transition: border-color 0.15s;
   }
-  .filter-select:focus, .searchbox:focus, .umur-input:focus {
+  .filter-select:focus, .searchbox:focus {
     border-color: var(--primary-light);
     box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
   }
   .searchbox {
     flex: 1;
     min-width: 160px;
-  }
-  .umur-input {
-    width: 72px;
-    flex: none;
   }
   .btn-cetak {
     background: var(--primary);
@@ -402,6 +398,16 @@
   .btn-cetak:hover {
     background: #152a45;
     border-color: #152a45;
+  }
+  .btn-excel {
+    background: #059669;
+    color: #fff;
+    border-color: #059669;
+    font-weight: 600;
+  }
+  .btn-excel:hover {
+    background: #047857;
+    border-color: #047857;
   }
 
   .count-note {
@@ -920,9 +926,9 @@
       <option value="semua">Semua sales</option>
     </select>
     <input type="text" class="searchbox" id="searchBox" placeholder="Cari toko / sales / no faktur...">
-    <input type="number" class="umur-input" id="minUmurInput" min="0" value="13" title="Filter umur piutang minimum (tab Belum Lunas)" placeholder="Umur ≥">
-    <!-- Grup khusus: Cetak + Menu selalu berdampingan & didorong ke kanan -->
+    <!-- Grup khusus: Excel + Cetak + Menu selalu berdampingan & didorong ke kanan -->
     <div class="controls-action-group">
+      <button class="tabbtn btn-excel" id="btnExportExcel" type="button" title="Simpan Excel sesuai filter & tampilan saat ini">📥 Excel</button>
       <button class="tabbtn btn-cetak" id="btnCetak" type="button">🖨 Cetak</button>
       <!-- Tombol Menu dirender LANGSUNG inline di sini agar tidak lagi muncul di atas kartu BELUM LUNAS -->
       <div class="menu-wrap" id="menuWrap" style="position:relative;display:inline-flex;align-items:center;">
@@ -1782,7 +1788,6 @@ const debouncedRender = debounce(() => { currentPage = 1; render(); }, 280);
 document.getElementById('sumberFilter').addEventListener('change', () => { currentPage = 1; render(); });
 document.getElementById('salesFilter').addEventListener('change', () => { currentPage = 1; render(); });
 document.getElementById('searchBox').addEventListener('input', debouncedRender);
-document.getElementById('minUmurInput').addEventListener('input', debouncedRender);
 
 document.getElementById('pageSizeSelect').addEventListener('change', () => {
   pageSize = Number(document.getElementById('pageSizeSelect').value) || 100;
@@ -1798,15 +1803,12 @@ document.getElementById('btnNextPage').addEventListener('click', () => {
 });
 
 document.getElementById('btnCetak').addEventListener('click', () => {
-
   const catLabel = {semua:'Semua', belum:'Belum Lunas', titip:'Titip', lunas:'Sudah Lunas', ringkasan:'Ringkasan'}[activeCat];
-  const minUmur = Number(document.getElementById('minUmurInput').value) || 0;
   const sumberVal = document.getElementById('sumberFilter').value;
   const salesVal = document.getElementById('salesFilter').value;
   const q = document.getElementById('searchBox').value.trim();
 
   let filterParts = [`Kategori: ${catLabel}`];
-  if (activeCat === 'belum' && minUmur > 0) filterParts.push(`Umur ≥ ${minUmur} hari`);
   if (sumberVal !== 'semua') filterParts.push(`Sumber: ${escapeHtml(sumberVal)}`);
   if (salesVal !== 'semua') filterParts.push(`Sales: ${escapeHtml(salesVal)}`);
   if (q) filterParts.push(`Cari: "${escapeHtml(q)}"`);
@@ -1815,6 +1817,90 @@ document.getElementById('btnCetak').addEventListener('click', () => {
     `<b>BUKU PIUTANG HARIAN</b> — dicetak ${todayStr()}<br>${filterParts.join(' · ')}`;
   window.print();
 });
+
+// ---------- Export Excel (sesuai filter & tampilan saat ini) ----------
+function getFilteredRowsForExport(){
+  const rows = allRows();
+  const sumberVal = document.getElementById('sumberFilter').value;
+  const salesVal = document.getElementById('salesFilter').value;
+  let filtered = rows;
+  if (activeCat !== 'semua' && activeCat !== 'ringkasan') {
+    filtered = filtered.filter(r => r.kategori === activeCat);
+  }
+  if (sumberVal !== 'semua') filtered = filtered.filter(r => r.sumber === sumberVal);
+  if (salesVal !== 'semua') filtered = filtered.filter(r => String(r.sales||'').trim() === salesVal);
+  const q = document.getElementById('searchBox').value.trim().toLowerCase();
+  if (q) {
+    filtered = filtered.filter(r =>
+      String(r.toko).toLowerCase().includes(q) ||
+      String(r.sales).toLowerCase().includes(q) ||
+      String(r.noFaktur).toLowerCase().includes(q) ||
+      String(r.keterangan || '').toLowerCase().includes(q)
+    );
+  }
+  return filtered;
+}
+
+function exportCurrentViewToExcel(){
+  const filtered = getFilteredRowsForExport();
+  if (filtered.length === 0){
+    alert('Tidak ada data untuk diekspor. Pastikan ada data yang tampil sesuai filter saat ini.');
+    return;
+  }
+  const stampLabel = {belum:'BELUM LUNAS', titip:'TITIP', lunas:'LUNAS'};
+  const catLabel = {semua:'Semua', belum:'Belum_Lunas', titip:'Titip', lunas:'Sudah_Lunas', ringkasan:'Ringkasan'}[activeCat] || 'Data';
+  const includeUmur = (activeCat === 'belum');
+  const includePelunasan = (activeCat === 'lunas');
+
+  const header = ['No', 'Sales', 'No Faktur', 'Toko', 'Tgl Faktur', 'Jatuh Tempo', 'Nominal', 'Sudah Dibayar', 'Sisa'];
+  if (includeUmur) header.push('Umur (hari)');
+  if (includePelunasan) header.push('Tgl Pelunasan');
+  header.push('Status', 'Sumber', 'Keterangan');
+
+  const aoa = [header];
+  filtered.forEach((r, idx) => {
+    const row = [
+      idx + 1,
+      r.sales || '',
+      String(r.noFaktur || ''),
+      r.toko || '',
+      fmtDate(r.tglFaktur),
+      fmtDate(r.tglJatuhTempo),
+      Number(r.nominal) || 0,
+      Number(r.totalPayment) || 0,
+      Number(r.sisaRiil) || 0
+    ];
+    if (includeUmur) {
+      const d = umurPiutangHari(r.tglJatuhTempo);
+      row.push(d !== null ? d : '');
+    }
+    if (includePelunasan) row.push(fmtDate(r.tglPelunasan));
+    row.push(stampLabel[r.kategori] || r.kategori || '');
+    row.push(r.sumber || '');
+    row.push(r.keterangan || '');
+    aoa.push(row);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const colWidths = [
+    {wch: 5}, {wch: 14}, {wch: 14}, {wch: 28}, {wch: 12}, {wch: 12},
+    {wch: 14}, {wch: 14}, {wch: 14}
+  ];
+  if (includeUmur) colWidths.push({wch: 12});
+  if (includePelunasan) colWidths.push({wch: 14});
+  colWidths.push({wch: 14}, {wch: 12}, {wch: 20});
+  ws['!cols'] = colWidths;
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'AR');
+
+  const d = new Date();
+  const ymd = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  const filename = `AR_${catLabel}_${ymd}.xlsx`;
+  XLSX.writeFile(wb, filename);
+}
+
+document.getElementById('btnExportExcel').addEventListener('click', exportCurrentViewToExcel);
 
 // ---------- Fungsi data dan render ----------
 function allRows(){
@@ -1899,16 +1985,9 @@ function render(){
 
   // filter untuk tabel
   let filtered = rows;
-  if (activeCat !== 'semua') filtered = filtered.filter(r=>r.kategori===activeCat);
+  if (activeCat !== 'semua' && activeCat !== 'ringkasan') filtered = filtered.filter(r=>r.kategori===activeCat);
   if (sumberVal !== 'semua') filtered = filtered.filter(r=>r.sumber===sumberVal);
   if (salesVal !== 'semua') filtered = filtered.filter(r=>String(r.sales||'').trim()===salesVal);
-  const minUmurVal = Number(document.getElementById('minUmurInput').value) || 0;
-  if (activeCat === 'belum' && minUmurVal > 0){
-    filtered = filtered.filter(r => {
-      const d = umurPiutangHari(r.tglJatuhTempo);
-      return d !== null && d >= minUmurVal;
-    });
-  }
   const q = document.getElementById('searchBox').value.trim().toLowerCase();
   if (q) filtered = filtered.filter(r =>
     String(r.toko).toLowerCase().includes(q) ||
