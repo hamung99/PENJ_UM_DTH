@@ -2329,6 +2329,8 @@ window.__SCAN_GET_AR = function(){
         sales: r.sales || '',
         nominal: r.nominal || 0,
         sisa: (typeof r.sisaRiil === 'number') ? r.sisaRiil : null,
+        bayar: r.totalPayment || 0,
+        sumber: r.sumber || '',
         status: STATUS_TEXT[r.kategori] || '',
         keterangan: r.keterangan || ''
       };

@@ -550,29 +550,29 @@
   html[data-theme="dark"] .btn-pen-um-kosong-cash.active{
     background:#166534!important;color:#dcfce7!important;border-color:#16a34a!important;
   }
-  .scan-gear-menu .btn-ar-tanpa-pen{height:32px}
-  .btn-ar-tanpa-pen{
+  .scan-gear-menu .btn-ar-titip{height:32px}
+  .btn-ar-titip{
     appearance:none;height:32px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;
     border-radius:6px;white-space:nowrap;line-height:1.25;
-    border:1px solid #5b21b6;background:#f5f3ff;color:#5b21b6;
+    border:1px solid #b45309;background:#fef3c7;color:#92400e;
     transition:background .15s,color .15s,border-color .15s,box-shadow .15s;
   }
-  .btn-ar-tanpa-pen:hover{background:#ede9fe;border-color:#7c3aed}
-  .btn-ar-tanpa-pen.active{
-    background:#6d28d9;color:#fff;border-color:#5b21b6;
-    box-shadow:0 0 0 2px rgba(109,40,217,.35);
+  .btn-ar-titip:hover{background:#fde68a;border-color:#d97706}
+  .btn-ar-titip.active{
+    background:#d97706;color:#fff;border-color:#b45309;
+    box-shadow:0 0 0 2px rgba(217,119,6,.35);
   }
-  .btn-ar-tanpa-pen .cnt{
+  .btn-ar-titip .cnt{
     display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;
     font-size:11px;font-weight:800;background:rgba(0,0,0,.12);
   }
-  .btn-ar-tanpa-pen.active .cnt{background:rgba(255,255,255,.25)}
-  html[data-theme="dark"] .btn-ar-tanpa-pen{
-    background:#2e1065!important;color:#c4b5fd!important;border-color:#5b21b6!important;
+  .btn-ar-titip.active .cnt{background:rgba(255,255,255,.25)}
+  html[data-theme="dark"] .btn-ar-titip{
+    background:#451a03!important;color:#fcd34d!important;border-color:#b45309!important;
   }
-  html[data-theme="dark"] .btn-ar-tanpa-pen:hover{background:#3b0764!important}
-  html[data-theme="dark"] .btn-ar-tanpa-pen.active{
-    background:#6d28d9!important;color:#f5f3ff!important;border-color:#7c3aed!important;
+  html[data-theme="dark"] .btn-ar-titip:hover{background:#78350f!important}
+  html[data-theme="dark"] .btn-ar-titip.active{
+    background:#d97706!important;color:#fffbeb!important;border-color:#f59e0b!important;
   }
   .scan-gear-menu .btn-pen-kosong-semua{height:32px}
   .btn-pen-kosong-semua{
@@ -667,7 +667,7 @@
   .scan-table-multi col.c-dth-tgl{width:58px}
   .scan-table-multi col.c-dth-ket{width:120px}
   .scan-table-multi col.c-ar-tgl{width:58px}
-  .scan-table-multi col.c-ar-ket{width:120px}
+  .scan-table-multi col.c-ar-ket{width:280px}
 
   /* Header grup (baris 1: colspan) rata tengah — sticky 2 baris:
      baris 1 sticky top:0, baris 2 sticky di bawahnya (top = tinggi baris 1). */
@@ -1420,8 +1420,8 @@
               <button type="button" class="btn-pen-um-kosong-cash gear-menu-action" id="btnPenAdaUmKosongCash" onclick="togglePenAdaUmKosongCash(); closeScanGearMenu();" title="Tampilkan hanya Penjualan (Cash) yang belum ada di Uang Masuk — prioritas cek manual">
                 ⚠ Penjualan Ada (Cash) · UM Kosong
               </button>
-              <button type="button" class="btn-ar-tanpa-pen gear-menu-action" id="btnArTanpaPen" onclick="toggleArTanpaPen(); closeScanGearMenu();" title="Tampilkan hanya data AR yang tidak punya pasangan di Penjualan — prioritas cek manual">
-                ⚠ Ada AR · Tanpa Penjualan
+              <button type="button" class="btn-ar-titip gear-menu-action" id="btnArTitip" onclick="toggleArTitip(); closeScanGearMenu();" title="Kumpulkan semua faktur yang posisinya di Rekap AR = BAYAR TITIP (bayar sebagian, masih ada sisa) — lintas bulan">
+                🟡 AR · Bayar Titip
               </button>
               <button type="button" class="btn-pen-kosong-semua gear-menu-action" id="btnPenKosongSemua" onclick="togglePenKosongSemua(); closeScanGearMenu();" title="Tampilkan hanya Penjualan yang belum ada di UM, DTH, maupun AR — prioritas cek manual">
                 ⚠ Penjualan · Tanpa UM/DTH/AR
@@ -3585,7 +3585,7 @@ function resetScanFilters(){
     scanResults.penAdaUmKosong = false;
     scanResults.penAdaUmKosongTempo = false;
     scanResults.penAdaUmKosongCash = false;
-    scanResults.arTanpaPen = false;
+    scanResults.arTitip = false;
     scanResults.penKosongSemua = false;
     scanResults.umMismatchOnly = false;
   }
@@ -3595,8 +3595,8 @@ function resetScanFilters(){
   if(btnPukT){ btnPukT.classList.remove('active'); btnPukT.innerHTML = '⚠ Penjualan Ada (Tempo) · UM Kosong'; }
   const btnPukC = document.getElementById('btnPenAdaUmKosongCash');
   if(btnPukC){ btnPukC.classList.remove('active'); btnPukC.innerHTML = '⚠ Penjualan Ada (Cash) · UM Kosong'; }
-  const btnAtp = document.getElementById('btnArTanpaPen');
-  if(btnAtp){ btnAtp.classList.remove('active'); btnAtp.innerHTML = '⚠ Ada AR · Tanpa Penjualan'; }
+  const btnAtt = document.getElementById('btnArTitip');
+  if(btnAtt){ btnAtt.classList.remove('active'); btnAtt.innerHTML = '🟡 AR · Bayar Titip'; }
   const btnPks = document.getElementById('btnPenKosongSemua');
   if(btnPks){ btnPks.classList.remove('active'); btnPks.innerHTML = '⚠ Penjualan · Tanpa UM/DTH/AR'; }
   const btnUmm = document.getElementById('btnUmMismatch');
@@ -4629,7 +4629,7 @@ function populateSumberDataList(){
     const arHits  = arIdx.map.get(k)  || [];
     const p   = penHits[0] || null;
     const dth = dthHits[0] || null;
-    const ar  = arHits[0]  || null;
+    const ar  = arHits.find(x=>String(x.status||'').trim().toUpperCase()==='BAYAR TITIP') || arHits[0] || null;
     const penNom  = penHits.reduce((n,x)=>n+num(x.total),0);
     const umTotal = umHits.reduce((n,x)=>n+num(x.total),0);
     const penProdSet = new Set();
@@ -4660,7 +4660,7 @@ function populateSumberDataList(){
       um:umHits.length?{tanggal:umHits[0].tanggal||'',nominal:umTotal,keterangan:umHits.map(x=>[x.customer,x.alamat,x.sales,x.jenis].filter(Boolean).join(' · ')).filter(Boolean).join(' | '),count:umHits.length}:null,
       umMismatch,
       dth:dth?{tanggal:dth.tanggal||dth.tanggal_dropping||'',keterangan:[dth.faktur,dth.nama_outlet,dth.salesman,dth.tagihan!=null?rupiahScan(dth.tagihan):'',dth.ket].filter(Boolean).join(' · '),nominal:num(dth.tagihan)}:null,
-      ar:ar?{tanggal:ar.tanggal||'',keterangan:[ar.faktur,ar.customer,ar.alamat,ar.sales,ar.nominal!=null?rupiahScan(ar.nominal):'',ar.keterangan].filter(Boolean).join(' · '),nominal:num(ar.nominal),sisa:ar.sisa!=null&&ar.sisa!==''?num(ar.sisa):null,status:String(ar.status||'').trim()}:null,
+      ar:ar?{tanggal:ar.tanggal||'',keterangan:[ar.faktur,ar.customer,ar.alamat,ar.sales,ar.nominal!=null?rupiahScan(ar.nominal):'',ar.keterangan].filter(Boolean).join(' · '),nominal:num(ar.nominal),sisa:ar.sisa!=null&&ar.sisa!==''?num(ar.sisa):null,bayar:(ar.bayar!=null&&ar.bayar!=='')?num(ar.bayar):null,sumber:String(ar.sumber||''),status:String(ar.status||'').trim()}:null,
       sortDate:parseScanDate(p?.tanggal||umHits[0]?.tanggal||dth?.tanggal||ar?.tanggal)||new Date(0)
     });
   });
@@ -4704,7 +4704,7 @@ function populateSumberDataList(){
  */
 function applySumberDataFilters(){
   const all = scanResults.sumberDataAll || [];
-  if(!all.length){ scanResults.sumberData = []; updatePenAdaUmKosongBtn(0); updatePenAdaUmKosongTempoBtn(0); updatePenAdaUmKosongCashBtn(0); updateArTanpaPenBtn(0); updatePenKosongSemuaBtn(0); updateUmMismatchBtn(0); return; }
+  if(!all.length){ scanResults.sumberData = []; updatePenAdaUmKosongBtn(0); updatePenAdaUmKosongTempoBtn(0); updatePenAdaUmKosongCashBtn(0); updateArTitipBtn(0); updatePenKosongSemuaBtn(0); updateUmMismatchBtn(0); return; }
 
   const fBulanPen=[...(document.getElementById('fltBulanPenj')||{}).selectedOptions||[]].map(o=>o.value).filter(Boolean);
   const fBayar=scanBayarQuick||'';
@@ -4720,7 +4720,7 @@ function applySumberDataFilters(){
   const onlyPenAdaUmKosong = !!(scanResults && scanResults.penAdaUmKosong);
   const onlyPenAdaUmKosongTempo = !!(scanResults && scanResults.penAdaUmKosongTempo);
   const onlyPenAdaUmKosongCash = !!(scanResults && scanResults.penAdaUmKosongCash);
-  const onlyArTanpaPen = !!(scanResults && scanResults.arTanpaPen);
+  const onlyArTitip = !!(scanResults && scanResults.arTitip);
   const onlyPenKosongSemua = !!(scanResults && scanResults.penKosongSemua);
   const onlyUmMismatch = !!(scanResults && scanResults.umMismatchOnly);
 
@@ -4739,15 +4739,15 @@ function applySumberDataFilters(){
   // sales/customer/alamatnya bisa ikut terisi lewat fallback dari UM/DTH/AR,
   // itu bukan data Penjualan asli, jadi harus disingkirkan dari tampilan normal.
   const hasPenRow = r => r.rowType === 'gabungan';
-  if(!onlyPenAdaUmKosong && !onlyPenAdaUmKosongTempo && !onlyPenAdaUmKosongCash && !onlyArTanpaPen && !onlyPenKosongSemua){
+  if(!onlyPenAdaUmKosong && !onlyPenAdaUmKosongTempo && !onlyPenAdaUmKosongCash && !onlyArTitip && !onlyPenKosongSemua){
     out = out.filter(hasPenRow);
   }
 
-  if(fBulanPen.length && !onlyArTanpaPen){
+  if(fBulanPen.length && !onlyArTitip){
     const set = new Set(fBulanPen);
     out = out.filter(r => r.tanggal && set.has(monthKeyFromDate(r.tanggal)));
   }
-  if(fBayar && !onlyArTanpaPen){
+  if(fBayar && !onlyArTitip){
     const nb = normScan(fBayar);
     out = out.filter(r => normScan(r.pembayaran) === nb);
   }
@@ -4755,7 +4755,7 @@ function applySumberDataFilters(){
     const ns = normScan(fSales);
     out = out.filter(r => normScan(r.sales) === ns);
   }
-  if(fProduk && !onlyArTanpaPen){
+  if(fProduk && !onlyArTitip){
     out = out.filter(r => (r.produkKategori||'') === fProduk);
   }
   if(fTanggal){
@@ -4788,14 +4788,11 @@ function applySumberDataFilters(){
       return hasPen && !r.um && !isPembayaranTempo(r.pembayaran);
     });
   }
-  // Tombol khusus: Ada AR · Tanpa Penjualan (prioritas cek manual)
-  // = ada data AR, tapi tidak punya pasangan di Rekap Penjualan.
-  if(onlyArTanpaPen){
-    out = out.filter(r=>{
-      if(!r.ar) return false;
-      const hasPen = r.rowType === 'gabungan' || (Number(r.nominalFaktur) > 0);
-      return !hasPen;
-    });
+  // Tombol khusus: AR · Bayar Titip
+  // = semua baris yang posisinya di Rekap AR = BAYAR TITIP (sudah bayar sebagian / titip, masih ada sisa).
+  // Lintas bulan: AR tidak dibatasi bulan scan, jadi filter Bulan/Bayar/Produk dilewati (lihat onlyArTitip di atas).
+  if(onlyArTitip){
+    out = out.filter(r => r.ar && getArStatusText(r.ar) === 'BAYAR TITIP');
   }
   // Tombol khusus: Penjualan · Tanpa UM / DTH / AR (paling ketat)
   // = ada di Penjualan, belum muncul di ketiga sumber lain.
@@ -4810,7 +4807,7 @@ function applySumberDataFilters(){
   if(onlyUmMismatch){
     out = out.filter(r => !!r.umMismatch);
   }
-  if(fBulanUM.length && !onlyPenAdaUmKosong && !onlyPenAdaUmKosongTempo && !onlyPenAdaUmKosongCash && !onlyArTanpaPen && !onlyPenKosongSemua){
+  if(fBulanUM.length && !onlyPenAdaUmKosong && !onlyPenAdaUmKosongTempo && !onlyPenAdaUmKosongCash && !onlyArTitip && !onlyPenKosongSemua){
     const set = new Set(fBulanUM);
     out = out.filter(r => r.um && r.um.tanggal && set.has(monthKeyFromDate(r.um.tanggal)));
   }
@@ -4829,7 +4826,7 @@ function applySumberDataFilters(){
   updatePenAdaUmKosongBtn(out.length);
   updatePenAdaUmKosongTempoBtn(out.length);
   updatePenAdaUmKosongCashBtn(out.length);
-  updateArTanpaPenBtn(out.length);
+  updateArTitipBtn(out.length);
   updatePenKosongSemuaBtn(out.length);
   updateUmMismatchBtn(out.length);
 }
@@ -4842,7 +4839,7 @@ function togglePenAdaUmKosong(){
   if(turningOn){
     scanResults.penAdaUmKosongTempo = false;
     scanResults.penAdaUmKosongCash = false;
-    scanResults.arTanpaPen = false;
+    scanResults.arTitip = false;
     scanResults.penKosongSemua = false;
     scanResults.umMismatchOnly = false;
   }
@@ -4859,7 +4856,7 @@ function togglePenAdaUmKosongTempo(){
   if(turningOn){
     scanResults.penAdaUmKosong = false;
     scanResults.penAdaUmKosongCash = false;
-    scanResults.arTanpaPen = false;
+    scanResults.arTitip = false;
     scanResults.penKosongSemua = false;
     scanResults.umMismatchOnly = false;
   }
@@ -4876,7 +4873,7 @@ function togglePenAdaUmKosongCash(){
   if(turningOn){
     scanResults.penAdaUmKosong = false;
     scanResults.penAdaUmKosongTempo = false;
-    scanResults.arTanpaPen = false;
+    scanResults.arTitip = false;
     scanResults.penKosongSemua = false;
     scanResults.umMismatchOnly = false;
   }
@@ -4895,7 +4892,7 @@ function toggleUmMismatch(){
     scanResults.penAdaUmKosong = false;
     scanResults.penAdaUmKosongTempo = false;
     scanResults.penAdaUmKosongCash = false;
-    scanResults.arTanpaPen = false;
+    scanResults.arTitip = false;
     scanResults.penKosongSemua = false;
   }
   scanPage.sumberData = 1;
@@ -4973,11 +4970,11 @@ function updatePenAdaUmKosongCashBtn(filteredCount){
   }
 }
 
-/** Toggle filter khusus: hanya baris Ada AR · Tanpa Penjualan (prioritas cek manual). */
-function toggleArTanpaPen(){
+/** Toggle filter khusus: hanya baris AR berstatus BAYAR TITIP. */
+function toggleArTitip(){
   if(!scanResults) scanResults = {};
-  const turningOn = !scanResults.arTanpaPen;
-  scanResults.arTanpaPen = turningOn;
+  const turningOn = !scanResults.arTitip;
+  scanResults.arTitip = turningOn;
   // Saling eksklusif dengan filter khusus lain agar tidak membingungkan
   if(turningOn){
     scanResults.penAdaUmKosong = false;
@@ -4989,18 +4986,26 @@ function toggleArTanpaPen(){
   scanPage.sumberData = 1;
   applySumberDataFilters();
   renderSumberDataTable();
+  if(turningOn){
+    try{
+      const list = scanResults.sumberData || [];
+      const sisa = list.reduce((n,r)=>n+(r.ar && r.ar.sisa!=null ? Number(r.ar.sisa)||0 : 0),0);
+      const bayar = list.reduce((n,r)=>n+(r.ar && r.ar.bayar!=null ? Number(r.ar.bayar)||0 : 0),0);
+      showToast('AR Bayar Titip: '+list.length.toLocaleString('id-ID')+' faktur · sudah bayar '+rupiahScan(bayar)+' · sisa '+rupiahScan(sisa));
+    }catch(e){}
+  }
 }
 
-function updateArTanpaPenBtn(filteredCount){
-  const btn = document.getElementById('btnArTanpaPen');
+function updateArTitipBtn(filteredCount){
+  const btn = document.getElementById('btnArTitip');
   if(!btn) return;
-  const on = !!(scanResults && scanResults.arTanpaPen);
+  const on = !!(scanResults && scanResults.arTitip);
   btn.classList.toggle('active', on);
   if(on){
     const n = (typeof filteredCount === 'number') ? filteredCount : ((scanResults.sumberData||[]).length);
-    btn.innerHTML = '⚠ Ada AR · Tanpa Penjualan <span class="cnt">'+n+'</span>';
+    btn.innerHTML = '🟡 AR · Bayar Titip <span class="cnt">'+n+'</span>';
   } else {
-    btn.innerHTML = '⚠ Ada AR · Tanpa Penjualan';
+    btn.innerHTML = '🟡 AR · Bayar Titip';
   }
 }
 
@@ -5013,7 +5018,7 @@ function togglePenKosongSemua(){
     scanResults.penAdaUmKosong = false;
     scanResults.penAdaUmKosongTempo = false;
     scanResults.penAdaUmKosongCash = false;
-    scanResults.arTanpaPen = false;
+    scanResults.arTitip = false;
     scanResults.umMismatchOnly = false;
   }
   scanPage.sumberData = 1;
@@ -5045,6 +5050,8 @@ function updatePenKosongSemuaBtn(filteredCount){
 // Status AR sebagai teks (dipakai export Excel + display). Scope global agar exportSumberDataExcel bisa memanggil.
 function getArStatusText(ar){
   if(!ar) return '';
+  const _canon = arCanonStatus(ar);
+  if(_canon) return _canon;
   const rawSt = String(ar.status||'').trim();
   const ketSt = String(ar.keterangan||'').trim();
   const fullText = (rawSt + ' ' + ketSt).toUpperCase().replace(/\s+/g,' ');
@@ -5074,6 +5081,22 @@ function getArStatusText(ar){
   return arPos;
 }
 
+// Status resmi dari Rekap AR (kolom kategori -> BELUM LUNAS / BAYAR TITIP / SUDAH LUNAS).
+// Bila ada, ini dipakai APA ADANYA (tidak ditebak ulang dari teks keterangan).
+function arCanonStatus(ar){
+  const st = String(ar && ar.status || '').trim().toUpperCase().replace(/\s+/g,' ');
+  return (st==='BELUM LUNAS' || st==='BAYAR TITIP' || st==='SUDAH LUNAS') ? st : '';
+}
+
+// Teks lengkap kolom Keterangan AR: keterangan gabungan (faktur · customer · alamat · sales · nominal · ket) + Sudah bayar + Sisa.
+function arKetFull(ar){
+  if(!ar) return '';
+  const parts=[ar.keterangan];
+  if(ar.bayar!=null && Number(ar.bayar)>0) parts.push('Sudah bayar '+rupiahScan(ar.bayar));
+  if(ar.sisa!=null && ar.sisa!=='') parts.push('Sisa '+rupiahScan(ar.sisa));
+  return parts.filter(Boolean).join(' · ');
+}
+
 // Badge HTML status AR (dipakai tabel Sumber Data). Scope global; escape via escScan.
 function getArStatusBadge(ar){
   if(!ar) return '';
@@ -5081,7 +5104,9 @@ function getArStatusBadge(ar){
   const ketSt = String(ar.keterangan||'').trim();
   const fullText = (rawSt + ' ' + ketSt).toUpperCase().replace(/\s+/g,' ');
   let arPos = '', arPosCls = '';
-  if(/\bSUDAH\s*LUNAS\b|\bLUNAS\b|\bPAID\b/i.test(fullText) && !/BELUM/i.test(fullText)){ arPos='SUDAH LUNAS'; arPosCls='lunas'; }
+  const _canon = arCanonStatus(ar);
+  if(_canon){ arPos=_canon; arPosCls=({'SUDAH LUNAS':'lunas','BAYAR TITIP':'titip','BELUM LUNAS':'belum'})[_canon]; }
+  else if(/\bSUDAH\s*LUNAS\b|\bLUNAS\b|\bPAID\b/i.test(fullText) && !/BELUM/i.test(fullText)){ arPos='SUDAH LUNAS'; arPosCls='lunas'; }
   else if(/BAYAR\s*TITIP|\bTITIP\b|\bPARTIAL\b|\bSEBAGIAN\b/i.test(fullText)){ arPos='BAYAR TITIP'; arPosCls='titip'; }
   else if(/BELUM\s*LUNAS|BELUM\s*BAYAR|\bUNPAID\b/i.test(fullText)){ arPos='BELUM LUNAS'; arPosCls='belum'; }
   else if(ar.sisa!=null){
@@ -5157,7 +5182,7 @@ function renderSumberDataTable(){
     } else {
       umKetBody = (um?badge('ADA','ada'):'')+(um&&um.count>1?' <small>('+um.count+' UM)</small>':'')+(um&&um.keterangan?' '+esc(um.keterangan):'');
     }
-    html+='<tr><td class="pen-no">'+(no++)+'</td><td class="pen-tgl">'+(row.tanggal?formatScanDate(row.tanggal):'')+'</td><td class="pen-faktur" title="'+esc(fkDisp)+'">'+fkCell+'</td><td class="pen-sales" title="'+esc(row.sales)+'">'+esc(row.sales)+'</td><td class="pen-nom num">'+(row.nominalFaktur?rupiahScan(row.nominalFaktur):'')+'</td><td class="pen-bayar">'+esc(row.pembayaran)+'</td><td class="pen-cust" title="'+esc(row.customer)+'">'+esc(row.customer)+'</td><td class="pen-alamat" title="'+esc(row.alamat)+'">'+esc(row.alamat)+'</td><td class="um-tgl">'+(um?formatScanDate(um.tanggal):'')+'</td><td class="um-nom num">'+(um?rupiahScan(um.nominal):'')+'</td><td class="'+umKetCls+'" title="'+umKetTitle+'">'+umKetBody+'</td><td class="dth-tgl">'+(dth?formatScanDate(dth.tanggal):'')+'</td><td class="dth-ket" title="'+esc(dth?dth.keterangan:'')+'">'+(dth?badge('ADA','dth')+' '+esc(dth.keterangan):'')+'</td><td class="ar-tgl">'+(ar?formatScanDate(ar.tanggal):'')+'</td><td class="ar-ket" title="'+esc(ar?ar.keterangan:'')+'">'+(ar?getArStatusBadge(ar):'')+'</td></tr>';
+    html+='<tr><td class="pen-no">'+(no++)+'</td><td class="pen-tgl">'+(row.tanggal?formatScanDate(row.tanggal):'')+'</td><td class="pen-faktur" title="'+esc(fkDisp)+'">'+fkCell+'</td><td class="pen-sales" title="'+esc(row.sales)+'">'+esc(row.sales)+'</td><td class="pen-nom num">'+(row.nominalFaktur?rupiahScan(row.nominalFaktur):'')+'</td><td class="pen-bayar">'+esc(row.pembayaran)+'</td><td class="pen-cust" title="'+esc(row.customer)+'">'+esc(row.customer)+'</td><td class="pen-alamat" title="'+esc(row.alamat)+'">'+esc(row.alamat)+'</td><td class="um-tgl">'+(um?formatScanDate(um.tanggal):'')+'</td><td class="um-nom num">'+(um?rupiahScan(um.nominal):'')+'</td><td class="'+umKetCls+'" title="'+umKetTitle+'">'+umKetBody+'</td><td class="dth-tgl">'+(dth?formatScanDate(dth.tanggal):'')+'</td><td class="dth-ket" title="'+esc(dth?dth.keterangan:'')+'">'+(dth?badge('ADA','dth')+' '+esc(dth.keterangan):'')+'</td><td class="ar-tgl">'+(ar?formatScanDate(ar.tanggal):'')+'</td><td class="ar-ket"'+(ar?' style="cursor:pointer" onclick="openFakturModal(\'sumberData\','+absIdx+')"':'')+' title="'+esc(ar?arKetFull(ar)+' (klik untuk detail)':'')+'">'+(ar?getArStatusBadge(ar)+' '+esc(arKetFull(ar)):'')+'</td></tr>';
   });
   html+='</tbody></table>'; container.innerHTML=html; renderPager('pager-sumber-data','sumberData',allData.length);
 }
@@ -5717,8 +5742,10 @@ function openFakturModal(pageKey, idx){
         let arPos = '';
         let arPosCls = '';
         
+        const _canonM = arCanonStatus(r.ar);
+        if(_canonM){ arPos=_canonM; arPosCls=({'SUDAH LUNAS':'lunas','BAYAR TITIP':'titip','BELUM LUNAS':'belum'})[_canonM]; }
         // 1) Cek keyword SUDAH LUNAS / LUNAS pertama (prioritas tinggi)
-        if(/\bSUDAH\s*LUNAS\b|\bLUNAS\b|\bPAID\b/i.test(fullText) && !/BELUM/i.test(fullText)){ arPos='SUDAH LUNAS'; arPosCls='lunas'; }
+        else if(/\bSUDAH\s*LUNAS\b|\bLUNAS\b|\bPAID\b/i.test(fullText) && !/BELUM/i.test(fullText)){ arPos='SUDAH LUNAS'; arPosCls='lunas'; }
         // 2) Cek keyword BAYAR TITIP / TITIP
         else if(/BAYAR\s*TITIP|\bTITIP\b|\bPARTIAL\b|\bSEBAGIAN\b/i.test(fullText)){ arPos='BAYAR TITIP'; arPosCls='titip'; }
         // 3) Cek keyword BELUM LUNAS
@@ -5753,6 +5780,12 @@ function openFakturModal(pageKey, idx){
         }
         if(r.ar.nominal!=null && r.ar.nominal!==''){
           html += '<div><label>Nominal AR</label><b>'+rupiahScan(r.ar.nominal)+'</b></div>';
+        }
+        if(r.ar.bayar!=null && Number(r.ar.bayar)>0){
+          html += '<div><label>Sudah Dibayar (AR)</label><b>'+rupiahScan(r.ar.bayar)+'</b></div>';
+        }
+        if(r.ar.sumber){
+          html += '<div><label>Sumber AR</label><b>'+escScan(r.ar.sumber)+'</b></div>';
         }
         html += '<div style="grid-column:1/-1"><label>Keterangan dari Rekap AR</label><b>'+escScan(r.ar.keterangan||'-')+'</b></div>';
       }
