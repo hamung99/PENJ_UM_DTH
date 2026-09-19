@@ -33,14 +33,24 @@
     padding:0;flex-wrap:wrap;align-items:center;
   }
   nav#mainTabs button{
-    appearance:none;border:1px solid rgba(255,255,255,.35);
-    background:rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:600;
+    appearance:none;border:1px solid rgba(255,255,255,.22);
+    background:rgba(255,255,255,.08);color:rgba(255,255,255,.62);font-size:12px;font-weight:600;
     padding:3px 10px;border-radius:5px;line-height:1.2;cursor:pointer;
     transition:background .15s,color .15s,border-color .15s;
   }
-  nav#mainTabs button:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.5)}
+  nav#mainTabs button:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.4);color:rgba(255,255,255,.88)}
   nav#mainTabs button.active{
-    background:#fff;color:var(--primary-d);border-color:#fff;
+    background:#fff;color:var(--primary-d);border-color:#fff;font-weight:700;
+  }
+  /* Mode gelap: idle lebih redup, aktif lebih kontras */
+  html[data-theme="dark"] nav#mainTabs button{
+    color:rgba(203,213,225,.55);border-color:rgba(148,163,184,.22);background:rgba(15,23,42,.35);
+  }
+  html[data-theme="dark"] nav#mainTabs button:hover{
+    color:rgba(226,232,240,.85);border-color:rgba(148,163,184,.4);background:rgba(30,58,95,.55);
+  }
+  html[data-theme="dark"] nav#mainTabs button.active{
+    background:#e2e8f0;color:#0f172a;border-color:#e2e8f0;font-weight:700;
   }
   nav#mainTabs button .icon{margin-right:6px}
 
@@ -1129,13 +1139,13 @@
   .cd-btn:hover{background:#16304f}
   .cd-btn-outline{background:#fff;color:#1e3a5f}
   .cd-btn-outline:hover{background:#f1f5f9}
-  html[data-theme="dark"] .cd-btn-outline{background:#0f172a;color:#93c5fd;border-color:#475569}
+  html[data-theme="dark"] .cd-btn-outline{background:#0f172a;color:rgba(147,197,253,.5);border-color:#334155}
   html[data-theme="dark"] .cd-btn-outline:hover{background:#1e293b}
   .cd-btn-ok{background:#fff;color:#15803d;border-color:#86efac}
   .cd-btn-ok:hover{background:#f0fdf4}
   .cd-btn-ok .cd-badge{background:#16a34a;color:#fff}
   .cd-btn-ok.active{background:#16a34a;color:#fff;border-color:#15803d}
-  html[data-theme="dark"] .cd-btn-ok{background:#1e293b;color:#86efac;border-color:#166534}
+  html[data-theme="dark"] .cd-btn-ok{background:#1e293b;color:rgba(134,239,172,.5);border-color:#166534}
   html[data-theme="dark"] .cd-btn-ok.active{background:#166534;color:#fff}
   .cd-btn-warn{background:#fff;color:#b45309;border-color:#fcd34d}
   .cd-btn-warn:hover{background:#fffbeb}
@@ -1182,8 +1192,27 @@
   html[data-theme="dark"] .cd-btn.cd-btn-danger.active,
   html[data-theme="dark"] #btnCdUmTanpaFaktur.active{background:#7f1d1d !important;color:#fff !important}
   .cd-badge{display:inline-block;padding:0 5px;border-radius:999px;font-size:9.5px;font-weight:700;line-height:1.4}
-  html[data-theme="dark"] .cd-btn-warn{background:#1e293b;color:#fcd34d;border-color:#78350f}
-  html[data-theme="dark"] .cd-btn-danger{background:#1e293b;color:#fca5a5;border-color:#7f1d1d}
+  html[data-theme="dark"] .cd-btn-warn{background:#1e293b;color:rgba(252,211,77,.55);border-color:#78350f}
+  html[data-theme="dark"] .cd-btn-danger{background:#1e293b;color:rgba(252,165,165,.55);border-color:#7f1d1d}
+  /* Contiguous filter: font idle redup, aktif lebih terang */
+  html[data-theme="dark"] .cd-btn{color:rgba(203,213,225,.5)}
+  html[data-theme="dark"] .cd-btn-outline{background:#0f172a;color:rgba(147,197,253,.5);border-color:#334155}
+  html[data-theme="dark"] .cd-btn-outline:hover{background:#1e293b;color:rgba(191,219,254,.85)}
+  html[data-theme="dark"] .cd-btn-ok{background:#1e293b;color:rgba(134,239,172,.5);border-color:#166534}
+  html[data-theme="dark"] .cd-btn-ok:hover{color:rgba(187,247,208,.9)}
+  html[data-theme="dark"] .cd-btn-warn:hover{color:rgba(253,224,71,.9)}
+  html[data-theme="dark"] .cd-btn-danger:hover{color:rgba(254,202,202,.9)}
+  html[data-theme="dark"] .cd-btn .cd-badge{opacity:.55}
+  html[data-theme="dark"] .cd-btn.active{color:#fff!important}
+  html[data-theme="dark"] .cd-btn.active .cd-badge{opacity:1;background:rgba(255,255,255,.3)!important;color:#fff!important}
+  html[data-theme="dark"] .cd-btn.cd-btn-outline.active,
+  html[data-theme="dark"] #btnCdBerdampingan.active{background:#1e3a5f!important;color:#f1f5f9!important;border-color:#3b82f6!important}
+  html[data-theme="dark"] .cd-btn.cd-btn-ok.active,
+  html[data-theme="dark"] #btnCdAdaUM.active{background:#166534!important;color:#fff!important}
+  html[data-theme="dark"] .cd-btn.cd-btn-warn.active,
+  html[data-theme="dark"] #btnCdBelumAdaUM.active{background:#9a3412!important;color:#fff!important}
+  html[data-theme="dark"] .cd-btn.cd-btn-danger.active,
+  html[data-theme="dark"] #btnCdUmTanpaFaktur.active{background:#7f1d1d!important;color:#fff!important}
 
   .cd-info-line{font-size:11px;color:#64748b;padding:2px 0}
   html[data-theme="dark"] .cd-info-line{color:#94a3b8}
