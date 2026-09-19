@@ -651,6 +651,9 @@
   .scan-table-multi th{padding:5px 4px;position:sticky;top:0;text-align:left;z-index:10;white-space:nowrap;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis}
   .scan-table-multi td{padding:4px 4px;border-bottom:1px solid #e2e8f0;white-space:nowrap;vertical-align:middle;overflow:hidden;text-overflow:ellipsis}
   .scan-table-multi td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .scan-table-multi .pen-ext{color:#64748b;font-style:italic}
+  .scan-table-multi .pen-none{color:#94a3b8}
+  html[data-theme="dark"] .scan-table-multi .pen-ext{color:#94a3b8}
 
   /* Lebar proporsional — tanggal sempit (dd/mm/yy), ket UM/DTH/AR lebih lega */
   .scan-table-multi col.c-no{width:28px}
@@ -4405,6 +4408,7 @@ function scanDataRun(){
       penRawActive,
       // Sumber Data & export: hanya bulan yang dipilih (bukan seluruh histori)
       penRawAll:penRawActive,
+      penRawEvery:penRaw, // seluruh Penjualan (referensi) — hanya utk lookup faktur AR di luar bulan scan
       penRawByFaktur,
       // UM aktif tetap dipakai untuk Sumber Data agar perilaku tab lama tidak berubah.
       umRawAll:umRaw,
@@ -4692,6 +4696,30 @@ function populateSumberDataList(){
   umIdx.noFakturRows.forEach(noFakturPushUm);
   dthIdx.noFakturRows.forEach(noFakturPushDth);
   arIdx.noFakturRows.forEach(noFakturPushAr);
+
+  // Baris yang punya AR tapi tidak ada pasangan Penjualan di BULAN SCAN: cari fakturnya di seluruh
+  // histori Penjualan (mis. faktur Agustus saat scan September). Hanya utk TAMPILAN (penExt) —
+  // rowType & semua perhitungan lain tidak berubah.
+  try{
+    const need = rows.filter(r=>r.rowType!=='gabungan' && r.ar && r.noFaktur);
+    if(need.length){
+      const fullIdx = new Map();
+      (scanResults.penRawEvery||[]).forEach(x=>{
+        const k=getFaktur(x); if(!k) return;
+        let a=fullIdx.get(k); if(!a){ a=[]; fullIdx.set(k,a); }
+        a.push(x);
+      });
+      need.forEach(r=>{
+        const hits=fullIdx.get(faktur(r.noFaktur));
+        if(!hits||!hits.length) return;
+        r.penExt={
+          tanggal:hits[0].tanggal||'',
+          nominal:hits.reduce((n,x)=>n+num(x.total),0),
+          pembayaran:hits[0].pembayaran||''
+        };
+      });
+    }
+  }catch(e){ console.warn('Sumber Data: lookup Penjualan lintas bulan gagal', e); }
 
   scanResults.sumberDataAll = rows.sort((a,b)=>(b.sortDate.getTime()||0)-(a.sortDate.getTime()||0));
   try{ populateSumberDateOptions(); }catch(e){}
@@ -5182,7 +5210,22 @@ function renderSumberDataTable(){
     } else {
       umKetBody = (um?badge('ADA','ada'):'')+(um&&um.count>1?' <small>('+um.count+' UM)</small>':'')+(um&&um.keterangan?' '+esc(um.keterangan):'');
     }
-    html+='<tr><td class="pen-no">'+(no++)+'</td><td class="pen-tgl">'+(row.tanggal?formatScanDate(row.tanggal):'')+'</td><td class="pen-faktur" title="'+esc(fkDisp)+'">'+fkCell+'</td><td class="pen-sales" title="'+esc(row.sales)+'">'+esc(row.sales)+'</td><td class="pen-nom num">'+(row.nominalFaktur?rupiahScan(row.nominalFaktur):'')+'</td><td class="pen-bayar">'+esc(row.pembayaran)+'</td><td class="pen-cust" title="'+esc(row.customer)+'">'+esc(row.customer)+'</td><td class="pen-alamat" title="'+esc(row.alamat)+'">'+esc(row.alamat)+'</td><td class="um-tgl">'+(um?formatScanDate(um.tanggal):'')+'</td><td class="um-nom num">'+(um?rupiahScan(um.nominal):'')+'</td><td class="'+umKetCls+'" title="'+umKetTitle+'">'+umKetBody+'</td><td class="dth-tgl">'+(dth?formatScanDate(dth.tanggal):'')+'</td><td class="dth-ket" title="'+esc(dth?dth.keterangan:'')+'">'+(dth?badge('ADA','dth')+' '+esc(dth.keterangan):'')+'</td><td class="ar-tgl">'+(ar?formatScanDate(ar.tanggal):'')+'</td><td class="ar-ket"'+(ar?' style="cursor:pointer" onclick="openFakturModal(\'sumberData\','+absIdx+')"':'')+' title="'+esc(ar?arKetFull(ar)+' (klik untuk detail)':'')+'">'+(ar?getArStatusBadge(ar)+' '+esc(arKetFull(ar)):'')+'</td></tr>';
+    // Kolom Rekap Penjualan: baris 'gabungan' = data Penjualan asli. Selain itu:
+    //  - penExt  : Penjualan ketemu di bulan lain (di luar bulan scan) -> tampil redup/miring
+    //  - lainnya : memang tidak ada di Data Penjualan -> tanda "—"
+    const pe=row.penExt, isGab=(row.rowType==='gabungan');
+    const tglShow = pe ? pe.tanggal : ((!isGab && ar && ar.tanggal) ? ar.tanggal : row.tanggal);
+    let nomCell, bayarCell;
+    if(isGab){
+      nomCell=row.nominalFaktur?rupiahScan(row.nominalFaktur):''; bayarCell=esc(row.pembayaran);
+    } else if(pe){
+      const tipPe='Data Penjualan ada, tapi di luar bulan scan (faktur '+formatScanDate(pe.tanggal)+')';
+      nomCell='<span class="pen-ext" title="'+esc(tipPe)+'">'+rupiahScan(pe.nominal)+'</span>';
+      bayarCell='<span class="pen-ext" title="'+esc(tipPe)+'">'+esc(pe.pembayaran)+'</span>';
+    } else {
+      nomCell=bayarCell='<span class="pen-none" title="Faktur ini tidak ditemukan di Data Penjualan">—</span>';
+    }
+    html+='<tr><td class="pen-no">'+(no++)+'</td><td class="pen-tgl">'+(tglShow?formatScanDate(tglShow):'')+'</td><td class="pen-faktur" title="'+esc(fkDisp)+'">'+fkCell+'</td><td class="pen-sales" title="'+esc(row.sales)+'">'+esc(row.sales)+'</td><td class="pen-nom num">'+nomCell+'</td><td class="pen-bayar">'+bayarCell+'</td><td class="pen-cust" title="'+esc(row.customer)+'">'+esc(row.customer)+'</td><td class="pen-alamat" title="'+esc(row.alamat)+'">'+esc(row.alamat)+'</td><td class="um-tgl">'+(um?formatScanDate(um.tanggal):'')+'</td><td class="um-nom num">'+(um?rupiahScan(um.nominal):'')+'</td><td class="'+umKetCls+'" title="'+umKetTitle+'">'+umKetBody+'</td><td class="dth-tgl">'+(dth?formatScanDate(dth.tanggal):'')+'</td><td class="dth-ket" title="'+esc(dth?dth.keterangan:'')+'">'+(dth?badge('ADA','dth')+' '+esc(dth.keterangan):'')+'</td><td class="ar-tgl">'+(ar?formatScanDate(ar.tanggal):'')+'</td><td class="ar-ket"'+(ar?' style="cursor:pointer" onclick="openFakturModal(\'sumberData\','+absIdx+')"':'')+' title="'+esc(ar?arKetFull(ar)+' (klik untuk detail)':'')+'">'+(ar?getArStatusBadge(ar)+' '+esc(arKetFull(ar)):'')+'</td></tr>';
   });
   html+='</tbody></table>'; container.innerHTML=html; renderPager('pager-sumber-data','sumberData',allData.length);
 }
@@ -5201,7 +5244,7 @@ function exportSumberDataExcel(){
         + '— UM: '+(mm.um.customer||'-')+' / '+(mm.um.alamat||'-')+' / '+(mm.um.sales||'-')
         + (mm.suggestion ? (' | Kemungkinan No.Faktur benar: '+mm.suggestion.faktur+' ('+Math.round(mm.suggestion.score*100)+'%)') : '');
     }
-    wsData.push([i+1,row.tanggal?formatScanDate(row.tanggal):'',row.noFaktur||'',row.sales||'',row.nominalFaktur||'',row.pembayaran||'',row.customer||'',row.alamat||'',row.um?formatScanDate(row.um.tanggal):'',row.um?row.um.nominal:'',row.um?row.um.keterangan:'',cek,row.dth?formatScanDate(row.dth.tanggal):'',row.dth?row.dth.keterangan:'',row.ar?formatScanDate(row.ar.tanggal):'',row.ar?getArStatusText(row.ar):'']);
+    wsData.push([i+1,(row.penExt?row.penExt.tanggal:row.tanggal)?formatScanDate(row.penExt?row.penExt.tanggal:row.tanggal):'',row.noFaktur||'',row.sales||'',row.nominalFaktur||(row.penExt?row.penExt.nominal:''),row.pembayaran||(row.penExt?row.penExt.pembayaran:''),row.customer||'',row.alamat||'',row.um?formatScanDate(row.um.tanggal):'',row.um?row.um.nominal:'',row.um?row.um.keterangan:'',cek,row.dth?formatScanDate(row.dth.tanggal):'',row.dth?row.dth.keterangan:'',row.ar?formatScanDate(row.ar.tanggal):'',row.ar?getArStatusText(row.ar):'']);
   });
   const ws=XLSX.utils.aoa_to_sheet(wsData),wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Sumber Data'); XLSX.writeFile(wb,'Sumber_Data_'+new Date().toISOString().split('T')[0]+'.xlsx');
 }
