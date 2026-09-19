@@ -1894,6 +1894,7 @@ function switchScanSubTab(btn, targetId){
   if(isContiguous){
     // Contiguous Data: isi filter dari hasil SCAN DATA, lalu muat tabel & KPI.
     try{
+      window._cdCache = null; // masuk tab = data segar
       if(typeof populateCdFilters==='function') populateCdFilters();
       if(typeof scanResults!=='undefined' && scanResults && scanResults.scanned){
         if(typeof cdLoadData==='function') cdLoadData({mode: window._cdMode||'all', silent:true});
@@ -2263,67 +2264,107 @@ function cdIsPair(pen, um){
   }
   if(!f1) return false;
 
-  const idScore = (typeof scanIdentityScore==='function') ? scanIdentityScore(pen, um) : 0;
-  const custScore = (typeof similarityScan==='function')
-    ? similarityScan(normScanIdentity(pen.customer), normScanIdentity(um.customer))
-    : 0;
-
+  // PERF: skor identitas (Levenshtein x3) mahal -> hanya dihitung setelah No Faktur
+  // terbukti exact/typo. Sebelumnya dihitung untuk SETIAP pasangan kandidat.
   if(f1 === f2){
     // Exact faktur
+    const idScore = (typeof scanIdentityScore==='function') ? scanIdentityScore(pen, um) : 0;
     if(idScore >= 0.85) return true;
     // Longgar: customer masih mirip
-    if(custScore >= 0.5) return true;
-    return false;
+    const custScore = (typeof similarityScan==='function')
+      ? similarityScan(normScanIdentity(pen.customer), normScanIdentity(um.customer))
+      : 0;
+    return custScore >= 0.5;
   }
 
   // Typo 1 karakter pada No Faktur + identitas ketat
-  if(typeof fakturTypoMatch==='function' && fakturTypoMatch(f1, f2) && idScore >= 0.85){
-    return true;
+  if(typeof fakturTypoMatch==='function' && fakturTypoMatch(f1, f2)){
+    const idScore = (typeof scanIdentityScore==='function') ? scanIdentityScore(pen, um) : 0;
+    return idScore >= 0.85;
   }
   return false;
 }
 
-/** Index UM by faktur + list all — untuk pencarian cepat */
+/** Kunci "1 edit": string itu sendiri + semua versi dengan 1 karakter dihapus.
+ *  Dua faktur berjarak Levenshtein <= 1 PASTI berbagi minimal satu kunci
+ *  (substitusi -> hapus posisi yg sama; sisip/hapus -> salah satunya = hapusan yg lain).
+ *  Kandidat tetap diverifikasi ulang oleh fakturTypoMatch di cdIsPair. */
+function cdFakturKeys(f){
+  const out = [f];
+  for(let i=0;i<f.length;i++) out.push(f.slice(0,i)+f.slice(i+1));
+  return out;
+}
+function cdAddNeighbor(map, f, row){
+  const keys = cdFakturKeys(f);
+  for(let i=0;i<keys.length;i++){
+    const arr = map.get(keys[i]);
+    if(!arr) map.set(keys[i], [row]);
+    else if(arr[arr.length-1] !== row) arr.push(row);
+  }
+}
+function cdNeighborCandidates(map, k){
+  const keys = cdFakturKeys(k);
+  const seen = new Set();
+  const out = [];
+  for(let i=0;i<keys.length;i++){
+    const arr = map.get(keys[i]);
+    if(!arr) continue;
+    for(let j=0;j<arr.length;j++){
+      if(!seen.has(arr[j])){ seen.add(arr[j]); out.push(arr[j]); }
+    }
+  }
+  return out;
+}
+
+/** Index UM by faktur + typo-neighbour — untuk pencarian cepat (O(1) per faktur) */
 function cdBuildUmIndex(umRows){
   const byFaktur = new Map();
+  const typo = new Map();
   const all = umRows || [];
   all.forEach(u=>{
     const k = normScan(u.faktur);
     if(!k || String(k).startsWith('__UM_NOFAKTUR__') || String(k).startsWith('__NOFAKTUR__')) return;
     if(!byFaktur.has(k)) byFaktur.set(k, []);
     byFaktur.get(k).push(u);
+    if(k.length >= 7) cdAddNeighbor(typo, k, u);
   });
-  return { byFaktur, all };
+  return { byFaktur, typo, all, memo: new Map() };
 }
 
 function cdBuildPenIndex(penRows){
   const byFaktur = new Map();
+  const typo = new Map();
   const all = penRows || [];
   all.forEach(p=>{
     const k = normScan(p.faktur);
     if(!k || String(k).startsWith('__NOFAKTUR__')) return;
     if(!byFaktur.has(k)) byFaktur.set(k, []);
     byFaktur.get(k).push(p);
+    if(k.length >= 7) cdAddNeighbor(typo, k, p);
   });
-  return { byFaktur, all };
+  return { byFaktur, typo, all, memo: new Map() };
 }
 
 function cdPenHasUmMatch(pen, umIndex){
   if(!pen || !umIndex) return false;
+  if(umIndex.memo && umIndex.memo.has(pen)) return umIndex.memo.get(pen);
+  const r = cdPenHasUmMatchRaw(pen, umIndex);
+  if(umIndex.memo) umIndex.memo.set(pen, r);
+  return r;
+}
+function cdPenHasUmMatchRaw(pen, umIndex){
   const k = normScan(pen.faktur);
   // Cek kandidat same-faktur dulu
   const kandidat = (k && umIndex.byFaktur.get(k)) || [];
   for(let i=0;i<kandidat.length;i++){
     if(cdIsPair(pen, kandidat[i])) return true;
   }
-  // Cek typo: scan UM dengan panjang mirip (mahal — batasi)
-  // Hanya jika belum ketemu & faktur ada
-  if(k && k.length >= 8 && typeof fakturTypoMatch==='function'){
-    for(let i=0;i<umIndex.all.length;i++){
-      const u = umIndex.all[i];
-      const uk = normScan(u.faktur);
-      if(!uk || uk === k) continue;
-      if(Math.abs(uk.length - k.length) > 1) continue;
+  // Cek typo via index (bukan loop semua UM)
+  if(k && k.length >= 8 && typeof fakturTypoMatch==='function' && umIndex.typo){
+    const cands = cdNeighborCandidates(umIndex.typo, k);
+    for(let i=0;i<cands.length;i++){
+      const u = cands[i];
+      if(normScan(u.faktur) === k) continue;
       if(cdIsPair(pen, u)) return true;
     }
   }
@@ -2332,6 +2373,12 @@ function cdPenHasUmMatch(pen, umIndex){
 
 function cdUmHasPenMatch(um, penIndex){
   if(!um || !penIndex) return false;
+  if(penIndex.memo && penIndex.memo.has(um)) return penIndex.memo.get(um);
+  const r = cdUmHasPenMatchRaw(um, penIndex);
+  if(penIndex.memo) penIndex.memo.set(um, r);
+  return r;
+}
+function cdUmHasPenMatchRaw(um, penIndex){
   const k = normScan(um.faktur);
   if(!k || String(k).startsWith('__UM_NOFAKTUR__') || String(k).startsWith('__NOFAKTUR__')){
     return false; // tanpa no faktur = benar-benar tanpa pasangan faktur
@@ -2340,25 +2387,25 @@ function cdUmHasPenMatch(um, penIndex){
   for(let i=0;i<kandidat.length;i++){
     if(cdIsPair(kandidat[i], um)) return true;
   }
-  if(k.length >= 8 && typeof fakturTypoMatch==='function'){
-    for(let i=0;i<penIndex.all.length;i++){
-      const p = penIndex.all[i];
-      const pk = normScan(p.faktur);
-      if(!pk || pk === k) continue;
-      if(Math.abs(pk.length - k.length) > 1) continue;
+  if(k.length >= 8 && typeof fakturTypoMatch==='function' && penIndex.typo){
+    const cands = cdNeighborCandidates(penIndex.typo, k);
+    for(let i=0;i<cands.length;i++){
+      const p = cands[i];
+      if(normScan(p.faktur) === k) continue;
       if(cdIsPair(p, um)) return true;
     }
   }
   return false;
 }
 
-function cdApplyMode(penRows, umRows, mode, penForMatch){
+function cdApplyMode(penRows, umRows, mode, penForMatch, idx){
   mode = mode || 'all';
   // penForMatch: pool penjualan untuk matching (biasanya bulan filter + bulan sebelumnya)
   // supaya UM September yang bayar faktur Agustus tidak dianggap "tanpa faktur"
   const penMatchPool = (penForMatch && penForMatch.length) ? penForMatch : penRows;
-  const umIndex = cdBuildUmIndex(umRows);
-  const penIndex = cdBuildPenIndex(penMatchPool);
+  // PERF: pakai index yang sudah dibangun sekali di cdLoadData (idx), bila ada
+  const umIndex = (idx && idx.umIndex) || cdBuildUmIndex(umRows);
+  const penIndex = (idx && idx.penIndex) || cdBuildPenIndex(penMatchPool);
 
   if(mode === 'adaUM'){
     // Penjualan yang SUDAH ada pasangan UM (+ UM yang cocok)
@@ -2388,7 +2435,7 @@ function cdApplyMode(penRows, umRows, mode, penForMatch){
   return { penRows, umRows, umIndex, penIndex };
 }
 
-function cdUpdateKpis(penRows, umRows, allPen, allUm){
+function cdUpdateKpis(penRows, umRows, allPen, allUm, penForMatchArg, idx){
   const totalPen = (penRows||[]).reduce((n,x)=> n + scanNum(x.total), 0);
   const totalUm = (umRows||[]).reduce((n,x)=> n + scanNum(x.total), 0);
   const selisih = totalPen - totalUm;
@@ -2410,11 +2457,12 @@ function cdUpdateKpis(penRows, umRows, allPen, allUm){
   // (argumen ke-5 opsional: penForMatch). Fallback = basePen.
   const basePen = allPen || penRows || [];
   const baseUm = allUm || umRows || [];
-  const penMatchPool = (arguments.length >= 5 && arguments[4] && arguments[4].length) ? arguments[4] : basePen;
-  const umIndex = cdBuildUmIndex(baseUm);
-  const penIndex = cdBuildPenIndex(penMatchPool);
+  const penMatchPool = (penForMatchArg && penForMatchArg.length) ? penForMatchArg : basePen;
+  const umIndex = (idx && idx.umIndex) || cdBuildUmIndex(baseUm);
+  const penIndex = (idx && idx.penIndex) || cdBuildPenIndex(penMatchPool);
+  // Hasil match di-memo per baris -> tiap baris hanya dihitung sekali
   const adaUM = basePen.filter(p => cdPenHasUmMatch(p, umIndex)).length;
-  const belumUM = basePen.filter(p => !cdPenHasUmMatch(p, umIndex)).length;
+  const belumUM = basePen.length - adaUM;
   const umTanpa = baseUm.filter(u => !cdUmHasPenMatch(u, penIndex)).length;
 
   const b0 = document.getElementById('cdBadgeAdaUM');
@@ -2538,23 +2586,32 @@ async function cdLoadData(opts){
   window._cdMode = mode;
   cdSetActiveModeButtons(mode);
 
-  // 1) Refresh bridge penjualan agar baca SEMUA baris IndexedDB (bukan hanya yang terfilter di UI)
-  try{ await cdRefreshPenjualanBridge(); }catch(e){}
+  // PERF: klik tombol mode (opts.reuse) memakai data yang sudah dimuat — TIDAK refresh bridge
+  // & normalisasi ulang. Muat / buka tab / ganti filter bulan / CASH-TEMPO tetap refresh penuh.
+  const cache = window._cdCache;
+  const canReuse = !!(opts.reuse && cache && cache.loaded);
+  let penRaw = null, umRaw = null, hasLive, hasScan;
 
-  let penLive = cdFetchLivePenjualan();
-  let umLive = cdFetchLiveUangMasuk();
-  let penRaw = null, umRaw = null;
+  if(canReuse){
+    penRaw = cache.penRaw; umRaw = cache.umRaw; hasLive = cache.hasLive; hasScan = true;
+  } else {
+    // 1) Refresh bridge penjualan agar baca SEMUA baris IndexedDB (bukan hanya yang terfilter di UI)
+    try{ await cdRefreshPenjualanBridge(); }catch(e){}
 
-  if(penLive && penLive.length){
-    penRaw = penLive.map(cdNormalizePenRow).filter(Boolean);
+    let penLive = cdFetchLivePenjualan();
+    let umLive = cdFetchLiveUangMasuk();
+
+    if(penLive && penLive.length){
+      penRaw = penLive.map(cdNormalizePenRow).filter(Boolean);
+    }
+    if(umLive && umLive.length){
+      umRaw = umLive.map(cdNormalizeUmRow).filter(Boolean);
+    }
+
+    // Fallback ke hasil SCAN jika iframe kosong
+    hasLive = (penRaw && penRaw.length) || (umRaw && umRaw.length);
+    hasScan = scanResults && scanResults.scanned;
   }
-  if(umLive && umLive.length){
-    umRaw = umLive.map(cdNormalizeUmRow).filter(Boolean);
-  }
-
-  // Fallback ke hasil SCAN jika iframe kosong
-  const hasLive = (penRaw && penRaw.length) || (umRaw && umRaw.length);
-  const hasScan = scanResults && scanResults.scanned;
   if(!hasLive && !hasScan){
     const msg = 'Belum ada data Penjualan / Uang Masuk.\n\nPastikan tab Rekap Penjualan & Rekap Uang Masuk sudah berisi data, lalu klik 🔄 Muat lagi.';
     if(!opts.silent){
@@ -2568,47 +2625,60 @@ async function cdLoadData(opts){
     return;
   }
 
-  // Isi opsi bulan dari data live
-  try{ cdPopulateMonthsFromLive(penRaw, umRaw); }catch(e){}
+  // Isi opsi bulan dari data live (dilewati saat reuse: data mentah tidak berubah)
+  if(!canReuse){ try{ cdPopulateMonthsFromLive(penRaw, umRaw); }catch(e){} }
 
   const bulanPen = (document.getElementById('cdFilterBulanPenjualan')||{}).value || '';
   const bulanUM = (document.getElementById('cdFilterBulanUM')||{}).value || '';
   // Satu sumber filter bayar: tombol CASH / TEMPO di toolbar Scan (scanBayarQuick)
   const jenisBayar = (typeof scanBayarQuick!=='undefined' && scanBayarQuick) ? scanBayarQuick : '';
 
-  // Tampilan: sesuai filter bulan yang dipilih user
-  let penRows = cdCollectPenRows(bulanPen, jenisBayar, penRaw);
-  let umRows = cdCollectUmRows(bulanUM, umRaw);
-  // Filter UM juga ikut CASH/TEMPO (Cash Dropping / Piutang Tempo)
-  if(jenisBayar){
-    const want = String(jenisBayar).toUpperCase();
-    umRows = umRows.filter(u => cdPaymentSide(u, true) === want);
+  const ctxKey = bulanPen+'|'+bulanUM+'|'+jenisBayar;
+  let ctx = (canReuse && cache.ctx && cache.ctx.key === ctxKey) ? cache.ctx : null;
+
+  if(!ctx){
+    // Tampilan: sesuai filter bulan yang dipilih user
+    let pRows = cdCollectPenRows(bulanPen, jenisBayar, penRaw);
+    let uRows = cdCollectUmRows(bulanUM, umRaw);
+    // Filter UM juga ikut CASH/TEMPO (Cash Dropping / Piutang Tempo)
+    if(jenisBayar){
+      const want = String(jenisBayar).toUpperCase();
+      uRows = uRows.filter(u => cdPaymentSide(u, true) === want);
+    }
+
+    // Pool matching Penjualan = bulan Penjualan + bulan UM + masing-masing 1 bulan sebelumnya
+    // Contoh: UM Sep bayar faktur Tempo Agustus → tetap ketemu, bukan "UM Tanpa Faktur"
+    const matchMonths = new Set();
+    cdMonthKeysWithPrev(bulanPen).forEach(k => matchMonths.add(k));
+    cdMonthKeysWithPrev(bulanUM).forEach(k => matchMonths.add(k));
+    // Jika filter bulan kosong (=semua), pakai semua penRows sebagai pool
+    let pForMatch;
+    if(matchMonths.size){
+      pForMatch = cdCollectPenRows([...matchMonths], jenisBayar, penRaw);
+    } else {
+      pForMatch = pRows.slice();
+    }
+    // Index dibangun SEKALI untuk semua mode + KPI
+    ctx = {
+      key: ctxKey,
+      basePen: pRows, baseUm: uRows, penForMatch: pForMatch,
+      umIndex: cdBuildUmIndex(uRows),
+      penIndex: cdBuildPenIndex((pForMatch && pForMatch.length) ? pForMatch : pRows)
+    };
   }
+  window._cdCache = { loaded:true, penRaw, umRaw, hasLive, ctx };
 
-  // Pool matching Penjualan = bulan Penjualan + bulan UM + masing-masing 1 bulan sebelumnya
-  // Contoh: UM Sep bayar faktur Tempo Agustus → tetap ketemu, bukan "UM Tanpa Faktur"
-  const matchMonths = new Set();
-  cdMonthKeysWithPrev(bulanPen).forEach(k => matchMonths.add(k));
-  cdMonthKeysWithPrev(bulanUM).forEach(k => matchMonths.add(k));
-  // Jika filter bulan kosong (=semua), pakai semua penRows sebagai pool
-  let penForMatch;
-  if(matchMonths.size){
-    penForMatch = cdCollectPenRows([...matchMonths], jenisBayar, penRaw);
-  } else {
-    penForMatch = penRows.slice();
-  }
+  const basePen = ctx.basePen, baseUm = ctx.baseUm, penForMatch = ctx.penForMatch;
+  const idx = { umIndex: ctx.umIndex, penIndex: ctx.penIndex };
 
-  const basePen = penRows.slice();
-  const baseUm = umRows.slice();
-
-  const applied = cdApplyMode(penRows, umRows, mode, penForMatch);
-  penRows = applied.penRows;
-  umRows = applied.umRows;
+  const applied = cdApplyMode(basePen.slice(), baseUm.slice(), mode, penForMatch, idx);
+  let penRows = applied.penRows;
+  let umRows = applied.umRows;
 
   window._cdLastPen = penRows;
   window._cdLastUM = umRows;
 
-  cdUpdateKpis(penRows, umRows, basePen, baseUm, penForMatch);
+  cdUpdateKpis(penRows, umRows, basePen, baseUm, penForMatch, idx);
   cdUpdateInfoLine(bulanPen, bulanUM, penRows.length, umRows.length);
   cdRenderPenTable(penRows);
   cdRenderUmTable(umRows);
@@ -2628,10 +2698,10 @@ async function cdLoadData(opts){
 }
 
 function cdOnMuat(){ try{ Promise.resolve(cdLoadData({mode:'all'})).catch(function(e){ console.error(e); alert('Error Muat: '+(e&&e.message||e)); }); }catch(e){ console.error(e); alert('Error Muat: '+(e&&e.message||e)); } }
-function cdOnBerdampingan(){ try{ Promise.resolve(cdLoadData({mode:'berdampingan'})).catch(function(e){ console.error(e); alert('Error: '+(e&&e.message||e)); }); }catch(e){ console.error(e); alert('Error: '+(e&&e.message||e)); } }
-function cdOnAdaUM(){ try{ Promise.resolve(cdLoadData({mode:'adaUM'})).catch(function(e){ console.error(e); alert('Error: '+(e&&e.message||e)); }); }catch(e){ console.error(e); alert('Error: '+(e&&e.message||e)); } }
-function cdOnBelumAdaUM(){ try{ Promise.resolve(cdLoadData({mode:'belumUM'})).catch(function(e){ console.error(e); alert('Error: '+(e&&e.message||e)); }); }catch(e){ console.error(e); alert('Error: '+(e&&e.message||e)); } }
-function cdOnUmTanpaFaktur(){ try{ Promise.resolve(cdLoadData({mode:'umTanpaFaktur'})).catch(function(e){ console.error(e); alert('Error: '+(e&&e.message||e)); }); }catch(e){ console.error(e); alert('Error: '+(e&&e.message||e)); } }
+function cdOnBerdampingan(){ try{ Promise.resolve(cdLoadData({mode:'berdampingan', reuse:true})).catch(function(e){ console.error(e); alert('Error: '+(e&&e.message||e)); }); }catch(e){ console.error(e); alert('Error: '+(e&&e.message||e)); } }
+function cdOnAdaUM(){ try{ Promise.resolve(cdLoadData({mode:'adaUM', reuse:true})).catch(function(e){ console.error(e); alert('Error: '+(e&&e.message||e)); }); }catch(e){ console.error(e); alert('Error: '+(e&&e.message||e)); } }
+function cdOnBelumAdaUM(){ try{ Promise.resolve(cdLoadData({mode:'belumUM', reuse:true})).catch(function(e){ console.error(e); alert('Error: '+(e&&e.message||e)); }); }catch(e){ console.error(e); alert('Error: '+(e&&e.message||e)); } }
+function cdOnUmTanpaFaktur(){ try{ Promise.resolve(cdLoadData({mode:'umTanpaFaktur', reuse:true})).catch(function(e){ console.error(e); alert('Error: '+(e&&e.message||e)); }); }catch(e){ console.error(e); alert('Error: '+(e&&e.message||e)); } }
 
 // Wire tombol Contiguous Data — onclick di HTML + binding JS sebagai cadangan
 (function initContiguousDataUI(){
