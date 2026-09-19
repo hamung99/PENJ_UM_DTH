@@ -1059,6 +1059,139 @@
   html[data-theme="dark"] .btn-scan-gear,
   html[data-theme="dark"] .btn-sub-tab{border:1px solid #475569}
   html[data-theme="dark"] .btn-sub-tab.active{border-color:#14b8a6}
+
+  /* ===== SCAN DATA > CONTIGUOUS DATA ===== */
+  .cd-wrap{padding:8px 12px;overflow:auto;background:#fff;flex:1;min-height:0;display:flex;flex-direction:column;gap:6px}
+  html[data-theme="dark"] .cd-wrap{background:#0f172a;color:#e2e8f0}
+
+  /* KPI tipis: label kiri, nilai kanan — baris tunggal */
+  .cd-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:6px}
+  .cd-kpi-card{
+    border:1px solid #e8eef5;border-radius:5px;background:#fff;
+    padding:4px 10px;box-sizing:border-box;
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    min-height:28px;
+  }
+  .cd-kpi-card .cd-kpi-label{
+    font-size:9px;color:#94a3b8;font-weight:500;text-transform:uppercase;
+    letter-spacing:.04em;line-height:1.2;flex:0 1 auto;
+  }
+  .cd-kpi-card .cd-kpi-value{
+    font-size:13px;font-weight:500;color:#1e293b;line-height:1.2;margin:0;
+    text-align:right;white-space:nowrap;flex:0 0 auto;
+  }
+  .cd-kpi-card.cd-kpi-danger .cd-kpi-value{color:#dc2626;font-weight:500}
+  html[data-theme="dark"] .cd-kpi-card{background:#1e293b;border-color:#334155}
+  html[data-theme="dark"] .cd-kpi-card .cd-kpi-label{color:#94a3b8}
+  html[data-theme="dark"] .cd-kpi-card .cd-kpi-value{color:#e2e8f0}
+  html[data-theme="dark"] .cd-kpi-card.cd-kpi-danger .cd-kpi-value{color:#f87171}
+  @media(max-width:900px){.cd-kpi-grid{grid-template-columns:repeat(2,minmax(110px,1fr))}}
+  @media(max-width:560px){.cd-kpi-grid{grid-template-columns:1fr}}
+
+  /* Filter bar: datar, tanpa “card di dalam card” */
+  .cd-filter-bar{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;border:none;border-radius:0;background:transparent;padding:0 0 2px}
+  html[data-theme="dark"] .cd-filter-bar{background:transparent;border:none}
+  .cd-filter-group{display:flex;flex-direction:column;gap:2px}
+  .cd-filter-group label{font-size:8.5px;font-weight:500;color:#94a3b8;text-transform:uppercase;letter-spacing:.03em;line-height:1.2}
+  html[data-theme="dark"] .cd-filter-group label{color:#94a3b8}
+  .cd-filter-group select{
+    appearance:none;border:1px solid #e8eef5;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M3 4.5L6 8l3-3.5'/%3E%3C/svg%3E") no-repeat right 6px center;
+    color:#1e293b;padding:3px 22px 3px 8px;border-radius:5px;font-size:11px;font-weight:500;
+    min-width:120px;cursor:pointer;line-height:1.2;height:26px;
+  }
+  html[data-theme="dark"] .cd-filter-group select{background-color:#0f172a;color:#e2e8f0;border-color:#475569}
+  .cd-filter-actions{display:flex;align-items:center;gap:5px;margin-left:auto;flex-wrap:wrap}
+  .cd-btn{
+    appearance:none;border:1px solid #1e3a5f;background:#1e3a5f;color:#fff;
+    padding:3px 10px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;height:26px;line-height:1.2;display:inline-flex;align-items:center;
+    white-space:nowrap;display:inline-flex;align-items:center;gap:6px;
+  }
+  .cd-btn:hover{background:#16304f}
+  .cd-btn-outline{background:#fff;color:#1e3a5f}
+  .cd-btn-outline:hover{background:#f1f5f9}
+  html[data-theme="dark"] .cd-btn-outline{background:#0f172a;color:#93c5fd;border-color:#475569}
+  html[data-theme="dark"] .cd-btn-outline:hover{background:#1e293b}
+  .cd-btn-ok{background:#fff;color:#15803d;border-color:#86efac}
+  .cd-btn-ok:hover{background:#f0fdf4}
+  .cd-btn-ok .cd-badge{background:#16a34a;color:#fff}
+  .cd-btn-ok.active{background:#16a34a;color:#fff;border-color:#15803d}
+  html[data-theme="dark"] .cd-btn-ok{background:#1e293b;color:#86efac;border-color:#166534}
+  html[data-theme="dark"] .cd-btn-ok.active{background:#166534;color:#fff}
+  .cd-btn-warn{background:#fff;color:#b45309;border-color:#fcd34d}
+  .cd-btn-warn:hover{background:#fffbeb}
+  .cd-btn-warn .cd-badge{background:#f59e0b;color:#fff}
+  .cd-btn-danger{background:#fff;color:#b91c1c;border-color:#fca5a5}
+  .cd-btn-danger:hover{background:#fef2f2}
+  .cd-btn-danger .cd-badge{background:#dc2626;color:#fff}
+  /* Mode aktif: background solid + ring, sangat jelas beda dari idle */
+  .cd-btn.active{
+    box-shadow:0 0 0 3px rgba(30,58,95,.25);
+    transform:translateY(1px);
+    filter:none;
+  }
+  .cd-btn.cd-btn-outline.active,
+  #btnCdBerdampingan.active{
+    background:#1e3a5f !important;color:#fff !important;border-color:#0f2744 !important;
+  }
+  .cd-btn.cd-btn-ok.active,
+  #btnCdAdaUM.active{
+    background:#15803d !important;color:#fff !important;border-color:#166534 !important;
+    box-shadow:0 0 0 3px rgba(22,163,74,.35);
+  }
+  .cd-btn.cd-btn-warn.active,
+  #btnCdBelumAdaUM.active{
+    background:#c2410c !important;color:#fff !important;border-color:#9a3412 !important;
+    box-shadow:0 0 0 3px rgba(234,88,12,.40);
+  }
+  .cd-btn.cd-btn-danger.active,
+  #btnCdUmTanpaFaktur.active{
+    background:#b91c1c !important;color:#fff !important;border-color:#7f1d1d !important;
+    box-shadow:0 0 0 3px rgba(220,38,38,.40);
+  }
+  #btnCdMuat.active{
+    background:#0f2744 !important;color:#fff !important;border-color:#0a1a2e !important;
+    box-shadow:0 0 0 3px rgba(30,58,95,.35);
+  }
+  .cd-btn.active .cd-badge{background:rgba(255,255,255,.28)!important;color:#fff!important}
+  html[data-theme="dark"] .cd-btn.cd-btn-outline.active,
+  html[data-theme="dark"] #btnCdBerdampingan.active{background:#1e3a5f !important;color:#93c5fd !important}
+  html[data-theme="dark"] .cd-btn.cd-btn-ok.active,
+  html[data-theme="dark"] #btnCdAdaUM.active{background:#166534 !important;color:#fff !important}
+  html[data-theme="dark"] .cd-btn.cd-btn-warn.active,
+  html[data-theme="dark"] #btnCdBelumAdaUM.active{background:#9a3412 !important;color:#fff !important}
+  html[data-theme="dark"] .cd-btn.cd-btn-danger.active,
+  html[data-theme="dark"] #btnCdUmTanpaFaktur.active{background:#7f1d1d !important;color:#fff !important}
+  .cd-badge{display:inline-block;padding:0 5px;border-radius:999px;font-size:9.5px;font-weight:700;line-height:1.4}
+  html[data-theme="dark"] .cd-btn-warn{background:#1e293b;color:#fcd34d;border-color:#78350f}
+  html[data-theme="dark"] .cd-btn-danger{background:#1e293b;color:#fca5a5;border-color:#7f1d1d}
+
+  .cd-info-line{font-size:11px;color:#64748b;padding:2px 0}
+  html[data-theme="dark"] .cd-info-line{color:#94a3b8}
+  .cd-info-line b{color:#334155;font-weight:600}
+  html[data-theme="dark"] .cd-info-line b{color:#e2e8f0}
+  .cd-info-line .cd-sep{margin:0 8px;color:#cbd5e1}
+
+  .cd-tables-row{display:flex;gap:12px;flex:1;min-height:0}
+  .cd-table-col{flex:1;min-width:0;display:flex;flex-direction:column;border:1px solid #dce4f0;border-radius:8px;overflow:hidden}
+  html[data-theme="dark"] .cd-table-col{border-color:#334155}
+  .cd-table-head{padding:8px 12px;color:#fff;font-size:12.5px;font-weight:800;letter-spacing:.02em}
+  .cd-table-head.cd-head-penjualan{background:#1E3A8A}
+  .cd-table-head.cd-head-um{background:#C2410C}
+  .cd-table-scroll{flex:1;overflow:auto;background:#fff}
+  html[data-theme="dark"] .cd-table-scroll{background:#0f172a}
+  .cd-table{border-collapse:collapse;width:100%;font-size:11.5px;table-layout:fixed;min-width:520px}
+  .cd-table th{position:sticky;top:0;background:#f1f5f9;color:#475569;text-align:left;padding:6px 8px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;border-bottom:1px solid #dce4f0;white-space:nowrap;z-index:1}
+  html[data-theme="dark"] .cd-table th{background:#1e293b;color:#94a3b8;border-color:#334155}
+  .cd-table td{padding:6px 8px;border-bottom:1px solid #eef2f8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1f2733}
+  html[data-theme="dark"] .cd-table td{border-color:#1e293b;color:#e2e8f0}
+  .cd-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .cd-table tr.cd-row-alt td{background:#fdeef0}
+  html[data-theme="dark"] .cd-table tr.cd-row-alt td{background:#3f1414}
+  .cd-table a.cd-faktur-link{color:#1d4ed8;text-decoration:underline;font-weight:600}
+  html[data-theme="dark"] .cd-table a.cd-faktur-link{color:#93c5fd}
+  .cd-table-empty{padding:30px 14px;text-align:center;color:#64748b;font-size:12.5px}
+  html[data-theme="dark"] .cd-table-empty{color:#94a3b8}
+  @media(max-width:900px){.cd-tables-row{flex-direction:column}.cd-filter-actions{margin-left:0}}
 </style>
 </head>
 <body>
@@ -1221,6 +1354,7 @@
             <div class="bar"></div>
           </div>
           <button type="button" id="btnScanData" onclick="scanDataRun()" title="Wajib pilih Bulan Penjualan dulu (maks. 3 bulan). Scan dibatasi ke bulan terpilih agar tetap cepat.">SCAN DATA</button>
+          <button type="button" class="btn-sub-tab" id="btnContiguousTab" onclick="switchScanSubTab(this,'scan-contiguous-data')" title="Bandingkan Penjualan &amp; Uang Masuk berdampingan per bulan">Contiguous Data</button>
           <button type="button" class="btn-sub-tab active" id="btnSumberTab" onclick="switchScanSubTab(this,'scan-sumber-data')" title="Gabungan 4 sumber: Penjualan, UM, DTH, AR">Sumber Data</button>
           <div class="scan-gear-wrap" id="scanGearWrap">
             <button type="button" class="btn-scan-gear" id="btnScanGear" onclick="toggleScanGearMenu(event)" title="Opsi Scan Data" aria-label="Opsi Scan Data">⚙️</button>
@@ -1245,6 +1379,92 @@
               </button>
               <button type="button" class="gear-menu-action btn-ringkasan-scan" id="btnScanRingkasan" onclick="switchScanSubTab(this,'scan-ringkasan'); closeScanGearMenu();" title="Tampilkan ringkasan hasil Scan Data">📊 Ringkasan</button>
               <button type="button" class="btn-export-excel gear-menu-action" id="btnExportSumberData" onclick="exportSumberDataExcel(); closeScanGearMenu();">⬇️ Download Excel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="scan-panel" id="scan-contiguous-data">
+        <div class="cd-wrap">
+          <div class="cd-kpi-grid">
+            <div class="cd-kpi-card">
+              <div class="cd-kpi-label">Jumlah Faktur</div>
+              <div class="cd-kpi-value" id="cdKpiJumlahFaktur">0</div>
+            </div>
+            <div class="cd-kpi-card">
+              <div class="cd-kpi-label">Total Penjualan</div>
+              <div class="cd-kpi-value" id="cdKpiTotalPenjualan">Rp 0</div>
+            </div>
+            <div class="cd-kpi-card">
+              <div class="cd-kpi-label">Total Uang Masuk</div>
+              <div class="cd-kpi-value" id="cdKpiTotalUangMasuk">Rp 0</div>
+            </div>
+            <div class="cd-kpi-card cd-kpi-danger">
+              <div class="cd-kpi-label">Selisih</div>
+              <div class="cd-kpi-value" id="cdKpiSelisih">Rp 0</div>
+            </div>
+          </div>
+
+          <div class="cd-filter-bar">
+            <div class="cd-filter-group">
+              <label for="cdFilterBulanPenjualan">Bulan Penjualan (filter)</label>
+              <select id="cdFilterBulanPenjualan"></select>
+            </div>
+            <div class="cd-filter-group">
+              <label for="cdFilterBulanUM">Bulan Uang Masuk (filter)</label>
+              <select id="cdFilterBulanUM"></select>
+            </div>
+            <div class="cd-filter-actions">
+              <button type="button" class="cd-btn" id="btnCdMuat" onclick="cdOnMuat()" title="Muat data Penjualan &amp; Uang Masuk sesuai filter">🔄 Muat</button>
+              <button type="button" class="cd-btn cd-btn-outline" id="btnCdBerdampingan" onclick="cdOnBerdampingan()" title="Tampilkan Penjualan &amp; Uang Masuk berdampingan">Berdampingan</button>
+              <button type="button" class="cd-btn cd-btn-ok" id="btnCdAdaUM" onclick="cdOnAdaUM()" title="Penjualan yang sudah ada pasangan Uang Masuk">Ada Uang Masuk <span class="cd-badge" id="cdBadgeAdaUM">0</span></button>
+              <button type="button" class="cd-btn cd-btn-warn" id="btnCdBelumAdaUM" onclick="cdOnBelumAdaUM()" title="Penjualan yang belum ada Uang Masuk">Belum Ada Uang Masuk <span class="cd-badge" id="cdBadgeBelumAdaUM">0</span></button>
+              <button type="button" class="cd-btn cd-btn-danger" id="btnCdUmTanpaFaktur" onclick="cdOnUmTanpaFaktur()" title="Uang Masuk tanpa Faktur Penjualan">UM Tanpa Faktur <span class="cd-badge" id="cdBadgeUmTanpaFaktur">0</span></button>
+            </div>
+          </div>
+
+          <div class="cd-info-line" id="cdInfoLine" style="display:none" aria-hidden="true"></div>
+
+          <div class="cd-tables-row">
+            <div class="cd-table-col">
+              <div class="cd-table-head cd-head-penjualan">PENJUALAN — CASH / TEMPO</div>
+              <div class="cd-table-scroll">
+                <table class="cd-table">
+                  <thead>
+                    <tr>
+                      <th style="width:34px">NO</th>
+                      <th style="width:74px">TGL FAKTUR</th>
+                      <th>NO FAKTUR</th>
+                      <th style="width:64px">SALES</th>
+                      <th style="width:90px">NOMINAL</th>
+                      <th style="width:78px">JENIS BAYAR</th>
+                      <th>CUSTOMER</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cdTablePenjualanBody">
+                    <tr><td colspan="7" class="cd-table-empty">Klik "🔄 Muat" untuk menampilkan data Penjualan.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="cd-table-col">
+              <div class="cd-table-head cd-head-um">UANG MASUK</div>
+              <div class="cd-table-scroll">
+                <table class="cd-table">
+                  <thead>
+                    <tr>
+                      <th style="width:74px">TGL UM</th>
+                      <th>NO FAKTUR</th>
+                      <th>NAMA TOKO</th>
+                      <th>ALAMAT</th>
+                      <th style="width:90px">NOMINAL UM</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cdTableUMBody">
+                    <tr><td colspan="5" class="cd-table-empty">Klik "🔄 Muat" untuk menampilkan data Uang Masuk.</td></tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
@@ -1655,8 +1875,12 @@ function switchScanSubTab(btn, targetId){
   document.querySelectorAll('#scanSubTabs button').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.btn-sub-tab').forEach(b => b.classList.remove('active'));
   const isRingkasan = (targetId === 'scan-ringkasan');
+  const isContiguous = (targetId === 'scan-contiguous-data');
   const btnSumber = document.getElementById('btnSumberTab');
-  if(!isRingkasan){
+  const btnContiguous = document.getElementById('btnContiguousTab');
+  if(isContiguous){
+    if(btnContiguous) btnContiguous.classList.add('active');
+  } else if(!isRingkasan){
     if(btnSumber) btnSumber.classList.add('active');
     else if(btn) btn.classList.add('active');
   }
@@ -1666,6 +1890,19 @@ function switchScanSubTab(btn, targetId){
   if (target) target.classList.add('active');
   const metaExp = document.getElementById('metaExportWrap');
   if(metaExp) metaExp.style.display = 'flex';
+
+  if(isContiguous){
+    // Contiguous Data: isi filter dari hasil SCAN DATA, lalu muat tabel & KPI.
+    try{
+      if(typeof populateCdFilters==='function') populateCdFilters();
+      if(typeof scanResults!=='undefined' && scanResults && scanResults.scanned){
+        if(typeof cdLoadData==='function') cdLoadData({mode: window._cdMode||'all', silent:true});
+      } else if(typeof showToast==='function'){
+        showToast('Belum ada hasil scan. Tekan SCAN DATA dulu, lalu klik 🔄 Muat.');
+      }
+    }catch(e){ console.warn('Contiguous init', e); }
+    return;
+  }
 
   if(typeof scanResults !== 'undefined' && scanResults && scanResults.scanned) {
     if(isRingkasan){
@@ -1695,6 +1932,741 @@ function switchScanSubTab(btn, targetId){
     }
   }
 }
+
+/* ===== CONTIGUOUS DATA =====
+   Hubungkan Muat/Berdampingan ke data Penjualan & Uang Masuk hasil SCAN DATA.
+*/
+window._cdMode = window._cdMode || 'all';
+window._cdLastPen = [];
+window._cdLastUM = [];
+
+function cdMonthLabel(key){
+  if(!key) return 'Semua';
+  try{ return (typeof monthLabel==='function') ? monthLabel(key) : key; }catch(e){ return key; }
+}
+
+function populateCdFilters(){
+  const selPen = document.getElementById('cdFilterBulanPenjualan');
+  const selUM = document.getElementById('cdFilterBulanUM');
+  if(!selPen || !selUM) return;
+
+  const penMonths = new Set();
+  const umMonths = new Set();
+  if(typeof scanResults!=='undefined' && scanResults && scanResults.scanned){
+    (scanResults.scanMonths||[]).forEach(m=>{ if(m) penMonths.add(m); });
+    if(scanResults.penByMonth){
+      for(const k of scanResults.penByMonth.keys()){ if(k) penMonths.add(k); }
+    }
+    (scanResults.penAll||[]).forEach(r=>{
+      const mk = r._mk || (typeof monthKeyFromDate==='function' ? monthKeyFromDate(r.tanggal) : '');
+      if(mk) penMonths.add(mk);
+    });
+    if(scanResults.umByMonth){
+      for(const k of scanResults.umByMonth.keys()){ if(k) umMonths.add(k); }
+    }
+    (scanResults.umAll||[]).forEach(r=>{
+      const mk = r._mk || (typeof monthKeyFromDate==='function' ? monthKeyFromDate(r.tanggal) : '');
+      if(mk) umMonths.add(mk);
+    });
+    if(scanResults.activeUmMonth) umMonths.add(scanResults.activeUmMonth);
+  }
+  const penSorted = [...penMonths].filter(Boolean).sort();
+  const umSorted = [...umMonths].filter(Boolean).sort();
+
+  const curPen = selPen.value;
+  const curUM = selUM.value;
+  selPen.innerHTML = '<option value="">Semua bulan</option>' +
+    penSorted.map(k=>'<option value="'+k+'">'+escScan(cdMonthLabel(k))+'</option>').join('');
+  selUM.innerHTML = '<option value="">Semua bulan</option>' +
+    umSorted.map(k=>'<option value="'+k+'">'+escScan(cdMonthLabel(k))+'</option>').join('');
+
+  const defaultPen = (scanResults && (scanResults.scanMonths||[]).length)
+    ? scanResults.scanMonths[scanResults.scanMonths.length-1]
+    : (penSorted[penSorted.length-1] || '');
+  const defaultUM = (scanResults && scanResults.activeUmMonth)
+    || defaultPen
+    || (umSorted[umSorted.length-1] || '');
+
+  if(curPen && penSorted.includes(curPen)) selPen.value = curPen;
+  else if(defaultPen && penSorted.includes(defaultPen)) selPen.value = defaultPen;
+
+  if(curUM && umSorted.includes(curUM)) selUM.value = curUM;
+  else if(defaultUM && umSorted.includes(defaultUM)) selUM.value = defaultUM;
+}
+
+function cdGetJenisBayar(row){
+  const p = String((row && (row.pembayaran || row.jenis)) || '').toUpperCase();
+  if(/TEMPO/.test(p)) return 'TEMPO';
+  if(/CASH|TUNAI|KAS/.test(p)) return 'CASH';
+  return p || '';
+}
+
+function cdUmMonthKey(r){
+  // Samakan logika Rekap Uang Masuk: r.bulan || Tanggal_Laporan.slice(0,7)
+  if(!r) return '';
+  if(r.bulan) return String(r.bulan).trim();
+  const t = r.tanggal || r.Tanggal_Laporan || '';
+  const s = String(t||'').trim();
+  if(/^\d{4}-\d{2}/.test(s)) return s.slice(0,7);
+  return (typeof monthKeyFromDate==='function' ? monthKeyFromDate(t) : '') || '';
+}
+
+function cdPenMonthKey(r){
+  if(!r) return '';
+  if(r._mk) return r._mk;
+  if(r.bulan) return String(r.bulan).trim();
+  return (typeof monthKeyFromDate==='function' ? monthKeyFromDate(r.tanggal) : '') || '';
+}
+
+/** Baca data LIVE dari iframe Rekap (sumber sama dengan KPI Rekap). */
+function cdFetchLivePenjualan(){
+  try{
+    const pi = document.getElementById('iframe-penjualan');
+    const pw = pi && pi.contentWindow;
+    if(!pw || typeof pw.__SCAN_GET_PENJUALAN!=='function') return null;
+    const rows = pw.__SCAN_GET_PENJUALAN() || [];
+    return Array.isArray(rows) ? rows : null;
+  }catch(e){ console.warn('cdFetchLivePenjualan', e); return null; }
+}
+
+function cdFetchLiveUangMasuk(){
+  try{
+    const ui = document.getElementById('iframe-uangmasuk');
+    const uw = ui && ui.contentWindow;
+    if(!uw || typeof uw.__SCAN_GET_UANGMASUK!=='function') return null;
+    const rows = uw.__SCAN_GET_UANGMASUK() || [];
+    return Array.isArray(rows) ? rows : null;
+  }catch(e){ console.warn('cdFetchLiveUangMasuk', e); return null; }
+}
+
+async function cdRefreshPenjualanBridge(){
+  try{
+    const pi = document.getElementById('iframe-penjualan');
+    const pw = pi && pi.contentWindow;
+    if(pw && typeof pw.__SCAN_REFRESH_PENJUALAN==='function'){
+      await Promise.resolve(pw.__SCAN_REFRESH_PENJUALAN());
+    }
+  }catch(e){ console.warn('cdRefreshPenjualanBridge', e); }
+}
+
+function cdNormalizePenRow(r){
+  // Bridge bisa mengembalikan format scanAllRows ATAU materialisedRows
+  if(!r) return null;
+  const faktur = String(r.faktur ?? r['No. Faktur'] ?? '').trim();
+  const tanggal = r.tanggal || r.Tanggal || '';
+  const sales = String(r.sales || r.Sales || '').trim();
+  const customer = String(r.customer || r.Customer || '').trim();
+  const alamat = String(r.alamat || r.Alamat || '').trim();
+  const total = scanNum(r.total != null ? r.total : r.Total);
+  const pembayaran = String(r.pembayaran || r.Pembayaran || '').trim();
+  const jenis = String(r.jenis || '').trim();
+  const produk = String(r.produk || r.Produk || '').trim();
+  return {
+    faktur, tanggal, sales, customer, alamat, total,
+    pembayaran, jenis, produk,
+    _mk: monthKeyFromDate(tanggal) || ''
+  };
+}
+
+function cdNormalizeUmRow(r){
+  if(!r) return null;
+  const faktur = String(r.faktur ?? r.No_Faktur ?? '').trim();
+  const tanggal = r.tanggal || r.Tanggal_Laporan || '';
+  const sales = String(r.sales || r.Sales || '').trim();
+  const customer = String(r.customer || r.Nama_Toko || '').trim();
+  const alamat = String(r.alamat || r.Alamat || '').trim();
+  const total = scanNum(r.total != null ? r.total : r.Total);
+  const jenis = String(r.jenis || r.Jenis || '').trim();
+  const bulan = r.bulan || (String(tanggal||'').match(/^\d{4}-\d{2}/) ? String(tanggal).slice(0,7) : '') || monthKeyFromDate(tanggal) || '';
+  return {
+    faktur, tanggal, sales, customer, alamat, total, jenis, bulan,
+    _mk: bulan || monthKeyFromDate(tanggal) || ''
+  };
+}
+
+function cdGroupByFaktur(rows){
+  // Satu baris per No Faktur — nominal dijumlah (sama seperti groupByInvoice scan)
+  const map = new Map();
+  (rows||[]).forEach((r, idx)=>{
+    const k = normScan(r.faktur) || ('__NOFAKTUR__'+idx);
+    if(!map.has(k)){
+      map.set(k, Object.assign({}, r, { total: 0 }));
+    }
+    const o = map.get(k);
+    o.total += scanNum(r.total);
+    if(!o.tanggal && r.tanggal) o.tanggal = r.tanggal;
+    if(!o.sales && r.sales) o.sales = r.sales;
+    if(!o.customer && r.customer) o.customer = r.customer;
+    if(!o.alamat && r.alamat) o.alamat = r.alamat;
+    if(!o.pembayaran && r.pembayaran) o.pembayaran = r.pembayaran;
+    if(!o.jenis && r.jenis) o.jenis = r.jenis;
+    if(!o._mk && r._mk) o._mk = r._mk;
+  });
+  return [...map.values()];
+}
+
+function cdCollectPenRows(bulanKeyOrKeys, jenisBayar, rawOverride){
+  let raw = rawOverride;
+  if(!raw){
+    // Prioritas: live iframe → cache scanResults
+    const live = cdFetchLivePenjualan();
+    if(live && live.length){
+      raw = live.map(cdNormalizePenRow).filter(Boolean);
+    } else if(scanResults && scanResults.scanned){
+      // gunakan penRawAll (baris mentah) jika ada, else penAll (sudah digroup)
+      if(scanResults.penRawAll && scanResults.penRawAll.length){
+        raw = scanResults.penRawAll.map(cdNormalizePenRow).filter(Boolean);
+      } else {
+        raw = (scanResults.penAll||[]).slice();
+      }
+    } else {
+      raw = [];
+    }
+  }
+  let rows = raw;
+  // bulanKeyOrKeys: string "YYYY-MM" ATAU array of months
+  const monthSet = new Set();
+  if(Array.isArray(bulanKeyOrKeys)){
+    bulanKeyOrKeys.forEach(k=>{ if(k) monthSet.add(k); });
+  } else if(bulanKeyOrKeys){
+    monthSet.add(bulanKeyOrKeys);
+  }
+  if(monthSet.size){
+    rows = rows.filter(r => monthSet.has(cdPenMonthKey(r)));
+  }
+  if(jenisBayar){
+    const want = String(jenisBayar).toUpperCase();
+    rows = rows.filter(r => cdGetJenisBayar(r) === want);
+  }
+  // Group by faktur untuk tampilan tabel (KPI pakai sum total yang sama)
+  rows = cdGroupByFaktur(rows);
+  rows.sort((a,b)=>{
+    const da = parseScanDate(a.tanggal), db = parseScanDate(b.tanggal);
+    const ta = da ? da.getTime() : 0, tb = db ? db.getTime() : 0;
+    if(ta !== tb) return ta - tb;
+    return String(a.faktur||'').localeCompare(String(b.faktur||''),'id');
+  });
+  return rows;
+}
+
+/** Bulan filter + 1 bulan sebelumnya (TEMPO: UM September bayar faktur Agustus). */
+function cdMonthKeysWithPrev(bulanKey){
+  if(!bulanKey) return [];
+  const keys = [bulanKey];
+  try{
+    const p = (typeof prevMonthKey==='function') ? prevMonthKey(bulanKey) : '';
+    if(p) keys.push(p);
+  }catch(e){}
+  return keys;
+}
+
+
+function cdCollectUmRows(bulanKey, rawOverride){
+  let raw = rawOverride;
+  if(!raw){
+    const live = cdFetchLiveUangMasuk();
+    if(live && live.length){
+      raw = live.map(cdNormalizeUmRow).filter(Boolean);
+    } else if(scanResults && scanResults.scanned){
+      if(scanResults.umRawAll && scanResults.umRawAll.length){
+        raw = scanResults.umRawAll.map(cdNormalizeUmRow).filter(Boolean);
+      } else {
+        raw = (scanResults.umAll||[]).slice();
+      }
+    } else {
+      raw = [];
+    }
+  }
+  let rows = raw;
+  if(bulanKey){
+    rows = rows.filter(r => cdUmMonthKey(r) === bulanKey);
+  }
+  // Group by faktur agar baris sejajar dengan penjualan; total nominal tetap dijumlah
+  rows = cdGroupByFaktur(rows);
+  rows.sort((a,b)=>{
+    const da = parseScanDate(a.tanggal), db = parseScanDate(b.tanggal);
+    const ta = da ? da.getTime() : 0, tb = db ? db.getTime() : 0;
+    if(ta !== tb) return ta - tb;
+    return String(a.faktur||'').localeCompare(String(b.faktur||''),'id');
+  });
+  return rows;
+}
+
+function cdBuildFakturSet(rows){
+  const s = new Set();
+  (rows||[]).forEach(r=>{
+    const k = normScan(r.faktur);
+    if(k && !String(k).startsWith('__UM_NOFAKTUR__') && !String(k).startsWith('__NOFAKTUR__')) s.add(k);
+  });
+  return s;
+}
+
+/** Map jenis bayar Penjualan ↔ Uang Masuk
+ *  Penjualan TEMPO  ↔ UM PIUTANG TEMPO
+ *  Penjualan CASH   ↔ UM CASH DROPPING
+ */
+function cdPaymentSide(row, isUM){
+  if(!row) return '';
+  if(isUM){
+    const j = String(row.jenis || row.Jenis || '').toUpperCase();
+    if(/PIUTANG|TEMPO/.test(j)) return 'TEMPO';
+    if(/CASH|DROPPING|TUNAI|KAS/.test(j)) return 'CASH';
+    return j || '';
+  }
+  // Penjualan
+  const p = String(row.pembayaran || row.Pembayaran || row.jenis || '').toUpperCase();
+  if(/TEMPO/.test(p)) return 'TEMPO';
+  if(/CASH|TUNAI|KAS/.test(p)) return 'CASH';
+  return p || '';
+}
+
+function cdPaymentCompatible(pen, um){
+  const a = cdPaymentSide(pen, false);
+  const b = cdPaymentSide(um, true);
+  // Jika salah satu kosong, jangan blokir (data tidak lengkap)
+  if(!a || !b) return true;
+  return a === b;
+}
+
+/** Kategori produk: FITRI (Minyak Fitri) / RUPA_RUPA / CAMPURAN / '' */
+function cdProdukKategori(row){
+  if(!row) return '';
+  if(row.produkKategori) return String(row.produkKategori).toUpperCase();
+  if(row.produkList && row.produkList.length && typeof produkKategoriFromSet==='function'){
+    try{ return produkKategoriFromSet(new Set(row.produkList)) || ''; }catch(e){}
+  }
+  const p = String(row.produk || row.Produk || '').trim();
+  if(!p) return '';
+  if(typeof isFitriProdukName==='function' && isFitriProdukName(p)) return 'FITRI';
+  return 'RUPA_RUPA';
+}
+
+/**
+ * Apakah Penjualan & UM dianggap pasangan yang sama?
+ * Urutan cek:
+ *  1) No Faktur exact + identitas (Customer/Alamat/Sales) lolos
+ *  2) No Faktur exact + Customer mirip (longgar) — alamat/sales boleh beda
+ *  3) No Faktur typo 1 digit + identitas ketat
+ *  4) Jenis bayar harus kompatibel (TEMPO↔Piutang, CASH↔Cash Dropping) bila keduanya ada
+ * Produk (Fitri/Rupa2) dipakai sebagai sinyal tambahan, tidak memblokir jika UM tanpa produk.
+ */
+function cdIsPair(pen, um){
+  if(!pen || !um) return false;
+  if(!cdPaymentCompatible(pen, um)) return false;
+
+  const f1 = normScan(pen.faktur);
+  const f2 = normScan(um.faktur);
+  if(!f2 || String(f2).startsWith('__UM_NOFAKTUR__') || String(f2).startsWith('__NOFAKTUR__')){
+    // UM tanpa no faktur: hanya cocok jika identitas sangat mirip + nominal dekat (opsional longgar)
+    // Default: TIDAK dianggap punya pasangan faktur
+    return false;
+  }
+  if(!f1) return false;
+
+  const idScore = (typeof scanIdentityScore==='function') ? scanIdentityScore(pen, um) : 0;
+  const custScore = (typeof similarityScan==='function')
+    ? similarityScan(normScanIdentity(pen.customer), normScanIdentity(um.customer))
+    : 0;
+
+  if(f1 === f2){
+    // Exact faktur
+    if(idScore >= 0.85) return true;
+    // Longgar: customer masih mirip
+    if(custScore >= 0.5) return true;
+    return false;
+  }
+
+  // Typo 1 karakter pada No Faktur + identitas ketat
+  if(typeof fakturTypoMatch==='function' && fakturTypoMatch(f1, f2) && idScore >= 0.85){
+    return true;
+  }
+  return false;
+}
+
+/** Index UM by faktur + list all — untuk pencarian cepat */
+function cdBuildUmIndex(umRows){
+  const byFaktur = new Map();
+  const all = umRows || [];
+  all.forEach(u=>{
+    const k = normScan(u.faktur);
+    if(!k || String(k).startsWith('__UM_NOFAKTUR__') || String(k).startsWith('__NOFAKTUR__')) return;
+    if(!byFaktur.has(k)) byFaktur.set(k, []);
+    byFaktur.get(k).push(u);
+  });
+  return { byFaktur, all };
+}
+
+function cdBuildPenIndex(penRows){
+  const byFaktur = new Map();
+  const all = penRows || [];
+  all.forEach(p=>{
+    const k = normScan(p.faktur);
+    if(!k || String(k).startsWith('__NOFAKTUR__')) return;
+    if(!byFaktur.has(k)) byFaktur.set(k, []);
+    byFaktur.get(k).push(p);
+  });
+  return { byFaktur, all };
+}
+
+function cdPenHasUmMatch(pen, umIndex){
+  if(!pen || !umIndex) return false;
+  const k = normScan(pen.faktur);
+  // Cek kandidat same-faktur dulu
+  const kandidat = (k && umIndex.byFaktur.get(k)) || [];
+  for(let i=0;i<kandidat.length;i++){
+    if(cdIsPair(pen, kandidat[i])) return true;
+  }
+  // Cek typo: scan UM dengan panjang mirip (mahal — batasi)
+  // Hanya jika belum ketemu & faktur ada
+  if(k && k.length >= 8 && typeof fakturTypoMatch==='function'){
+    for(let i=0;i<umIndex.all.length;i++){
+      const u = umIndex.all[i];
+      const uk = normScan(u.faktur);
+      if(!uk || uk === k) continue;
+      if(Math.abs(uk.length - k.length) > 1) continue;
+      if(cdIsPair(pen, u)) return true;
+    }
+  }
+  return false;
+}
+
+function cdUmHasPenMatch(um, penIndex){
+  if(!um || !penIndex) return false;
+  const k = normScan(um.faktur);
+  if(!k || String(k).startsWith('__UM_NOFAKTUR__') || String(k).startsWith('__NOFAKTUR__')){
+    return false; // tanpa no faktur = benar-benar tanpa pasangan faktur
+  }
+  const kandidat = penIndex.byFaktur.get(k) || [];
+  for(let i=0;i<kandidat.length;i++){
+    if(cdIsPair(kandidat[i], um)) return true;
+  }
+  if(k.length >= 8 && typeof fakturTypoMatch==='function'){
+    for(let i=0;i<penIndex.all.length;i++){
+      const p = penIndex.all[i];
+      const pk = normScan(p.faktur);
+      if(!pk || pk === k) continue;
+      if(Math.abs(pk.length - k.length) > 1) continue;
+      if(cdIsPair(p, um)) return true;
+    }
+  }
+  return false;
+}
+
+function cdApplyMode(penRows, umRows, mode, penForMatch){
+  mode = mode || 'all';
+  // penForMatch: pool penjualan untuk matching (biasanya bulan filter + bulan sebelumnya)
+  // supaya UM September yang bayar faktur Agustus tidak dianggap "tanpa faktur"
+  const penMatchPool = (penForMatch && penForMatch.length) ? penForMatch : penRows;
+  const umIndex = cdBuildUmIndex(umRows);
+  const penIndex = cdBuildPenIndex(penMatchPool);
+
+  if(mode === 'adaUM'){
+    // Penjualan yang SUDAH ada pasangan UM (+ UM yang cocok)
+    penRows = penRows.filter(p => cdPenHasUmMatch(p, umIndex));
+    umRows = umRows.filter(u => cdUmHasPenMatch(u, penIndex));
+    const orderKey = r => normScan(r.faktur)+'|'+String(r.tanggal||'');
+    penRows.sort((a,b)=> orderKey(a).localeCompare(orderKey(b)));
+    umRows.sort((a,b)=> orderKey(a).localeCompare(orderKey(b)));
+  } else if(mode === 'belumUM'){
+    // Penjualan (bulan tampilan) yang belum punya pasangan UM di bulan UM terpilih
+    penRows = penRows.filter(p => !cdPenHasUmMatch(p, umIndex));
+    umRows = [];
+  } else if(mode === 'umTanpaFaktur'){
+    // UM yang tidak punya pasangan di pool penjualan (bulan UM + prev)
+    umRows = umRows.filter(u => !cdUmHasPenMatch(u, penIndex));
+    penRows = [];
+  } else if(mode === 'berdampingan'){
+    // Penjualan bulan tampilan yang cocok ke UM, dan UM yang cocok ke pool pen
+    const penMatched = penRows.filter(p => cdPenHasUmMatch(p, umIndex));
+    const umMatched = umRows.filter(u => cdUmHasPenMatch(u, penIndex));
+    const orderKey = r => normScan(r.faktur)+'|'+String(r.tanggal||'');
+    penMatched.sort((a,b)=> orderKey(a).localeCompare(orderKey(b)));
+    umMatched.sort((a,b)=> orderKey(a).localeCompare(orderKey(b)));
+    penRows = penMatched;
+    umRows = umMatched;
+  }
+  return { penRows, umRows, umIndex, penIndex };
+}
+
+function cdUpdateKpis(penRows, umRows, allPen, allUm){
+  const totalPen = (penRows||[]).reduce((n,x)=> n + scanNum(x.total), 0);
+  const totalUm = (umRows||[]).reduce((n,x)=> n + scanNum(x.total), 0);
+  const selisih = totalPen - totalUm;
+
+  const elJ = document.getElementById('cdKpiJumlahFaktur');
+  const elP = document.getElementById('cdKpiTotalPenjualan');
+  const elU = document.getElementById('cdKpiTotalUangMasuk');
+  const elS = document.getElementById('cdKpiSelisih');
+  if(elJ) elJ.textContent = (penRows||[]).length.toLocaleString('id-ID');
+  if(elP) elP.textContent = rupiahScan(totalPen);
+  if(elU) elU.textContent = rupiahScan(totalUm);
+  if(elS){
+    elS.textContent = rupiahScan(selisih);
+    const card = elS.closest('.cd-kpi-card');
+    if(card) card.classList.toggle('cd-kpi-danger', Math.abs(selisih) > 0.5);
+  }
+
+  // Badge: matching penuh. UM Tanpa Faktur memakai pool pen + bulan sebelumnya
+  // (argumen ke-5 opsional: penForMatch). Fallback = basePen.
+  const basePen = allPen || penRows || [];
+  const baseUm = allUm || umRows || [];
+  const penMatchPool = (arguments.length >= 5 && arguments[4] && arguments[4].length) ? arguments[4] : basePen;
+  const umIndex = cdBuildUmIndex(baseUm);
+  const penIndex = cdBuildPenIndex(penMatchPool);
+  const adaUM = basePen.filter(p => cdPenHasUmMatch(p, umIndex)).length;
+  const belumUM = basePen.filter(p => !cdPenHasUmMatch(p, umIndex)).length;
+  const umTanpa = baseUm.filter(u => !cdUmHasPenMatch(u, penIndex)).length;
+
+  const b0 = document.getElementById('cdBadgeAdaUM');
+  const b1 = document.getElementById('cdBadgeBelumAdaUM');
+  const b2 = document.getElementById('cdBadgeUmTanpaFaktur');
+  if(b0) b0.textContent = String(adaUM);
+  if(b1) b1.textContent = String(belumUM);
+  if(b2) b2.textContent = String(umTanpa);
+  const i0 = document.getElementById('cdInfoAdaUM');
+  if(i0) i0.textContent = String(adaUM);
+  const i1 = document.getElementById('cdInfoBelumAdaUM');
+  if(i1) i1.textContent = String(belumUM);
+}
+
+function cdRenderPenTable(rows){
+  const tbody = document.getElementById('cdTablePenjualanBody');
+  if(!tbody) return;
+  if(!rows || !rows.length){
+    tbody.innerHTML = '<tr><td colspan="7" class="cd-table-empty">Tidak ada data Penjualan untuk filter ini.</td></tr>';
+    return;
+  }
+  const MAX = 3000;
+  const slice = rows.length > MAX ? rows.slice(0, MAX) : rows;
+  const html = slice.map((r,i)=>{
+    const jb = cdGetJenisBayar(r) || '-';
+    const alt = (i % 2 === 1) ? ' class="cd-row-alt"' : '';
+    return '<tr'+alt+'>'+
+      '<td>'+(i+1)+'</td>'+
+      '<td>'+escScan(formatScanDate(r.tanggal))+'</td>'+
+      '<td><a class="cd-faktur-link" href="javascript:void(0)" onclick="openCdFakturModal(\'pen\','+i+')" title="Buka detail faktur">'+escScan(r.faktur||'')+'</a></td>'+
+      '<td>'+escScan(r.sales||'')+'</td>'+
+      '<td class="num">'+rupiahScan(r.total)+'</td>'+
+      '<td>'+escScan(jb)+'</td>'+
+      '<td title="'+escScan(r.customer||'')+'">'+escScan(r.customer||'')+'</td>'+
+      '</tr>';
+  }).join('');
+  tbody.innerHTML = html + (rows.length > MAX
+    ? '<tr><td colspan="7" class="cd-table-empty">Menampilkan '+MAX.toLocaleString('id-ID')+' dari '+rows.length.toLocaleString('id-ID')+' baris.</td></tr>'
+    : '');
+}
+
+function cdRenderUmTable(rows){
+  const tbody = document.getElementById('cdTableUMBody');
+  if(!tbody) return;
+  if(!rows || !rows.length){
+    tbody.innerHTML = '<tr><td colspan="5" class="cd-table-empty">Tidak ada data Uang Masuk untuk filter ini.</td></tr>';
+    return;
+  }
+  const MAX = 3000;
+  const slice = rows.length > MAX ? rows.slice(0, MAX) : rows;
+  const html = slice.map((r,i)=>{
+    const alt = (i % 2 === 1) ? ' class="cd-row-alt"' : '';
+    const toko = r.customer || r.toko || r.nama_outlet || '';
+    return '<tr'+alt+'>'+
+      '<td>'+escScan(formatScanDate(r.tanggal))+'</td>'+
+      '<td><a class="cd-faktur-link" href="javascript:void(0)" onclick="openCdFakturModal(\'um\','+i+')" title="Buka detail faktur">'+escScan(r.faktur||'(tanpa no faktur)')+'</a></td>'+
+      '<td title="'+escScan(toko)+'">'+escScan(toko)+'</td>'+
+      '<td title="'+escScan(r.alamat||'')+'">'+escScan(r.alamat||'')+'</td>'+
+      '<td class="num">'+rupiahScan(r.total)+'</td>'+
+      '</tr>';
+  }).join('');
+  tbody.innerHTML = html + (rows.length > MAX
+    ? '<tr><td colspan="5" class="cd-table-empty">Menampilkan '+MAX.toLocaleString('id-ID')+' dari '+rows.length.toLocaleString('id-ID')+' baris.</td></tr>'
+    : '');
+}
+
+function cdUpdateInfoLine(bulanPen, bulanUM, penCount, umCount){
+  const ip = document.getElementById('cdInfoBulanPenjualan');
+  const iu = document.getElementById('cdInfoBulanUM');
+  const bp = document.getElementById('cdInfoBarisPenjualan');
+  const bu = document.getElementById('cdInfoBarisUM');
+  if(ip) ip.textContent = bulanPen ? cdMonthLabel(bulanPen) : 'Semua';
+  if(iu) iu.textContent = bulanUM ? cdMonthLabel(bulanUM) : 'Semua';
+  if(bp) bp.textContent = String(penCount||0);
+  if(bu) bu.textContent = String(umCount||0);
+}
+
+function cdSetActiveModeButtons(mode){
+  const map = {
+    all: 'btnCdMuat',
+    berdampingan: 'btnCdBerdampingan',
+    adaUM: 'btnCdAdaUM',
+    belumUM: 'btnCdBelumAdaUM',
+    umTanpaFaktur: 'btnCdUmTanpaFaktur'
+  };
+  Object.keys(map).forEach(k=>{
+    const el = document.getElementById(map[k]);
+    if(!el) return;
+    if(k === mode) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+}
+
+function cdPopulateMonthsFromLive(penRaw, umRaw){
+  const selPen = document.getElementById('cdFilterBulanPenjualan');
+  const selUM = document.getElementById('cdFilterBulanUM');
+  if(!selPen || !selUM) return;
+  const penMonths = new Set();
+  const umMonths = new Set();
+  (penRaw||[]).forEach(r=>{ const k=cdPenMonthKey(r); if(k) penMonths.add(k); });
+  (umRaw||[]).forEach(r=>{ const k=cdUmMonthKey(r); if(k) umMonths.add(k); });
+  // merge dengan opsi yang sudah ada
+  [...selPen.options].forEach(o=>{ if(o.value) penMonths.add(o.value); });
+  [...selUM.options].forEach(o=>{ if(o.value) umMonths.add(o.value); });
+  const curPen = selPen.value, curUM = selUM.value;
+  const penSorted = [...penMonths].filter(Boolean).sort();
+  const umSorted = [...umMonths].filter(Boolean).sort();
+  selPen.innerHTML = '<option value="">Semua bulan</option>' +
+    penSorted.map(k=>'<option value="'+k+'">'+escScan(cdMonthLabel(k))+'</option>').join('');
+  selUM.innerHTML = '<option value="">Semua bulan</option>' +
+    umSorted.map(k=>'<option value="'+k+'">'+escScan(cdMonthLabel(k))+'</option>').join('');
+  if(curPen && penSorted.includes(curPen)) selPen.value = curPen;
+  else if(penSorted.length) selPen.value = penSorted[penSorted.length-1];
+  if(curUM && umSorted.includes(curUM)) selUM.value = curUM;
+  else if(umSorted.length) selUM.value = umSorted[umSorted.length-1];
+}
+
+async function cdLoadData(opts){
+  opts = opts || {};
+  const mode = opts.mode || window._cdMode || 'all';
+  window._cdMode = mode;
+  cdSetActiveModeButtons(mode);
+
+  // 1) Refresh bridge penjualan agar baca SEMUA baris IndexedDB (bukan hanya yang terfilter di UI)
+  try{ await cdRefreshPenjualanBridge(); }catch(e){}
+
+  let penLive = cdFetchLivePenjualan();
+  let umLive = cdFetchLiveUangMasuk();
+  let penRaw = null, umRaw = null;
+
+  if(penLive && penLive.length){
+    penRaw = penLive.map(cdNormalizePenRow).filter(Boolean);
+  }
+  if(umLive && umLive.length){
+    umRaw = umLive.map(cdNormalizeUmRow).filter(Boolean);
+  }
+
+  // Fallback ke hasil SCAN jika iframe kosong
+  const hasLive = (penRaw && penRaw.length) || (umRaw && umRaw.length);
+  const hasScan = scanResults && scanResults.scanned;
+  if(!hasLive && !hasScan){
+    const msg = 'Belum ada data Penjualan / Uang Masuk.\n\nPastikan tab Rekap Penjualan & Rekap Uang Masuk sudah berisi data, lalu klik 🔄 Muat lagi.';
+    if(!opts.silent){
+      try{ alert(msg); }catch(e){}
+      if(typeof showToast==='function') showToast('Data Rekap masih kosong.');
+    }
+    const tp = document.getElementById('cdTablePenjualanBody');
+    const tu = document.getElementById('cdTableUMBody');
+    if(tp) tp.innerHTML = '<tr><td colspan="7" class="cd-table-empty">Belum ada data. Buka Rekap Penjualan & pastikan data sudah termuat.</td></tr>';
+    if(tu) tu.innerHTML = '<tr><td colspan="5" class="cd-table-empty">Belum ada data. Buka Rekap Uang Masuk & pastikan data sudah termuat.</td></tr>';
+    return;
+  }
+
+  // Isi opsi bulan dari data live
+  try{ cdPopulateMonthsFromLive(penRaw, umRaw); }catch(e){}
+
+  const bulanPen = (document.getElementById('cdFilterBulanPenjualan')||{}).value || '';
+  const bulanUM = (document.getElementById('cdFilterBulanUM')||{}).value || '';
+  // Satu sumber filter bayar: tombol CASH / TEMPO di toolbar Scan (scanBayarQuick)
+  const jenisBayar = (typeof scanBayarQuick!=='undefined' && scanBayarQuick) ? scanBayarQuick : '';
+
+  // Tampilan: sesuai filter bulan yang dipilih user
+  let penRows = cdCollectPenRows(bulanPen, jenisBayar, penRaw);
+  let umRows = cdCollectUmRows(bulanUM, umRaw);
+  // Filter UM juga ikut CASH/TEMPO (Cash Dropping / Piutang Tempo)
+  if(jenisBayar){
+    const want = String(jenisBayar).toUpperCase();
+    umRows = umRows.filter(u => cdPaymentSide(u, true) === want);
+  }
+
+  // Pool matching Penjualan = bulan Penjualan + bulan UM + masing-masing 1 bulan sebelumnya
+  // Contoh: UM Sep bayar faktur Tempo Agustus → tetap ketemu, bukan "UM Tanpa Faktur"
+  const matchMonths = new Set();
+  cdMonthKeysWithPrev(bulanPen).forEach(k => matchMonths.add(k));
+  cdMonthKeysWithPrev(bulanUM).forEach(k => matchMonths.add(k));
+  // Jika filter bulan kosong (=semua), pakai semua penRows sebagai pool
+  let penForMatch;
+  if(matchMonths.size){
+    penForMatch = cdCollectPenRows([...matchMonths], jenisBayar, penRaw);
+  } else {
+    penForMatch = penRows.slice();
+  }
+
+  const basePen = penRows.slice();
+  const baseUm = umRows.slice();
+
+  const applied = cdApplyMode(penRows, umRows, mode, penForMatch);
+  penRows = applied.penRows;
+  umRows = applied.umRows;
+
+  window._cdLastPen = penRows;
+  window._cdLastUM = umRows;
+
+  cdUpdateKpis(penRows, umRows, basePen, baseUm, penForMatch);
+  cdUpdateInfoLine(bulanPen, bulanUM, penRows.length, umRows.length);
+  cdRenderPenTable(penRows);
+  cdRenderUmTable(umRows);
+
+  if(!opts.silent){
+    const src = hasLive ? 'live Rekap' : 'hasil SCAN';
+    const modeLabel = ({
+      all: 'Semua data',
+      berdampingan: 'Berdampingan (faktur cocok)',
+      adaUM: 'Ada Uang Masuk',
+      belumUM: 'Belum Ada Uang Masuk',
+      umTanpaFaktur: 'UM Tanpa Faktur'
+    })[mode] || mode;
+    const msg = 'Contiguous ('+src+'): '+modeLabel+' — Pen '+penRows.length.toLocaleString('id-ID')+' / UM '+umRows.length.toLocaleString('id-ID');
+    if(typeof showToast==='function') showToast(msg);
+  }
+}
+
+function cdOnMuat(){ try{ Promise.resolve(cdLoadData({mode:'all'})).catch(function(e){ console.error(e); alert('Error Muat: '+(e&&e.message||e)); }); }catch(e){ console.error(e); alert('Error Muat: '+(e&&e.message||e)); } }
+function cdOnBerdampingan(){ try{ Promise.resolve(cdLoadData({mode:'berdampingan'})).catch(function(e){ console.error(e); alert('Error: '+(e&&e.message||e)); }); }catch(e){ console.error(e); alert('Error: '+(e&&e.message||e)); } }
+function cdOnAdaUM(){ try{ Promise.resolve(cdLoadData({mode:'adaUM'})).catch(function(e){ console.error(e); alert('Error: '+(e&&e.message||e)); }); }catch(e){ console.error(e); alert('Error: '+(e&&e.message||e)); } }
+function cdOnBelumAdaUM(){ try{ Promise.resolve(cdLoadData({mode:'belumUM'})).catch(function(e){ console.error(e); alert('Error: '+(e&&e.message||e)); }); }catch(e){ console.error(e); alert('Error: '+(e&&e.message||e)); } }
+function cdOnUmTanpaFaktur(){ try{ Promise.resolve(cdLoadData({mode:'umTanpaFaktur'})).catch(function(e){ console.error(e); alert('Error: '+(e&&e.message||e)); }); }catch(e){ console.error(e); alert('Error: '+(e&&e.message||e)); } }
+
+// Wire tombol Contiguous Data — onclick di HTML + binding JS sebagai cadangan
+(function initContiguousDataUI(){
+  function bind(){
+    const pairs = [
+      ['btnCdMuat', cdOnMuat],
+      ['btnCdBerdampingan', cdOnBerdampingan],
+      ['btnCdAdaUM', cdOnAdaUM],
+      ['btnCdBelumAdaUM', cdOnBelumAdaUM],
+      ['btnCdUmTanpaFaktur', cdOnUmTanpaFaktur]
+    ];
+    pairs.forEach(function(pair){
+      const el = document.getElementById(pair[0]);
+      if(el){
+        el.onclick = pair[1];
+        // pastikan cursor pointer
+        el.style.cursor = 'pointer';
+      }
+    });
+    ['cdFilterBulanPenjualan','cdFilterBulanUM'].forEach(function(id){
+      const el = document.getElementById(id);
+      if(el && !el._cdBound){
+        el.addEventListener('change', function(){
+          if(scanResults && scanResults.scanned) cdLoadData({mode: window._cdMode||'all', silent:true});
+        });
+        el._cdBound = true;
+      }
+    });
+    console.log('[Contiguous Data] tombol Muat/Berdampingan terhubung');
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
+  else bind();
+  // bind ulang setelah load penuh (iframe/script lambat)
+  window.addEventListener('load', function(){ setTimeout(bind, 300); });
+})();
 
 function renderScanRingkasan(){
   const box=document.getElementById('scanRingkasanContent');
@@ -1813,6 +2785,13 @@ function toggleBayarQuick(val){
   updateBayarQuickButtons();
   updateScanFilterMenuState();
   scheduleScanFilters(0);
+  // Contiguous Data pakai tombol CASH/TEMPO yang sama — refresh jika panel aktif
+  try{
+    const cd = document.getElementById('scan-contiguous-data');
+    if(cd && cd.classList.contains('active') && typeof cdLoadData==='function'){
+      cdLoadData({mode: window._cdMode||'all', silent:true});
+    }
+  }catch(e){}
 }
 function updateBayarQuickButtons(){
   const bc=document.getElementById('btnBayarCash');
@@ -4427,12 +5406,57 @@ function exportUmOnlyExcel(){
    Tutup via tombol ×, klik backdrop, atau tombol Escape. */
 var UM_STATUS_LABEL = {lunas:'Lunas (dari UM)', titip:'Titip (dari UM)', beda:'Nominal Beda (dari UM)'};
 
+function openCdFakturModal(side, idx){
+  try{
+    const rows = (side === 'um') ? (window._cdLastUM || []) : (window._cdLastPen || []);
+    const r0 = rows[idx];
+    if(!r0){ if(typeof showToast==='function') showToast('Baris faktur tidak ditemukan.'); return; }
+    // Siapkan baris kompatibel modal Scan
+    const r = {
+      faktur: r0.faktur || '',
+      tanggal: r0.tanggal || '',
+      sales: r0.sales || '',
+      customer: r0.customer || '',
+      alamat: r0.alamat || '',
+      pembayaran: r0.pembayaran || (side==='um' ? '' : (r0.jenis || '')),
+      total: r0.total || 0,
+      produkKategori: r0.produkKategori || '',
+      produkList: r0.produkList || null,
+      jenis: r0.jenis || '',
+      um: side==='um' ? { total: r0.total, jenis: r0.jenis || '', tanggal: r0.tanggal || '' } : null,
+      _fromContiguous: true,
+      _cdSide: side
+    };
+    // Coba lengkapi produk dari penRawByFaktur / live scan cache
+    if(side!=='um' && r.faktur){
+      try{
+        const rawMap = (scanResults && scanResults.penRawByFaktur) || null;
+        if(rawMap && rawMap.get){
+          const rawRows = rawMap.get(normScan(r.faktur)) || [];
+          if(rawRows.length){
+            const pset = new Set();
+            rawRows.forEach(rr=>{ if(rr.produk) pset.add(String(rr.produk).trim()); });
+            r.produkList = [...pset];
+            if(typeof produkKategoriFromSet==='function') r.produkKategori = produkKategoriFromSet(pset) || r.produkKategori;
+          }
+        }
+      }catch(e){}
+    }
+    window._cdModalRows = [r];
+    openFakturModal('contiguous', 0);
+  }catch(e){
+    console.error('openCdFakturModal', e);
+    alert('Gagal buka detail faktur: '+(e&&e.message||e));
+  }
+}
+
 function openFakturModal(pageKey, idx){
   try{
     const data = pageKey==='tidak' ? (scanResults.tidak||[])
       : pageKey==='ada' ? (scanResults.ada||[])
       : pageKey==='umOnly' ? (scanResults.umOnly||[])
       : pageKey==='sumberData' ? (scanResults.sumberData||[])
+      : pageKey==='contiguous' ? (window._cdModalRows||[])
       : [];
     let r = data[idx];
     if(!r) return;
@@ -4477,11 +5501,14 @@ function openFakturModal(pageKey, idx){
       };
     }
 
-    const isUmSide = pageKey==='umOnly' || !!r.umReconciled;
+    const isUmSide = pageKey==='umOnly' || !!r.umReconciled || (pageKey==='contiguous' && r._cdSide==='um');
     _currentModalKind = isUmSide ? 'umonly' : 'penjualan';
 
     let titleBadge;
-    if(pageKey==='sumberData') titleBadge = 'Sumber Data · Penjualan';
+    if(pageKey==='contiguous'){
+      titleBadge = (r._cdSide==='um') ? 'Contiguous · Uang Masuk' : 'Contiguous · Penjualan';
+    }
+    else if(pageKey==='sumberData') titleBadge = 'Sumber Data · Penjualan';
     else if(pageKey==='umOnly') titleBadge = 'UM Tanpa Faktur';
     else if(r.umReconciled) titleBadge = UM_STATUS_LABEL[r.manualStatus] || 'Dari UM';
     else if(pageKey==='ada') titleBadge = r.manualStatus==='titip' ? 'Titip (manual)'
@@ -5707,6 +6734,7 @@ function triggerPwaInstall() {
 })();
 </script>
 
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
