@@ -1155,6 +1155,9 @@
   .cd-btn-warn .cd-badge{background:#f59e0b;color:#fff}
   .cd-btn-danger{background:#fff;color:#b91c1c;border-color:#fca5a5}
   .cd-btn-danger:hover{background:#fef2f2}
+  .cd-btn-titip{background:#fff;color:#b45309;border-color:#f59e0b}
+  .cd-btn-titip:hover{background:#fffbeb}
+  .cd-btn-titip .cd-badge{background:#d97706;color:#fff}
   .cd-btn-danger .cd-badge{background:#dc2626;color:#fff}
   /* Mode aktif: background solid + ring, sangat jelas beda dari idle */
   .cd-btn.active{
@@ -1181,6 +1184,11 @@
     background:#b91c1c !important;color:#fff !important;border-color:#7f1d1d !important;
     box-shadow:0 0 0 3px rgba(220,38,38,.40);
   }
+  .cd-btn.cd-btn-titip.active,
+  #btnCdUmBeda.active{
+    background:#d97706 !important;color:#fff !important;border-color:#b45309 !important;
+    box-shadow:0 0 0 3px rgba(217,119,6,.35);
+  }
   #btnCdMuat.active{
     background:#0f2744 !important;color:#fff !important;border-color:#0a1a2e !important;
     box-shadow:0 0 0 3px rgba(30,58,95,.35);
@@ -1197,6 +1205,7 @@
   .cd-badge{display:inline-block;padding:0 5px;border-radius:999px;font-size:9.5px;font-weight:700;line-height:1.4}
   html[data-theme="dark"] .cd-btn-warn{background:#1e293b;color:rgba(252,211,77,.55);border-color:#78350f}
   html[data-theme="dark"] .cd-btn-danger{background:#1e293b;color:rgba(252,165,165,.55);border-color:#7f1d1d}
+  html[data-theme="dark"] .cd-btn-titip{background:#1e293b;color:rgba(252,211,77,.65);border-color:#92400e}
   /* Contiguous filter: font idle redup, aktif lebih terang */
   html[data-theme="dark"] .cd-btn{color:rgba(203,213,225,.5)}
   html[data-theme="dark"] .cd-btn-outline{background:#0f172a;color:rgba(147,197,253,.5);border-color:#334155}
@@ -1216,6 +1225,8 @@
   html[data-theme="dark"] #btnCdBelumAdaUM.active{background:#9a3412!important;color:#fff!important}
   html[data-theme="dark"] .cd-btn.cd-btn-danger.active,
   html[data-theme="dark"] #btnCdUmTanpaFaktur.active{background:#7f1d1d!important;color:#fff!important}
+  html[data-theme="dark"] .cd-btn.cd-btn-titip.active,
+  html[data-theme="dark"] #btnCdUmBeda.active{background:#b45309!important;color:#fff!important}
 
   .cd-info-line{font-size:11px;color:#64748b;padding:2px 0}
   html[data-theme="dark"] .cd-info-line{color:#94a3b8}
@@ -1473,6 +1484,7 @@
               <button type="button" class="cd-btn" id="btnCdMuat" onclick="cdOnMuat()" title="Muat data Penjualan &amp; Uang Masuk sesuai filter">🔄 Muat</button>
               <button type="button" class="cd-btn cd-btn-outline" id="btnCdBerdampingan" onclick="cdOnBerdampingan()" title="Tampilkan Penjualan &amp; Uang Masuk berdampingan">Berdampingan</button>
               <button type="button" class="cd-btn cd-btn-ok" id="btnCdAdaUM" onclick="cdOnAdaUM()" title="Penjualan yang sudah ada pasangan Uang Masuk">Ada Uang Masuk <span class="cd-badge" id="cdBadgeAdaUM">0</span></button>
+              <button type="button" class="cd-btn cd-btn-titip" id="btnCdUmBeda" onclick="cdOnUmBeda()" title="Tampilkan Penjualan yang sudah ada Uang Masuk tetapi nominal UM berbeda — termasuk TITIP / bayar sebagian">UM Beda / Titip <span class="cd-badge" id="cdBadgeUmBeda">0</span></button>
               <button type="button" class="cd-btn cd-btn-warn" id="btnCdBelumAdaUM" onclick="cdOnBelumAdaUM()" title="Penjualan yang belum ada Uang Masuk">Belum Ada Uang Masuk <span class="cd-badge" id="cdBadgeBelumAdaUM">0</span></button>
               <button type="button" class="cd-btn cd-btn-danger" id="btnCdUmTanpaFaktur" onclick="cdOnUmTanpaFaktur()" title="Uang Masuk tanpa Faktur Penjualan">UM Tanpa Faktur <span class="cd-badge" id="cdBadgeUmTanpaFaktur">0</span></button>
             </div>
@@ -2400,6 +2412,26 @@ function cdBuildPenIndex(penRows){
   return { byFaktur, typo, all, memo: new Map() };
 }
 
+function cdFindUmPair(pen, umIndex){
+  if(!pen || !umIndex) return null;
+  const k = normScan(pen.faktur);
+  if(!k) return null;
+  const kandidat = umIndex.byFaktur.get(k) || [];
+  for(let i=0;i<kandidat.length;i++){
+    if(cdIsPair(pen, kandidat[i])) return kandidat[i];
+  }
+  // Fallback typo 1 karakter, memakai index yang sama seperti cdPenHasUmMatch.
+  if(k.length >= 8 && typeof fakturTypoMatch==='function' && umIndex.typo){
+    const cands = cdNeighborCandidates(umIndex.typo, k);
+    for(let i=0;i<cands.length;i++){
+      const u = cands[i];
+      if(normScan(u.faktur) === k) continue;
+      if(cdIsPair(pen, u)) return u;
+    }
+  }
+  return null;
+}
+
 function cdPenHasUmMatch(pen, umIndex){
   if(!pen || !umIndex) return false;
   if(umIndex.memo && umIndex.memo.has(pen)) return umIndex.memo.get(pen);
@@ -2473,6 +2505,20 @@ function cdApplyMode(penRows, umRows, mode, penForMatch, idx){
     // Penjualan (bulan tampilan) yang belum punya pasangan UM di bulan UM terpilih
     penRows = penRows.filter(p => !cdPenHasUmMatch(p, umIndex));
     umRows = [];
+  } else if(mode === 'umBeda'){
+    // Ada pasangan faktur yang valid, tetapi total Uang Masuk tidak sama dengan total Penjualan.
+    // Contoh: Penjualan Rp1.000.000, UM Rp500.000 => TITIP / bayar sebagian.
+    const pairs = new Map();
+    penRows = penRows.filter(p => {
+      const u = cdFindUmPair(p, umIndex);
+      const beda = !!u && Math.abs(scanNum(p.total) - scanNum(u.total)) > 0.5;
+      if(beda) pairs.set(u, p);
+      return beda;
+    });
+    umRows = umRows.filter(u => pairs.has(u));
+    const orderKey = r => normScan(r.faktur)+'|'+String(r.tanggal||'');
+    penRows.sort((a,b)=> orderKey(a).localeCompare(orderKey(b)));
+    umRows.sort((a,b)=> orderKey(a).localeCompare(orderKey(b)));
   } else if(mode === 'umTanpaFaktur'){
     // UM yang tidak punya pasangan di pool penjualan (bulan UM + prev)
     umRows = umRows.filter(u => !cdUmHasPenMatch(u, penIndex));
@@ -2519,13 +2565,19 @@ function cdUpdateKpis(penRows, umRows, allPen, allUm, penForMatchArg, idx){
   const adaUM = basePen.filter(p => cdPenHasUmMatch(p, umIndex)).length;
   const belumUM = basePen.length - adaUM;
   const umTanpa = baseUm.filter(u => !cdUmHasPenMatch(u, penIndex)).length;
+  const umBeda = basePen.filter(p => {
+    const u = cdFindUmPair(p, umIndex);
+    return !!u && Math.abs(scanNum(p.total) - scanNum(u.total)) > 0.5;
+  }).length;
 
   const b0 = document.getElementById('cdBadgeAdaUM');
   const b1 = document.getElementById('cdBadgeBelumAdaUM');
   const b2 = document.getElementById('cdBadgeUmTanpaFaktur');
+  const b3 = document.getElementById('cdBadgeUmBeda');
   if(b0) b0.textContent = String(adaUM);
   if(b1) b1.textContent = String(belumUM);
   if(b2) b2.textContent = String(umTanpa);
+  if(b3) b3.textContent = String(umBeda);
   const i0 = document.getElementById('cdInfoAdaUM');
   if(i0) i0.textContent = String(adaUM);
   const i1 = document.getElementById('cdInfoBelumAdaUM');
@@ -2549,8 +2601,8 @@ function cdRenderPenTable(rows){
       '<td>'+escScan(formatScanDate(r.tanggal))+'</td>'+
       '<td><a class="cd-faktur-link" href="javascript:void(0)" onclick="openCdFakturModal(\'pen\','+i+')" title="Buka detail faktur">'+escScan(r.faktur||'')+'</a></td>'+
       '<td>'+escScan(r.sales||'')+'</td>'+
-      '<td class="num">'+rupiahScan(r.total)+'</td>'+
-      '<td>'+escScan(jb)+'</td>'+
+      '<td class="num" title="'+escScan(window._cdMode==='umBeda'?'Nominal Penjualan — dibandingkan dengan Uang Masuk':'')+'">'+rupiahScan(r.total)+'</td>'+
+      '<td>'+escScan(jb)+(window._cdMode==='umBeda' ? ' <span style="color:#b45309;font-weight:700">• BEDA</span>' : '')+'</td>'+
       '<td title="'+escScan(r.customer||'')+'">'+escScan(r.customer||'')+'</td>'+
       '</tr>';
   }).join('');
@@ -2576,7 +2628,7 @@ function cdRenderUmTable(rows){
       '<td><a class="cd-faktur-link" href="javascript:void(0)" onclick="openCdFakturModal(\'um\','+i+')" title="Buka detail faktur">'+escScan(r.faktur||'(tanpa no faktur)')+'</a></td>'+
       '<td title="'+escScan(toko)+'">'+escScan(toko)+'</td>'+
       '<td title="'+escScan(r.alamat||'')+'">'+escScan(r.alamat||'')+'</td>'+
-      '<td class="num">'+rupiahScan(r.total)+'</td>'+
+      '<td class="num" title="'+escScan(window._cdMode==='umBeda'?'Nominal Uang Masuk — dibandingkan dengan Penjualan':'')+'">'+rupiahScan(r.total)+'</td>'+
       '</tr>';
   }).join('');
   tbody.innerHTML = html + (rows.length > MAX
@@ -2600,6 +2652,7 @@ function cdSetActiveModeButtons(mode){
     all: 'btnCdMuat',
     berdampingan: 'btnCdBerdampingan',
     adaUM: 'btnCdAdaUM',
+    umBeda: 'btnCdUmBeda',
     belumUM: 'btnCdBelumAdaUM',
     umTanpaFaktur: 'btnCdUmTanpaFaktur'
   };
@@ -2744,6 +2797,7 @@ async function cdLoadData(opts){
       all: 'Semua data',
       berdampingan: 'Berdampingan (faktur cocok)',
       adaUM: 'Ada Uang Masuk',
+      umBeda: 'UM Beda / Titip',
       belumUM: 'Belum Ada Uang Masuk',
       umTanpaFaktur: 'UM Tanpa Faktur'
     })[mode] || mode;
@@ -2755,6 +2809,7 @@ async function cdLoadData(opts){
 function cdOnMuat(){ try{ Promise.resolve(cdLoadData({mode:'all'})).catch(function(e){ console.error(e); alert('Error Muat: '+(e&&e.message||e)); }); }catch(e){ console.error(e); alert('Error Muat: '+(e&&e.message||e)); } }
 function cdOnBerdampingan(){ try{ Promise.resolve(cdLoadData({mode:'berdampingan', reuse:true})).catch(function(e){ console.error(e); alert('Error: '+(e&&e.message||e)); }); }catch(e){ console.error(e); alert('Error: '+(e&&e.message||e)); } }
 function cdOnAdaUM(){ try{ Promise.resolve(cdLoadData({mode:'adaUM', reuse:true})).catch(function(e){ console.error(e); alert('Error: '+(e&&e.message||e)); }); }catch(e){ console.error(e); alert('Error: '+(e&&e.message||e)); } }
+function cdOnUmBeda(){ try{ Promise.resolve(cdLoadData({mode:'umBeda', reuse:true})).catch(function(e){ console.error(e); alert('Error: '+(e&&e.message||e)); }); }catch(e){ console.error(e); alert('Error: '+(e&&e.message||e)); } }
 function cdOnBelumAdaUM(){ try{ Promise.resolve(cdLoadData({mode:'belumUM', reuse:true})).catch(function(e){ console.error(e); alert('Error: '+(e&&e.message||e)); }); }catch(e){ console.error(e); alert('Error: '+(e&&e.message||e)); } }
 function cdOnUmTanpaFaktur(){ try{ Promise.resolve(cdLoadData({mode:'umTanpaFaktur', reuse:true})).catch(function(e){ console.error(e); alert('Error: '+(e&&e.message||e)); }); }catch(e){ console.error(e); alert('Error: '+(e&&e.message||e)); } }
 
@@ -2765,6 +2820,7 @@ function cdOnUmTanpaFaktur(){ try{ Promise.resolve(cdLoadData({mode:'umTanpaFakt
       ['btnCdMuat', cdOnMuat],
       ['btnCdBerdampingan', cdOnBerdampingan],
       ['btnCdAdaUM', cdOnAdaUM],
+      ['btnCdUmBeda', cdOnUmBeda],
       ['btnCdBelumAdaUM', cdOnBelumAdaUM],
       ['btnCdUmTanpaFaktur', cdOnUmTanpaFaktur]
     ];
