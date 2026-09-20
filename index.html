@@ -2535,6 +2535,37 @@ function cdUmHasPenMatchRaw(um, penIndex){
   return false;
 }
 
+/* ===== Penandaan manual utk mode "UM Beda / Titip" (Contiguous Data) =====
+   Baris di mode umBeda dihitung dari selisih nominal Penjualan vs Uang Masuk.
+   Kalau user sudah cek manual & menandai baris (LUNAS / TITIP / Nominal Beda
+   lewat modal detail faktur), baris tsb dianggap SELESAI dan tidak ditampilkan
+   lagi di mode umBeda. Tandaan dibaca dari 2 sistem yang sudah ada:
+   - getUmReconcileStatus() : tandaan dari sisi Uang Masuk
+   - getFakturStatus()      : tandaan batal/titip/lunas dari sisi Penjualan   */
+function cdMarkedStatus(f){
+  if(!f) return null;
+  var k = String(f).trim();
+  if(!k) return null;
+  try{ if(typeof getUmReconcileStatus==='function'){ var s1=getUmReconcileStatus(k); if(s1) return s1; } }catch(e){}
+  try{ if(typeof getFakturStatus==='function'){ var s2=getFakturStatus(k); if(s2) return s2; } }catch(e){}
+  return null;
+}
+function cdPairSudahDicek(p, u){
+  return !!(cdMarkedStatus(u && u.faktur) || cdMarkedStatus(p && p.faktur));
+}
+/* Refresh tabel Contiguous Data setelah ada penandaan baru, supaya baris yang
+   sudah ditandai langsung hilang tanpa perlu klik ulang tombol mode. */
+function cdRefreshAfterMark(){
+  try{
+    var panel = document.getElementById('scan-contiguous-data');
+    if(!panel) return;
+    if(!(window._cdCache && window._cdCache.loaded)) return;
+    var visible = panel.offsetParent !== null || panel.classList.contains('active');
+    if(!visible) return;
+    Promise.resolve(cdLoadData({mode: window._cdMode || 'all', reuse:true, silent:true})).catch(function(e){ console.warn(e); });
+  }catch(e){ console.warn('cdRefreshAfterMark', e); }
+}
+
 function cdApplyMode(penRows, umRows, mode, penForMatch, idx){
   mode = mode || 'all';
   // penForMatch: pool penjualan untuk matching (biasanya bulan filter + bulan sebelumnya)
@@ -2563,7 +2594,9 @@ function cdApplyMode(penRows, umRows, mode, penForMatch, idx){
     const pairs = [];
     penRows.forEach(p => {
       const u = pairOf.get(p);
-      if(u && Math.abs(scanNum(p.total) - scanNum(u.total)) > 0.5) pairs.push({ p, u });
+      if(!u) return;
+      if(cdPairSudahDicek(p, u)) return; // sudah dicek manual -> jangan tampilkan lagi
+      if(Math.abs(scanNum(p.total) - scanNum(u.total)) > 0.5) pairs.push({ p, u });
     });
     // Urutkan berdasarkan baris Penjualan (bukan pen & UM sendiri-sendiri), supaya
     // baris ke-N di tabel Penjualan & baris ke-N di tabel Uang Masuk selalu merujuk
@@ -2620,6 +2653,7 @@ function cdUpdateKpis(penRows, umRows, allPen, allUm, penForMatchArg, idx){
   const umTanpa = baseUm.filter(u => !cdUmHasPenMatch(u, penIndex)).length;
   let umBeda = 0;
   cdBuildExclusiveUmPairs(basePen, umIndex).forEach((u, p)=>{
+    if(cdPairSudahDicek(p, u)) return; // konsisten dengan tabel mode umBeda
     if(Math.abs(scanNum(p.total) - scanNum(u.total)) > 0.5) umBeda++;
   });
 
@@ -6171,6 +6205,7 @@ function confirmStatusAction(){
   if(ok){
     try{ applyScanFilters(); }catch(e){ console.warn(e); }
     try{ applyBatalHighlightToPenjualanIframe(); }catch(e){}
+    try{ cdRefreshAfterMark(); }catch(e){}
     try{ closeFakturModal(); }catch(e){}
     showToast('Faktur ' + faktur + ' ditandai ' + STATUS_ARMED_LABEL[type].replace('Tandai Transaksi ','').replace('Tandai ','').toUpperCase() + '.');
   }
@@ -6184,6 +6219,7 @@ function unmarkCurrentStatus(){
   var changed = removeBatal(faktur) || removeTitip(faktur) || removeLunas(faktur);
   if(changed){
     try{ applyScanFilters(); }catch(e){}
+    try{ cdRefreshAfterMark(); }catch(e){}
     try{ applyBatalHighlightToPenjualanIframe(); }catch(e){}
     try{ renderFakturModalFooter(_currentFakturModal); }catch(e){}
     showToast('Penandaan dibatalkan untuk ' + faktur + '.');
@@ -6270,6 +6306,7 @@ function confirmUmStatusAction(){
   var ok = setUmReconcile(faktur, type);
   if(ok){
     try{ applyScanFilters(); }catch(e){ console.warn(e); }
+    try{ cdRefreshAfterMark(); }catch(e){}
     try{ closeFakturModal(); }catch(e){}
     showToast('Baris UM ' + faktur + ' dipindahkan ke Penjualan-Ada di UM dengan catatan ' + (UM_STATUS_LABEL[type]||type).toUpperCase() + '.');
   }
@@ -6282,6 +6319,7 @@ function unmarkUmReconcile(){
   var changed = removeUmReconcile(faktur);
   if(changed){
     try{ applyScanFilters(); }catch(e){}
+    try{ cdRefreshAfterMark(); }catch(e){}
     try{ closeFakturModal(); }catch(e){}
     showToast('Baris UM ' + faktur + ' dikembalikan ke sub-tab UM-Tidak Ada di Penjualan.');
   }
