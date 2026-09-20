@@ -2432,6 +2432,56 @@ function cdFindUmPair(pen, umIndex){
   return null;
 }
 
+/** Cari pasangan UM untuk tiap baris Penjualan secara EKSKLUSIF — 1 baris UM
+ *  hanya boleh dipakai sebagai pasangan untuk 1 baris Penjualan.
+ *  Tanpa ini, faktur yang mirip (typo 1 digit) bisa "berebut" UM yang sama
+ *  dengan faktur exact-match-nya, sehingga jumlah baris Penjualan & UM di
+ *  mode "UM Beda / Titip" jadi tidak sinkron (Penjualan > UM).
+ *  Pass 1: exact match untuk SEMUA baris dulu (prioritas tertinggi).
+ *  Pass 2: baris yang masih belum dapat pasangan, baru dicoba typo-match,
+ *  memakai UM yang belum "diklaim" di pass 1.
+ */
+function cdBuildExclusiveUmPairs(penRows, umIndex){
+  const usedUm = new Set();
+  const pairOf = new Map(); // pen row -> um row
+
+  function tryExact(p){
+    const k = normScan(p.faktur);
+    if(!k) return null;
+    const kandidat = umIndex.byFaktur.get(k) || [];
+    for(let i=0;i<kandidat.length;i++){
+      const u = kandidat[i];
+      if(usedUm.has(u)) continue;
+      if(cdIsPair(p, u)) return u;
+    }
+    return null;
+  }
+  function tryTypo(p){
+    const k = normScan(p.faktur);
+    if(!k || k.length < 8 || typeof fakturTypoMatch!=='function' || !umIndex.typo) return null;
+    const cands = cdNeighborCandidates(umIndex.typo, k);
+    for(let i=0;i<cands.length;i++){
+      const u = cands[i];
+      if(normScan(u.faktur) === k) continue;
+      if(usedUm.has(u)) continue;
+      if(cdIsPair(p, u)) return u;
+    }
+    return null;
+  }
+
+  (penRows||[]).forEach(p=>{
+    const u = tryExact(p);
+    if(u){ usedUm.add(u); pairOf.set(p, u); }
+  });
+  (penRows||[]).forEach(p=>{
+    if(pairOf.has(p)) return;
+    const u = tryTypo(p);
+    if(u){ usedUm.add(u); pairOf.set(p, u); }
+  });
+
+  return pairOf;
+}
+
 function cdPenHasUmMatch(pen, umIndex){
   if(!pen || !umIndex) return false;
   if(umIndex.memo && umIndex.memo.has(pen)) return umIndex.memo.get(pen);
@@ -2506,19 +2556,22 @@ function cdApplyMode(penRows, umRows, mode, penForMatch, idx){
     penRows = penRows.filter(p => !cdPenHasUmMatch(p, umIndex));
     umRows = [];
   } else if(mode === 'umBeda'){
-    // Ada pasangan faktur yang valid, tetapi total Uang Masuk tidak sama dengan total Penjualan.
+    // Ada pasangan faktur yang valid (1 UM cuma dipakai untuk 1 Penjualan, lihat
+    // cdBuildExclusiveUmPairs), tetapi total Uang Masuk tidak sama dengan total Penjualan.
     // Contoh: Penjualan Rp1.000.000, UM Rp500.000 => TITIP / bayar sebagian.
-    const pairs = new Map();
-    penRows = penRows.filter(p => {
-      const u = cdFindUmPair(p, umIndex);
-      const beda = !!u && Math.abs(scanNum(p.total) - scanNum(u.total)) > 0.5;
-      if(beda) pairs.set(u, p);
-      return beda;
+    const pairOf = cdBuildExclusiveUmPairs(penRows, umIndex);
+    const pairs = [];
+    penRows.forEach(p => {
+      const u = pairOf.get(p);
+      if(u && Math.abs(scanNum(p.total) - scanNum(u.total)) > 0.5) pairs.push({ p, u });
     });
-    umRows = umRows.filter(u => pairs.has(u));
+    // Urutkan berdasarkan baris Penjualan (bukan pen & UM sendiri-sendiri), supaya
+    // baris ke-N di tabel Penjualan & baris ke-N di tabel Uang Masuk selalu merujuk
+    // ke pasangan faktur/toko yang sama — memudahkan cek berdampingan.
     const orderKey = r => normScan(r.faktur)+'|'+String(r.tanggal||'');
-    penRows.sort((a,b)=> orderKey(a).localeCompare(orderKey(b)));
-    umRows.sort((a,b)=> orderKey(a).localeCompare(orderKey(b)));
+    pairs.sort((a,b)=> orderKey(a.p).localeCompare(orderKey(b.p)));
+    penRows = pairs.map(x => x.p);
+    umRows = pairs.map(x => x.u);
   } else if(mode === 'umTanpaFaktur'){
     // UM yang tidak punya pasangan di pool penjualan (bulan UM + prev)
     umRows = umRows.filter(u => !cdUmHasPenMatch(u, penIndex));
@@ -2565,10 +2618,10 @@ function cdUpdateKpis(penRows, umRows, allPen, allUm, penForMatchArg, idx){
   const adaUM = basePen.filter(p => cdPenHasUmMatch(p, umIndex)).length;
   const belumUM = basePen.length - adaUM;
   const umTanpa = baseUm.filter(u => !cdUmHasPenMatch(u, penIndex)).length;
-  const umBeda = basePen.filter(p => {
-    const u = cdFindUmPair(p, umIndex);
-    return !!u && Math.abs(scanNum(p.total) - scanNum(u.total)) > 0.5;
-  }).length;
+  let umBeda = 0;
+  cdBuildExclusiveUmPairs(basePen, umIndex).forEach((u, p)=>{
+    if(Math.abs(scanNum(p.total) - scanNum(u.total)) > 0.5) umBeda++;
+  });
 
   const b0 = document.getElementById('cdBadgeAdaUM');
   const b1 = document.getElementById('cdBadgeBelumAdaUM');
