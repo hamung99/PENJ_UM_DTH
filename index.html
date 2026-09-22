@@ -4457,183 +4457,218 @@ function initScanMonthDropdown(){
 function scanDataRun(){
   if(scanBusy) return;
   scanBusy=true; setScanButtonBusy(true);
+
+  // Safety net: kalau dalam 5 menit scan belum selesai (apa pun penyebabnya),
+  // paksa reset tombol supaya user bisa coba lagi.
+  const __scanWatchdog = setTimeout(function(){
+    if(scanBusy){
+      console.warn('[SCAN] watchdog: scan >5 menit, reset paksa.');
+      scanBusy=false; setScanButtonBusy(false);
+      if(typeof showToast==='function') showToast('SCAN terlalu lama (>5 menit) — dibatalkan paksa.');
+    }
+  }, 5*60*1000);
+
   const sdt=document.getElementById('scanSumberDataTable');
   if(sdt) sdt.innerHTML='<div class="scan-empty">Sedang membaca data...</div>';
   ensureDthLoaded();
+
   let tries=0;
+  let refreshedPen=false;   // ← perbaikan: flag, bukan tries===1
+
+  function finishScan(){
+    clearTimeout(__scanWatchdog);
+    scanBusy=false;
+    setScanButtonBusy(false);
+  }
+
   function attempt(){
     tries++;
-    const pi=document.getElementById('iframe-penjualan'),ui=document.getElementById('iframe-uangmasuk'),di=document.getElementById('iframe-dth');
-    const pw=pi&&pi.contentWindow,uw=ui&&ui.contentWindow,dw=di&&di.contentWindow;
-    const ready=!!pw&&!!uw&&typeof pw.__SCAN_GET_PENJUALAN==='function'&&typeof uw.__SCAN_GET_UANGMASUK==='function';
-    const dthReady=!!dw&&typeof dw.__SCAN_GET_DTH==='function';
-    if(ready && tries===1 && typeof pw.__SCAN_REFRESH_PENJUALAN==='function'){
-      Promise.resolve(pw.__SCAN_REFRESH_PENJUALAN()).finally(function(){ setTimeout(attempt, 50); });
-      return;
-    }
-    const penRaw=ready?(pw.__SCAN_GET_PENJUALAN()||[]):[];
-    const umRaw=ready?(uw.__SCAN_GET_UANGMASUK()||[]):[];
-    // DTH: tunggu sampai skrip iframe SIAP + data IndexedDB selesai dimuat
-    // (flag __DTH_DATA_READY). Kalau hanya cek keberadaan fungsi __SCAN_GET_DTH,
-    // scan bisa jalan saat allData masih [] → kolom "Di DTH?" semuanya "Tidak".
-    const dthFnReady = !!dw && typeof dw.__SCAN_GET_DTH==='function';
-    const dthDataReady = dthFnReady && (dw.__DTH_DATA_READY === true);
-    const dthStillBooting = !dthDataReady && tries<40;
-    if((!ready || (penRaw.length===0 && umRaw.length===0) || dthStillBooting) && tries<40){setTimeout(attempt,250);return;}
-    const dthRaw=dthFnReady?(dw.__SCAN_GET_DTH()||[]):[];
-    const dthFakturSet=new Set(dthRaw.map(x=>normScan(x.faktur)).filter(Boolean));
-    const dthByFaktur=new Map();
-    dthRaw.forEach(x=>{
-      const k=normScan(x.faktur);
-      if(!k) return;
-      const prev=dthByFaktur.get(k);
-      if(!prev){ dthByFaktur.set(k,x); return; }
-      // Simpan entri DTH dengan tanggal dropping TERAKHIR (bukan yang pertama ketemu)
-      const dNew=parseScanDate(x.tanggal);
-      const dOld=parseScanDate(prev.tanggal);
-      if(dNew && (!dOld || dNew.getTime()>dOld.getTime())) dthByFaktur.set(k,x);
-    });
+    try {
+      const pi=document.getElementById('iframe-penjualan'),
+            ui=document.getElementById('iframe-uangmasuk'),
+            di=document.getElementById('iframe-dth');
+      const pw=pi&&pi.contentWindow, uw=ui&&ui.contentWindow, dw=di&&di.contentWindow;
+      const ready=!!pw&&!!uw&&typeof pw.__SCAN_GET_PENJUALAN==='function'&&typeof uw.__SCAN_GET_UANGMASUK==='function';
 
-    // Basis bulan Scan: wajib dari filter Bulan Penjualan, atau fallback bulan aktif UM.
-    // Tanpa bulan → hentikan SCAN (hindari proses 100k+ baris penuh di main thread).
-    let activeUmMonth='';
-    try{
-      if(typeof uw.__SCAN_GET_ACTIVE_MONTH==='function') activeUmMonth=String(uw.__SCAN_GET_ACTIVE_MONTH()||'').trim();
-    }catch(e){ activeUmMonth=''; }
+      if(ready && !refreshedPen && typeof pw.__SCAN_REFRESH_PENJUALAN==='function'){
+        refreshedPen=true;
+        console.log('[SCAN] memanggil refresh penjualan…');
+        let done=false;
+        const tRef=setTimeout(function(){
+          if(!done){ console.warn('[SCAN] refresh penjualan timeout 15s, lanjut saja.'); }
+        }, 15000);
+        Promise.resolve(pw.__SCAN_REFRESH_PENJUALAN())
+          .catch(function(e){ console.warn('[SCAN] refresh error:', e); })
+          .finally(function(){
+            done=true; clearTimeout(tRef);
+            setTimeout(attempt, 50);
+          });
+        return;
+      }
 
-    // Checkbox adalah sumber kebenaran UI (select multiple kadang tidak sinkron).
-    const selectedPenMonths = (typeof getUiPenMonths==='function' ? getUiPenMonths() : [])
-      .map(v=>String(v||'').trim()).filter(Boolean);
-    let scanMonths = selectedPenMonths.length ? selectedPenMonths.slice() : (activeUmMonth ? [activeUmMonth] : []);
-    // Jika belum ada pilihan (pertama kali / dropdown masih kosong): ambil bulan terakhir dari data.
-    if(!scanMonths.length){
-      // Prioritas: cache ringan dari IndexedDB (initScanMonthDropdown) — tidak perlu memindai penRaw.
-      let sortedMonths=(_scanKnownMonthsCache && _scanKnownMonthsCache.length) ? _scanKnownMonthsCache.slice() : [];
-      if(!sortedMonths.length){
-        // Fallback lama: derive dari penRaw penuh (dipakai hanya bila cache IndexedDB belum sempat terisi)
-        const monthSetTmp=new Set();
-        (penRaw||[]).forEach(r=>{
-          const mk=monthKeyFromDate(r && r.tanggal);
-          if(mk) monthSetTmp.add(mk);
-        });
-        sortedMonths=[...monthSetTmp].sort();
+      const penRaw=ready?(pw.__SCAN_GET_PENJUALAN()||[]):[];
+      const umRaw =ready?(uw.__SCAN_GET_UANGMASUK()||[]):[];
+
+      const dthFnReady   = !!dw && typeof dw.__SCAN_GET_DTH==='function';
+      const dthDataReady = dthFnReady && (dw.__DTH_DATA_READY === true);
+      // DTH tunggu lebih singkat (10 detik saja), jangan sampai menahan scan.
+      const dthStillBooting = !dthDataReady && tries<40;
+
+      if((!ready || (penRaw.length===0 && umRaw.length===0) || dthStillBooting) && tries<40){
+        setTimeout(attempt, 250);
+        return;
       }
-      if(sortedMonths.length){
-        scanMonths=[sortedMonths[sortedMonths.length-1]];
-        try{
-          // Sinkronkan UI agar user tahu bulan yang dipakai
-          const el=document.getElementById('fltBulanPenj');
-          if(el){
-            // Pastikan opsi ada
-            if(![...el.options].some(o=>o.value===scanMonths[0])){
-              const opt=document.createElement('option');
-              opt.value=scanMonths[0]; opt.textContent=scanMonths[0]; opt.selected=true;
-              el.appendChild(opt);
-            } else {
-              [...el.options].forEach(o=>{ o.selected = (o.value===scanMonths[0]); });
-            }
-          }
-          if(typeof fillScanMonthDropdown==='function') fillScanMonthDropdown(sortedMonths);
-          if(typeof updateScanMonthButton==='function'){
-            document.querySelectorAll('#fltBulanPenjOptions input[type="checkbox"]').forEach(cb=>{
-              cb.checked = (cb.value===scanMonths[0]);
-            });
-            updateScanMonthButton();
-          }
-        }catch(e){}
-      }
-    }
-    if(!scanMonths.length){
-      alert('Pilih minimal 1 bulan di filter "Bulan Penjualan" sebelum menekan SCAN DATA.\n\nIni wajib agar scan tidak memproses seluruh histori (bisa puluhan/ratusan ribu baris).');
-      scanBusy=false; setScanButtonBusy(false);
+
+      console.log('[SCAN] penRaw='+penRaw.length+' umRaw='+umRaw.length+' tries='+tries);
+
+      const dthRaw = dthFnReady?(dw.__SCAN_GET_DTH()||[]):[];
+      const dthFakturSet=new Set(dthRaw.map(x=>normScan(x.faktur)).filter(Boolean));
+      const dthByFaktur=new Map();
+      dthRaw.forEach(x=>{
+        const k=normScan(x.faktur);
+        if(!k) return;
+        const prev=dthByFaktur.get(k);
+        if(!prev){ dthByFaktur.set(k,x); return; }
+        const dNew=parseScanDate(x.tanggal);
+        const dOld=parseScanDate(prev.tanggal);
+        if(dNew && (!dOld || dNew.getTime()>dOld.getTime())) dthByFaktur.set(k,x);
+      });
+
+      let activeUmMonth='';
       try{
-        const btn=document.getElementById('fltBulanPenjBtn');
-        if(btn) btn.focus();
-      }catch(e){}
-      return;
-    }
+        if(typeof uw.__SCAN_GET_ACTIVE_MONTH==='function') activeUmMonth=String(uw.__SCAN_GET_ACTIVE_MONTH()||'').trim();
+      }catch(e){ activeUmMonth=''; }
 
-    const monthOf = r => monthKeyFromDate(r && r.tanggal) || '';
-    const scanMonthSet = new Set(scanMonths);
-    // Histori +1 bulan sebelumnya per bulan terpilih (TEMPO: UM September vs Penjualan Agustus)
-    const historyMonthSet = new Set(scanMonths);
-    scanMonths.forEach(m=>{ const p=prevMonthKey(m); if(p) historyMonthSet.add(p); });
+      const selectedPenMonths=(typeof getUiPenMonths==='function'?getUiPenMonths():[])
+        .map(v=>String(v||'').trim()).filter(Boolean);
+      let scanMonths=selectedPenMonths.length?selectedPenMonths.slice():(activeUmMonth?[activeUmMonth]:[]);
 
-    const penRawActive = penRaw.filter(r=>scanMonthSet.has(monthOf(r)));
-    const penRawHistory = penRaw.filter(r=>historyMonthSet.has(monthOf(r)));
-    // UM default: bulan aktif UM jika ada, else bulan scan
-    const umMonthFocus = activeUmMonth || scanMonths[scanMonths.length-1];
-    const umRawActive = umMonthFocus ? umRaw.filter(r=>monthOf(r)===umMonthFocus) : umRaw.slice();
-
-    // Penjualan aktif = bulan yang dipilih user.
-    // Histori terbatas (bulan terpilih + 1 bulan sebelumnya) untuk matching UM TEMPO.
-    let pen=groupByInvoice(penRawActive,false);
-    let penHistoryAll=groupByInvoice(penRawHistory,false);
-    // UM: tetap index semua bulan agar filter Bulan UM multi-pilih berfungsi,
-    // tapi matching default memakai um aktif.
-    let umAllGrouped=groupByInvoice(umRaw,true);
-    let um=groupByInvoice(umRawActive,true);
-    const penByMonth=buildMonthIndex(penHistoryAll);
-    const penHistoryByMonth=penByMonth;
-    const umByMonth=buildMonthIndex(umAllGrouped);
-    const penKeys=new Set(pen.map(x=>normScan(x.faktur)).filter(Boolean));
-    // Index baris mentah hanya untuk bulan histori terbatas (bukan seluruh 150k).
-    const penRawByFaktur=new Map();
-    (penRawHistory||[]).forEach(r=>{
-      const k=normScan(r.faktur);
-      if(!k) return;
-      if(!penRawByFaktur.has(k)) penRawByFaktur.set(k,[]);
-      penRawByFaktur.get(k).push(r);
-    });
-    scanResults={
-      ada:[],tidak:[],umOnly:[],sumberData:[],scanned:true,
-      // Default: nominal Rp 0 tidak tampil di tabel utama (kelompok terpisah)
-      tidakViewMode:'normal', modeKandidatMinus:false, tidakNolCount:0,
-      penAll:pen,
-      // Histori terbatas (bulan scan + prev) untuk mesin UM-Tidak Ada di Penjualan.
-      penHistoryAll,
-      penRawActive,
-      // Sumber Data & export: hanya bulan yang dipilih (bukan seluruh histori)
-      penRawAll:penRawActive,
-      penRawEvery:penRaw, // seluruh Penjualan (referensi) — hanya utk lookup faktur AR di luar bulan scan
-      penRawByFaktur,
-      // UM aktif tetap dipakai untuk Sumber Data agar perilaku tab lama tidak berubah.
-      umRawAll:umRaw,
-      umAll:umAllGrouped,
-      activeUmMonth,
-      scanMonths:scanMonths.slice(),
-      penByMonth,penHistoryByMonth,umByMonth,penKeys,
-      dthLoaded:dthDataReady,
-      dthFakturSet,dthByFaktur,
-      // Data mentah DTH. Index typo 1-edit dibangun LAZY (saat lookup typo pertama),
-      // dan hanya untuk DTH di bulan relevan — hindari freeze di data besar.
-      dthRawAll:dthRaw,
-      dthTypoIndex:null,
-      dthTypoIndexBuilt:false,
-      dthCount:dthRaw.length,
-      // cache filter indexes (diisi ulang di applyScanFilters)
-      _umIndexKey:null, _umByFaktur:null, _umByTotal:null,
-      _penHistKey:null, _penHistoryByFaktur:null
-    };
-    scanPage={ada:1,tidak:1,umOnly:1,sumberData:1,ringkasan:1};
-    try{ populateSumberDataList(); }catch(e){ console.warn('populateSumberDataList gagal, Sumber Data dilewati', e); scanResults.sumberData=[]; }
-    populateScanFilterOptions();
-    // Kunci UI bulan = bulan yang benar-benar di-scan (hindari “Agustus di UI, September di data”).
-    try{
-      const sm = (scanResults.scanMonths||[]).slice();
-      const el = document.getElementById('fltBulanPenj');
-      if(el && sm.length){
-        el.querySelectorAll('option').forEach(o=>{ o.selected = sm.includes(o.value); });
-        document.querySelectorAll('#fltBulanPenjOptions input[type="checkbox"]').forEach(cb=>{
-          cb.checked = sm.includes(cb.value);
-        });
-        if(typeof updateScanMonthButton==='function') updateScanMonthButton();
+      if(!scanMonths.length){
+        let sortedMonths=(_scanKnownMonthsCache && _scanKnownMonthsCache.length)?_scanKnownMonthsCache.slice():[];
+        if(!sortedMonths.length){
+          const monthSetTmp=new Set();
+          (penRaw||[]).forEach(r=>{
+            const mk=monthKeyFromDate(r && r.tanggal);
+            if(mk) monthSetTmp.add(mk);
+          });
+          sortedMonths=[...monthSetTmp].sort();
+        }
+        if(sortedMonths.length){
+          scanMonths=[sortedMonths[sortedMonths.length-1]];
+          try{
+            const el=document.getElementById('fltBulanPenj');
+            if(el){
+              if(![...el.options].some(o=>o.value===scanMonths[0])){
+                const opt=document.createElement('option');
+                opt.value=scanMonths[0]; opt.textContent=scanMonths[0]; opt.selected=true;
+                el.appendChild(opt);
+              } else {
+                [...el.options].forEach(o=>{ o.selected=(o.value===scanMonths[0]); });
+              }
+            }
+            if(typeof fillScanMonthDropdown==='function') fillScanMonthDropdown(sortedMonths);
+            if(typeof updateScanMonthButton==='function'){
+              document.querySelectorAll('#fltBulanPenjOptions input[type="checkbox"]').forEach(cb=>{
+                cb.checked=(cb.value===scanMonths[0]);
+              });
+              updateScanMonthButton();
+            }
+          }catch(e){}
+        }
       }
-    }catch(e){}
-    applyScanFilters();
-    scanBusy=false; setScanButtonBusy(false);
-    try{ if(typeof window.__afterScanCariKandidat==='function') window.__afterScanCariKandidat(); }catch(e){}
+
+      if(!scanMonths.length){
+        alert('Pilih minimal 1 bulan di filter "Bulan Penjualan" sebelum menekan SCAN DATA.');
+        finishScan();
+        return;
+      }
+
+      const monthOf = r => monthKeyFromDate(r && r.tanggal) || '';
+      const scanMonthSet = new Set(scanMonths);
+      const historyMonthSet = new Set(scanMonths);
+      scanMonths.forEach(m=>{ const p=prevMonthKey(m); if(p) historyMonthSet.add(p); });
+
+      const penRawActive = penRaw.filter(r=>scanMonthSet.has(monthOf(r)));
+      const penRawHistory = penRaw.filter(r=>historyMonthSet.has(monthOf(r)));
+      const umMonthFocus = activeUmMonth || scanMonths[scanMonths.length-1];
+      const umRawActive = umMonthFocus ? umRaw.filter(r=>monthOf(r)===umMonthFocus) : umRaw.slice();
+
+      let pen=groupByInvoice(penRawActive,false);
+      let penHistoryAll=groupByInvoice(penRawHistory,false);
+      let umAllGrouped=groupByInvoice(umRaw,true);
+      let um=groupByInvoice(umRawActive,true);
+      const penByMonth=buildMonthIndex(penHistoryAll);
+      const penHistoryByMonth=penByMonth;
+      const umByMonth=buildMonthIndex(umAllGrouped);
+      const penKeys=new Set(pen.map(x=>normScan(x.faktur)).filter(Boolean));
+
+      const penRawByFaktur=new Map();
+      (penRawHistory||[]).forEach(r=>{
+        const k=normScan(r.faktur);
+        if(!k) return;
+        if(!penRawByFaktur.has(k)) penRawByFaktur.set(k,[]);
+        penRawByFaktur.get(k).push(r);
+      });
+
+      scanResults={
+        ada:[],tidak:[],umOnly:[],sumberData:[],scanned:true,
+        tidakViewMode:'normal', modeKandidatMinus:false, tidakNolCount:0,
+        penAll:pen,
+        penHistoryAll,
+        penRawActive,
+        penRawAll:penRawActive,
+        penRawEvery:penRaw,
+        penRawByFaktur,
+        umRawAll:umRaw,
+        umAll:umAllGrouped,
+        activeUmMonth,
+        scanMonths:scanMonths.slice(),
+        penByMonth,penHistoryByMonth,umByMonth,penKeys,
+        dthLoaded:dthDataReady,
+        dthFakturSet,dthByFaktur,
+        dthRawAll:dthRaw,
+        dthTypoIndex:null,
+        dthTypoIndexBuilt:false,
+        dthCount:dthRaw.length,
+        _umIndexKey:null, _umByFaktur:null, _umByTotal:null,
+        _penHistKey:null, _penHistoryByFaktur:null
+      };
+
+      scanPage={ada:1,tidak:1,umOnly:1,sumberData:1,ringkasan:1};
+
+      // Masing-masing langkah dibungkus try/catch sendiri supaya satu kegagalan
+      // tidak menghentikan seluruh scan dan tidak membuat scanBusy nyangkut.
+      try{ populateSumberDataList(); }
+      catch(e){ console.warn('populateSumberDataList gagal', e); scanResults.sumberData=[]; scanResults.sumberDataAll=[]; }
+
+      try{ populateScanFilterOptions(); }
+      catch(e){ console.warn('populateScanFilterOptions gagal', e); }
+
+      try{
+        const sm=(scanResults.scanMonths||[]).slice();
+        const el=document.getElementById('fltBulanPenj');
+        if(el && sm.length){
+          el.querySelectorAll('option').forEach(o=>{ o.selected=sm.includes(o.value); });
+          document.querySelectorAll('#fltBulanPenjOptions input[type="checkbox"]').forEach(cb=>{
+            cb.checked=sm.includes(cb.value);
+          });
+          if(typeof updateScanMonthButton==='function') updateScanMonthButton();
+        }
+      }catch(e){}
+
+      try{ applyScanFilters(); }
+      catch(e){ console.error('applyScanFilters gagal', e); }
+
+      finishScan();
+      try{ if(typeof window.__afterScanCariKandidat==='function') window.__afterScanCariKandidat(); }catch(e){}
+
+    } catch(err){
+      console.error('[SCAN] error fatal di attempt():', err);
+      finishScan();
+      alert('SCAN DATA gagal: ' + (err && err.message ? err.message : err));
+    }
   }
+
   attempt();
 }
 function renderScanResults(){
