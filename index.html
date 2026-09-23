@@ -1508,11 +1508,12 @@
                       <th style="width:64px">SALES</th>
                       <th style="width:90px">NOMINAL</th>
                       <th style="width:78px">JENIS BAYAR</th>
+                      <th style="width:78px">PRODUK</th>
                       <th>CUSTOMER</th>
                     </tr>
                   </thead>
                   <tbody id="cdTablePenjualanBody">
-                    <tr><td colspan="7" class="cd-table-empty">Klik "🔄 Muat" untuk menampilkan data Penjualan.</td></tr>
+                    <tr><td colspan="8" class="cd-table-empty">Klik "🔄 Muat" untuk menampilkan data Penjualan.</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -2171,7 +2172,7 @@ function cdGroupByFaktur(rows){
     const custKey = normScanIdentity(r.customer || '');
     const k = fk ? (fk + '||' + custKey) : ('__NOFAKTUR__'+idx);
     if(!map.has(k)){
-      map.set(k, Object.assign({}, r, { total: 0 }));
+      map.set(k, Object.assign({}, r, { total: 0, _produkSet: new Set() }));
     }
     const o = map.get(k);
     o.total += scanNum(r.total);
@@ -2182,8 +2183,18 @@ function cdGroupByFaktur(rows){
     if(!o.pembayaran && r.pembayaran) o.pembayaran = r.pembayaran;
     if(!o.jenis && r.jenis) o.jenis = r.jenis;
     if(!o._mk && r._mk) o._mk = r._mk;
+    // PENTING: kumpulkan SEMUA produk dari baris-baris yang tergabung dalam faktur
+    // ini (bukan cuma produk baris pertama), supaya kategori Fitri/Rupa Rupa/
+    // Campuran dihitung dengan benar — sama seperti groupByInvoice() di fitur Scan.
+    if(r.produk) o._produkSet.add(String(r.produk).trim());
   });
-  return [...map.values()];
+  const arr = [...map.values()];
+  arr.forEach(o=>{
+    o.produkList = [...o._produkSet];
+    o.produkKategori = (typeof produkKategoriFromSet==='function') ? (produkKategoriFromSet(o._produkSet) || '') : '';
+    delete o._produkSet;
+  });
+  return arr;
 }
 
 function cdCollectPenRows(bulanKeyOrKeys, jenisBayar, rawOverride){
@@ -2699,7 +2710,7 @@ function cdRenderPenTable(rows){
   const tbody = document.getElementById('cdTablePenjualanBody');
   if(!tbody) return;
   if(!rows || !rows.length){
-    tbody.innerHTML = '<tr><td colspan="7" class="cd-table-empty">Tidak ada data Penjualan untuk filter ini.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="cd-table-empty">Tidak ada data Penjualan untuk filter ini.</td></tr>';
     return;
   }
   const MAX = 3000;
@@ -2707,6 +2718,13 @@ function cdRenderPenTable(rows){
   const html = slice.map((r,i)=>{
     const jb = cdGetJenisBayar(r) || '-';
     const alt = (i % 2 === 1) ? ' class="cd-row-alt"' : '';
+    // Badge kategori produk: FITRI (Minyak Fitri) / RUPA_RUPA / CAMPURAN
+    const produkKat = cdProdukKategori(r);
+    const produkLabel = produkKat==='FITRI' ? 'Fitri' : produkKat==='RUPA_RUPA' ? 'Rupa Rupa' : produkKat==='CAMPURAN' ? 'Campuran' : '<span style="color:#94a3b8">—</span>';
+    const produkColor = produkKat==='FITRI' ? '#fef3c7;color:#92400e' : produkKat==='RUPA_RUPA' ? '#dbeafe;color:#1e40af' : produkKat==='CAMPURAN' ? '#fee2e2;color:#b91c1c' : '';
+    const produkCls = produkKat==='FITRI' ? 'scan-badge-produk-fitri' : produkKat==='RUPA_RUPA' ? 'scan-badge-produk-rupa' : produkKat==='CAMPURAN' ? 'scan-badge-produk-campuran' : '';
+    const produkTitle = (r.produkList && r.produkList.length) ? escScan(r.produkList.join(', ')) : '';
+    const produkCell = produkKat ? '<span class="'+produkCls+'" title="'+produkTitle+'" style="display:inline-block;background:'+produkColor+';font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap">'+produkLabel+'</span>' : produkLabel;
     return '<tr'+alt+'>'+
       '<td>'+(i+1)+'</td>'+
       '<td>'+escScan(formatScanDate(r.tanggal))+'</td>'+
@@ -2714,11 +2732,12 @@ function cdRenderPenTable(rows){
       '<td>'+escScan(r.sales||'')+'</td>'+
       '<td class="num" title="'+escScan(window._cdMode==='umBeda'?'Nominal Penjualan — dibandingkan dengan Uang Masuk':'')+'">'+rupiahScan(r.total)+'</td>'+
       '<td>'+escScan(jb)+(window._cdMode==='umBeda' ? ' <span style="color:#b45309;font-weight:700">• BEDA</span>' : '')+'</td>'+
+      '<td>'+produkCell+'</td>'+
       '<td title="'+escScan(r.customer||'')+'">'+escScan(r.customer||'')+'</td>'+
       '</tr>';
   }).join('');
   tbody.innerHTML = html + (rows.length > MAX
-    ? '<tr><td colspan="7" class="cd-table-empty">Menampilkan '+MAX.toLocaleString('id-ID')+' dari '+rows.length.toLocaleString('id-ID')+' baris.</td></tr>'
+    ? '<tr><td colspan="8" class="cd-table-empty">Menampilkan '+MAX.toLocaleString('id-ID')+' dari '+rows.length.toLocaleString('id-ID')+' baris.</td></tr>'
     : '');
 }
 
@@ -2871,7 +2890,7 @@ async function cdLoadData(opts){
     }
     const tp = document.getElementById('cdTablePenjualanBody');
     const tu = document.getElementById('cdTableUMBody');
-    if(tp) tp.innerHTML = '<tr><td colspan="7" class="cd-table-empty">Belum ada data. Buka Rekap Penjualan & pastikan data sudah termuat.</td></tr>';
+    if(tp) tp.innerHTML = '<tr><td colspan="8" class="cd-table-empty">Belum ada data. Buka Rekap Penjualan & pastikan data sudah termuat.</td></tr>';
     if(tu) tu.innerHTML = '<tr><td colspan="5" class="cd-table-empty">Belum ada data. Buka Rekap Uang Masuk & pastikan data sudah termuat.</td></tr>';
     return;
   }
