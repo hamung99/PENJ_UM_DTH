@@ -2594,8 +2594,11 @@ function cdApplyMode(penRows, umRows, mode, penForMatch, idx){
     penRows.sort((a,b)=> orderKey(a).localeCompare(orderKey(b)));
     umRows.sort((a,b)=> orderKey(a).localeCompare(orderKey(b)));
   } else if(mode === 'belumUM'){
-    // Penjualan (bulan tampilan) yang belum punya pasangan UM di bulan UM terpilih
-    penRows = penRows.filter(p => !cdPenHasUmMatch(p, umIndex));
+    // Penjualan (bulan tampilan) yang belum punya pasangan UM di bulan UM terpilih.
+    // PERBAIKAN: faktur dengan Nominal Rp 0 dianggap transaksi BATAL (sama seperti
+    // konvensi di fitur Sumber Data) — tidak butuh Uang Masuk sama sekali, jadi
+    // tidak seharusnya ikut dihitung "Belum Ada Uang Masuk".
+    penRows = penRows.filter(p => scanNum(p.total) > 0 && !cdPenHasUmMatch(p, umIndex));
     umRows = [];
   } else if(mode === 'umBeda'){
     // Ada pasangan faktur yang valid (1 UM cuma dipakai untuk 1 Penjualan, lihat
@@ -2660,7 +2663,8 @@ function cdUpdateKpis(penRows, umRows, allPen, allUm, penForMatchArg, idx){
   const penIndex = (idx && idx.penIndex) || cdBuildPenIndex(penMatchPool);
   // Hasil match di-memo per baris -> tiap baris hanya dihitung sekali
   const adaUM = basePen.filter(p => cdPenHasUmMatch(p, umIndex)).length;
-  const belumUM = basePen.length - adaUM;
+  // Sinkron dengan cdApplyMode('belumUM'): faktur Nominal Rp 0 (BATAL) dikeluarkan.
+  const belumUM = basePen.filter(p => scanNum(p.total) > 0 && !cdPenHasUmMatch(p, umIndex)).length;
   const umTanpa = baseUm.filter(u => !cdUmHasPenMatch(u, penIndex)).length;
   let umBeda = 0;
   cdBuildExclusiveUmPairs(basePen, umIndex).forEach((u, p)=>{
