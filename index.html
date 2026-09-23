@@ -3138,7 +3138,7 @@ function scanNum(v){
   const n=Number(s.replace(/[^0-9.-]/g,''));
   return isFinite(n)?n:0;
 }
-function normScan(v){return String(v??'').trim().toUpperCase().replace(/\s+/g,'');}
+function normScan(v){return String(v??'').normalize('NFKC').replace(/[\u200B-\u200F\uFEFF\u00A0]/g,'').trim().toUpperCase().replace(/\s+/g,'');}
 function escScan(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function rupiahScan(v){return 'Rp '+Math.round(v||0).toLocaleString('id-ID');}
 
@@ -3228,17 +3228,32 @@ function similarityScan(a, b){
 // Dipakai baik oleh sameScanIdentity (faktur wajib sama persis) maupun oleh
 // fallback pencocokan "salah ketik No Faktur" (lihat fakturTypoMatch di bawah).
 function scanIdentityScore(pen, um){
-  const cust = similarityScan(normScanIdentity(pen.customer), normScanIdentity(um.customer));
-  const alamat = similarityScan(normScanIdentity(pen.alamat), normScanIdentity(um.alamat));
-  const sales = similarityScan(normScanIdentity(pen.sales), normScanIdentity(um.sales));
+  const custA = normScanIdentity(pen.customer), custB = normScanIdentity(um.customer);
+  const alamatA = normScanIdentity(pen.alamat), alamatB = normScanIdentity(um.alamat);
+  const salesA = normScanIdentity(pen.sales), salesB = normScanIdentity(um.sales);
 
-  // Tiap field boleh sedikit beda (typo kecil, skor turun sedikit),
-  // tapi tidak boleh ada satupun field yang jauh berbeda (di bawah 0.6 = dianggap toko/sales lain).
-  if(cust < 0.6 || alamat < 0.6 || sales < 0.6) return 0;
+  const cust = similarityScan(custA, custB);
+  // Customer WAJIB mirip — ini identitas utama toko, tidak boleh dilonggarkan.
+  if(cust < 0.6) return 0;
 
-  // Rata-rata tertimbang: Customer & Alamat lebih menentukan identitas toko,
-  // Sales sedikit lebih longgar (kadang beda petugas input).
-  return (cust * 0.4) + (alamat * 0.4) + (sales * 0.2);
+  // PERBAIKAN: Alamat/Sales sering kosong di salah satu sisi (mis. Rekap Penjualan
+  // tidak menyimpan kolom Alamat sama sekali). Field yang kosong di SALAH SATU sisi
+  // tidak boleh otomatis menggagalkan kecocokan (dianggap netral, bukan "beda toko").
+  // Hanya field yang benar-benar terisi DI KEDUA SISI yang dipakai sebagai syarat ketat.
+  const parts = [{ score: cust, w: 0.5 }];
+  if(alamatA && alamatB){
+    const alamat = similarityScan(alamatA, alamatB);
+    if(alamat < 0.6) return 0;
+    parts.push({ score: alamat, w: 0.3 });
+  }
+  if(salesA && salesB){
+    const sales = similarityScan(salesA, salesB);
+    if(sales < 0.6) return 0;
+    parts.push({ score: sales, w: 0.2 });
+  }
+
+  const totalW = parts.reduce((s,p)=> s+p.w, 0) || 1;
+  return parts.reduce((s,p)=> s + p.score*p.w, 0) / totalW;
 }
 
 function sameScanIdentity(pen, um){
