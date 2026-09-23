@@ -2155,9 +2155,19 @@ function cdNormalizeUmRow(r){
 
 function cdGroupByFaktur(rows){
   // Satu baris per No Faktur — nominal dijumlah (sama seperti groupByInvoice scan)
+  // PERBAIKAN: No Faktur ternyata bisa DIPAKAI ULANG oleh transaksi yang
+  // benar-benar berbeda customer/toko-nya (No Faktur "011003260900017" misalnya
+  // dipakai baik oleh transaksi CASH toko A maupun transaksi TEMPO toko B).
+  // Kalau digabung murni berdasarkan No Faktur saja, identitas (customer/jenis
+  // bayar) salah satu transaksi akan tertimpa oleh transaksi lain yang muncul
+  // duluan, sehingga pencocokan Uang Masuk untuk transaksi yang "tertimpa" itu
+  // jadi salah/gagal. Maka kunci grouping = No Faktur + identitas Customer,
+  // supaya No Faktur yang sama tapi toko-nya beda tetap jadi baris terpisah.
   const map = new Map();
   (rows||[]).forEach((r, idx)=>{
-    const k = normScan(r.faktur) || ('__NOFAKTUR__'+idx);
+    const fk = normScan(r.faktur);
+    const custKey = normScanIdentity(r.customer || '');
+    const k = fk ? (fk + '||' + custKey) : ('__NOFAKTUR__'+idx);
     if(!map.has(k)){
       map.set(k, Object.assign({}, r, { total: 0 }));
     }
