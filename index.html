@@ -1480,6 +1480,8 @@
             <div class="cd-filter-group">
               <label for="cdFilterBulanUM">Bulan Uang Masuk (filter)</label>
               <select id="cdFilterBulanUM"></select>
+              <span style="margin:0 6px;color:#94a3b8;font-size:12px">s/d</span>
+              <select id="cdFilterBulanUM2" title="Opsional: pilih bulan akhir untuk cek rentang 2 bulan atau lebih (mis. Penjualan Agustus yang bisa dibayar Agustus ATAU September)"></select>
             </div>
             <div class="cd-filter-actions">
               <button type="button" class="cd-btn" id="btnCdMuat" onclick="cdOnMuat()" title="Muat data Penjualan &amp; Uang Masuk sesuai filter">🔄 Muat</button>
@@ -2240,7 +2242,7 @@ function cdMonthKeysWithPrev(bulanKey){
 }
 
 
-function cdCollectUmRows(bulanKey, rawOverride){
+function cdCollectUmRows(bulanKeyOrKeys, rawOverride){
   let raw = rawOverride;
   if(!raw){
     const live = cdFetchLiveUangMasuk();
@@ -2257,8 +2259,15 @@ function cdCollectUmRows(bulanKey, rawOverride){
     }
   }
   let rows = raw;
-  if(bulanKey){
-    rows = rows.filter(r => cdUmMonthKey(r) === bulanKey);
+  // bulanKeyOrKeys: string "YYYY-MM" ATAU array of months (rentang "s/d")
+  const monthSet = new Set();
+  if(Array.isArray(bulanKeyOrKeys)){
+    bulanKeyOrKeys.forEach(k=>{ if(k) monthSet.add(k); });
+  } else if(bulanKeyOrKeys){
+    monthSet.add(bulanKeyOrKeys);
+  }
+  if(monthSet.size){
+    rows = rows.filter(r => monthSet.has(cdUmMonthKey(r)));
   }
   // Group by faktur agar baris sejajar dengan penjualan; total nominal tetap dijumlah
   rows = cdGroupByFaktur(rows);
@@ -2738,13 +2747,17 @@ function cdRenderUmTable(rows){
     : '');
 }
 
-function cdUpdateInfoLine(bulanPen, bulanUM, penCount, umCount){
+function cdUpdateInfoLine(bulanPen, bulanUM, penCount, umCount, bulanUM2){
   const ip = document.getElementById('cdInfoBulanPenjualan');
   const iu = document.getElementById('cdInfoBulanUM');
   const bp = document.getElementById('cdInfoBarisPenjualan');
   const bu = document.getElementById('cdInfoBarisUM');
   if(ip) ip.textContent = bulanPen ? cdMonthLabel(bulanPen) : 'Semua';
-  if(iu) iu.textContent = bulanUM ? cdMonthLabel(bulanUM) : 'Semua';
+  if(iu){
+    if(!bulanUM) iu.textContent = 'Semua';
+    else if(bulanUM2 && bulanUM2 !== bulanUM) iu.textContent = cdMonthLabel(bulanUM) + ' s/d ' + cdMonthLabel(bulanUM2);
+    else iu.textContent = cdMonthLabel(bulanUM);
+  }
   if(bp) bp.textContent = String(penCount||0);
   if(bu) bu.textContent = String(umCount||0);
 }
@@ -2769,6 +2782,7 @@ function cdSetActiveModeButtons(mode){
 function cdPopulateMonthsFromLive(penRaw, umRaw){
   const selPen = document.getElementById('cdFilterBulanPenjualan');
   const selUM = document.getElementById('cdFilterBulanUM');
+  const selUM2 = document.getElementById('cdFilterBulanUM2');
   if(!selPen || !selUM) return;
   const penMonths = new Set();
   const umMonths = new Set();
@@ -2777,17 +2791,44 @@ function cdPopulateMonthsFromLive(penRaw, umRaw){
   // merge dengan opsi yang sudah ada
   [...selPen.options].forEach(o=>{ if(o.value) penMonths.add(o.value); });
   [...selUM.options].forEach(o=>{ if(o.value) umMonths.add(o.value); });
-  const curPen = selPen.value, curUM = selUM.value;
+  const curPen = selPen.value, curUM = selUM.value, curUM2 = selUM2 ? selUM2.value : '';
   const penSorted = [...penMonths].filter(Boolean).sort();
   const umSorted = [...umMonths].filter(Boolean).sort();
   selPen.innerHTML = '<option value="">Semua bulan</option>' +
     penSorted.map(k=>'<option value="'+k+'">'+escScan(cdMonthLabel(k))+'</option>').join('');
   selUM.innerHTML = '<option value="">Semua bulan</option>' +
     umSorted.map(k=>'<option value="'+k+'">'+escScan(cdMonthLabel(k))+'</option>').join('');
+  if(selUM2){
+    selUM2.innerHTML = '<option value="">– (bulan sama)</option>' +
+      umSorted.map(k=>'<option value="'+k+'">'+escScan(cdMonthLabel(k))+'</option>').join('');
+  }
   if(curPen && penSorted.includes(curPen)) selPen.value = curPen;
   else if(penSorted.length) selPen.value = penSorted[penSorted.length-1];
   if(curUM && umSorted.includes(curUM)) selUM.value = curUM;
   else if(umSorted.length) selUM.value = umSorted[umSorted.length-1];
+  if(selUM2){
+    if(curUM2 && umSorted.includes(curUM2)) selUM2.value = curUM2;
+    else selUM2.value = '';
+  }
+}
+
+/** Bulan Uang Masuk (filter) sekarang bisa berupa RENTANG: bulanUM s/d bulanUM2.
+ *  Contoh: bulanUM="2026-08", bulanUM2="2026-09" -> ["2026-08","2026-09"].
+ *  Kalau bulanUM2 kosong/sama, hasilnya tetap 1 bulan seperti sebelumnya (kompatibel). */
+function cdMonthRangeKeys(bulanUM, bulanUM2){
+  if(!bulanUM) return ''; // "Semua bulan" -> tidak difilter sama sekali
+  if(!bulanUM2 || bulanUM2 === bulanUM) return bulanUM;
+  let start = bulanUM, end = bulanUM2;
+  if(start > end){ const t = start; start = end; end = t; }
+  const [sy0, sm0] = start.split('-').map(Number);
+  const [ey, em] = end.split('-').map(Number);
+  let sy = sy0, sm = sm0;
+  const keys = [];
+  while((sy < ey || (sy === ey && sm <= em)) && keys.length < 36){
+    keys.push(sy + '-' + String(sm).padStart(2,'0'));
+    sm++; if(sm > 12){ sm = 1; sy++; }
+  }
+  return keys;
 }
 
 async function cdLoadData(opts){
@@ -2840,27 +2881,35 @@ async function cdLoadData(opts){
 
   const bulanPen = (document.getElementById('cdFilterBulanPenjualan')||{}).value || '';
   const bulanUM = (document.getElementById('cdFilterBulanUM')||{}).value || '';
+  const bulanUM2 = (document.getElementById('cdFilterBulanUM2')||{}).value || '';
+  // Rentang Bulan Uang Masuk: kalau "s/d" diisi, cakup beberapa bulan sekaligus
+  // (mis. Agustus s/d September) — supaya Penjualan Agustus yang dibayar bulan
+  // September tetap ketemu pasangannya, bukan dianggap "Belum Ada Uang Masuk".
+  const bulanUMRange = cdMonthRangeKeys(bulanUM, bulanUM2);
   // Satu sumber filter bayar: tombol CASH / TEMPO di toolbar Scan (scanBayarQuick)
   const jenisBayar = (typeof scanBayarQuick!=='undefined' && scanBayarQuick) ? scanBayarQuick : '';
 
-  const ctxKey = bulanPen+'|'+bulanUM+'|'+jenisBayar;
+  const ctxKey = bulanPen+'|'+bulanUM+'..'+bulanUM2+'|'+jenisBayar;
   let ctx = (canReuse && cache.ctx && cache.ctx.key === ctxKey) ? cache.ctx : null;
 
   if(!ctx){
     // Tampilan: sesuai filter bulan yang dipilih user
     let pRows = cdCollectPenRows(bulanPen, jenisBayar, penRaw);
-    let uRows = cdCollectUmRows(bulanUM, umRaw);
+    let uRows = cdCollectUmRows(bulanUMRange, umRaw);
     // Filter UM juga ikut CASH/TEMPO (Cash Dropping / Piutang Tempo)
     if(jenisBayar){
       const want = String(jenisBayar).toUpperCase();
       uRows = uRows.filter(u => cdPaymentSide(u, true) === want);
     }
 
-    // Pool matching Penjualan = bulan Penjualan + bulan UM + masing-masing 1 bulan sebelumnya
-    // Contoh: UM Sep bayar faktur Tempo Agustus → tetap ketemu, bukan "UM Tanpa Faktur"
+    // Pool matching Penjualan = bulan Penjualan + bulan(-bulan) UM + masing-masing
+    // 1 bulan sebelumnya. Contoh: UM Sep bayar faktur Tempo Agustus → tetap ketemu,
+    // bukan "UM Tanpa Faktur".
     const matchMonths = new Set();
     cdMonthKeysWithPrev(bulanPen).forEach(k => matchMonths.add(k));
-    cdMonthKeysWithPrev(bulanUM).forEach(k => matchMonths.add(k));
+    (Array.isArray(bulanUMRange) ? bulanUMRange : (bulanUMRange ? [bulanUMRange] : [])).forEach(bm => {
+      cdMonthKeysWithPrev(bm).forEach(k => matchMonths.add(k));
+    });
     // Jika filter bulan kosong (=semua), pakai semua penRows sebagai pool
     let pForMatch;
     if(matchMonths.size){
@@ -2889,7 +2938,7 @@ async function cdLoadData(opts){
   window._cdLastUM = umRows;
 
   cdUpdateKpis(penRows, umRows, basePen, baseUm, penForMatch, idx);
-  cdUpdateInfoLine(bulanPen, bulanUM, penRows.length, umRows.length);
+  cdUpdateInfoLine(bulanPen, bulanUM, penRows.length, umRows.length, bulanUM2);
   cdRenderPenTable(penRows);
   cdRenderUmTable(umRows);
 
@@ -2934,11 +2983,11 @@ function cdOnUmTanpaFaktur(){ try{ Promise.resolve(cdLoadData({mode:'umTanpaFakt
         el.style.cursor = 'pointer';
       }
     });
-    ['cdFilterBulanPenjualan','cdFilterBulanUM'].forEach(function(id){
+    ['cdFilterBulanPenjualan','cdFilterBulanUM','cdFilterBulanUM2'].forEach(function(id){
       const el = document.getElementById(id);
       if(el && !el._cdBound){
         el.addEventListener('change', function(){
-          if(scanResults && scanResults.scanned) cdLoadData({mode: window._cdMode||'all', silent:true});
+          if(window._cdCache && window._cdCache.loaded) cdLoadData({mode: window._cdMode||'all', silent:true});
         });
         el._cdBound = true;
       }
