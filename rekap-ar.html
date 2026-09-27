@@ -93,105 +93,36 @@
     padding: 0 20px 60px;
   }
 
-  /* ========== TOP HEADER ========== */
-  .topbar {
-    background: var(--primary);
-    color: #fff;
-    padding: 0 20px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-  }
-  .topbar-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .topbar-title {
-    font-weight: 700;
-    font-size: 13px;
-    letter-spacing: -0.01em;
-    white-space: nowrap;
-  }
-  .topbar-date {
-    font-size: 11px;
-    color: rgba(255,255,255,0.65);
-    font-weight: 400;
-  }
-  .topbar-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+  /* ========== MENU ========== */
   .menu-wrap { position: relative; }
   .controls-action-group {
-    display: inline-flex;
-    flex: 0 0 auto;
-    align-items: center;
-    gap: 6px;
-    margin-left: auto;
-  }
-  .menu-inline-wrap { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; min-height: 0; }
-  .menu-inline-wrap:empty { display: none; }
-  .menu-inline-wrap .btn-menu {
-    background: #fff;
-    color: var(--primary);
-    border: 1px solid var(--border);
-  }
-  .menu-inline-wrap .btn-menu:hover, .menu-inline-wrap .btn-menu.active {
-    background: var(--surface-2, #f1f5f9);
-    color: var(--primary);
+    display: inline-flex; flex: 0 0 auto; align-items: center; gap: 4px; margin-left: auto;
   }
   .btn-menu {
-    background: rgba(255,255,255,0.12);
-    border: 1px solid rgba(255,255,255,0.18);
-    color: #fff;
+    background: var(--card);
+    color: var(--text-soft);
+    border: 1px solid var(--border-strong);
     font-family: inherit;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
-    padding: 4px 11px;
-    border-radius: 6px;
+    padding: 3px 10px;
+    border-radius: 5px;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     gap: 5px;
     transition: all 0.15s;
+    height: 24px;
+    line-height: 1.3;
   }
   .btn-menu:hover, .btn-menu.active {
-    background: rgba(255,255,255,0.22);
+    border-color: var(--primary-light);
+    color: var(--primary);
   }
-  .btn-theme {
-    background: rgba(255,255,255,0.12);
-    border: 1px solid rgba(255,255,255,0.18);
-    color: #fff;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 500;
-    width: 32px;
-    height: 28px;
-    border-radius: 6px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.15s;
-    padding: 0;
-  }
-  .btn-theme:hover {
-    background: rgba(255,255,255,0.22);
-  }
-  .controls, .controls-action-group, .menu-wrap, .wrap {
-    overflow: visible !important;
-  }
-  .menu-wrap {
-    position: relative !important;
-    z-index: 10000 !important;
-  }
+
+  .controls, .controls-action-group, .menu-wrap, .wrap { overflow: visible !important; }
+  .menu-wrap { position: relative !important; z-index: 10000 !important; }
+
   .menu-dropdown {
     display: none;
     position: absolute;
@@ -210,13 +141,12 @@
     border-color: #e2e8f0;
     box-shadow: 0 12px 32px rgba(0,0,0,0.18);
   }
-  .menu-dropdown.show {
-    display: block !important;
-  }
+  .menu-dropdown.show { display: block !important; }
+
   .menu-item {
     font-size: 13px;
     font-weight: 500;
-    padding: 10px 12px;
+    padding: 9px 12px;
     border-radius: 7px;
     cursor: pointer;
     color: var(--text);
@@ -233,32 +163,42 @@
   [data-theme="dark"] .menu-item:hover { background: rgba(59,130,246,0.18); }
   [data-theme="dark"] .menu-item.danger { color: #f87171; }
   [data-theme="dark"] .menu-divider { background: #475569; }
-  .menu-divider {
-    height: 1px;
-    background: var(--border);
-    margin: 4px 6px;
+  .menu-divider { height: 1px; background: var(--border); margin: 4px 6px; }
+
+  .menu-item .menu-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 5px;
+    font-size: 12px;
+    flex: 0 0 22px;
+    color: #fff;
   }
+  .menu-item.excel .menu-icon { background: #059669; }
+  .menu-item.cetak .menu-icon { background: var(--primary); }
+  .menu-item.excel:hover { background: #ecfdf5; }
+  .menu-item.cetak:hover { background: var(--primary-soft); }
+  [data-theme="dark"] .menu-item.excel:hover { background: rgba(5,150,105,0.18); }
+  [data-theme="dark"] .menu-item.cetak:hover { background: rgba(59,130,246,0.18); }
 
   /* ========== UPLOAD STATUS (hidden) ========== */
   .upload-bar { display: none !important; }
 
-  /* ========== SUMMARY CARDS ========== */
+  /* ========== SUMMARY CARDS (TOP) ========== */
   .totals {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 7px;
-    margin: 8px 0 8px;
+    gap: 8px;
+    margin: 10px 0 10px;
   }
-  @media (max-width: 900px) {
-    .totals { grid-template-columns: 1fr 1fr; }
-  }
-  @media (max-width: 520px) {
-    .totals { grid-template-columns: 1fr; }
-  }
+  @media (max-width: 900px) { .totals { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 520px) { .totals { grid-template-columns: 1fr; } }
+
   .tcard {
     background: var(--card);
     border-radius: 8px;
-    padding: 6px 10px;
+    padding: 8px 12px 10px;
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
     position: relative;
@@ -268,85 +208,134 @@
     content: "";
     position: absolute;
     top: 0; left: 0; right: 0;
-    height: 2px;
+    height: 3px;
   }
-  .tcard.red::before { background: var(--red); }
+  .tcard.red::before   { background: var(--red); }
   .tcard.amber::before { background: var(--amber); }
   .tcard.green::before { background: var(--green); }
-  .tcard.navy::before { background: var(--primary-light); }
+  .tcard.navy::before  { background: var(--primary-light); }
 
+  .tcard-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 2px;
+  }
+  .tcard-left { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .tcard-right { display: flex; flex-direction: column; gap: 2px; align-items: flex-end; text-align: right; }
   .tcard .label {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
     color: var(--text-soft);
-    margin-bottom: 2px;
+    white-space: nowrap;
   }
   .tcard .value {
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 700;
     letter-spacing: -0.02em;
-    line-height: 1.25;
+    line-height: 1.15;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
   }
-  .tcard.red .value { color: var(--red); }
+  .tcard.red .value   { color: var(--red); }
   .tcard.amber .value { color: var(--amber); }
   .tcard.green .value { color: var(--green); }
-  .tcard.navy .value { color: var(--primary); }
+  .tcard.navy .value  { color: var(--primary); }
 
-  /* Dark mode: navy card value harus terang agar terbaca */
-  [data-theme="dark"] .tcard.navy .value {
-    color: #93c5fd;
-  }
-  [data-theme="dark"] .tcard.navy::before {
-    background: #3b82f6;
-  }
+  [data-theme="dark"] .tcard.navy .value { color: #93c5fd; }
+  [data-theme="dark"] .tcard.navy::before { background: #3b82f6; }
 
   .tcard .sub {
     font-size: 11.5px;
     color: #475569;
-    margin-top: 3px;
     font-weight: 500;
+    line-height: 1.3;
   }
-  .tcard .sub-breakdown {
-    font-size: 11px;
-    color: #475569;
-    margin-top: 3px;
+  .tcard .sub-right {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    font-weight: 500;
+    line-height: 1.3;
     font-family: 'IBM Plex Mono', monospace;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* Breakdown: 3 kolom — label | "Rp" | angka. Rp selalu lurus, angka rata kanan */
+  .tcard .sub-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin-top: 4px;
+  }
+  .tcard .brk-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 4px;
+    align-items: baseline;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
     font-weight: 500;
-    line-height: 1.35;
+    line-height: 1.55;
+    color: #475569;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+  .tcard .brk-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
+  }
+  .tcard .brk-cur {
+    text-align: right;
+    white-space: nowrap;
+    color: var(--text-muted);
+  }
+  .tcard .brk-num {
+    text-align: right;
+    white-space: nowrap;
+    min-width: 72px;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
   }
 
-  /* Mode gelap: paksa teks sekunder sangat terang */
-  [data-theme="dark"] .tcard .label {
-    color: #94a3b8 !important;
-  }
+  [data-theme="dark"] .tcard .label { color: #94a3b8 !important; }
   [data-theme="dark"] .tcard .sub,
-  [data-theme="dark"] .tcard .sub-breakdown {
-    color: #f1f5f9 !important;
-  }
+  [data-theme="dark"] .tcard .sub-right,
+  [data-theme="dark"] .tcard .sub-breakdown,
+  [data-theme="dark"] .tcard .brk-row { color: #f1f5f9 !important; }
 
-  /* ========== CONTROLS ========== */
+  /* ========== CONTROLS (versi tipis) ========== */
   .controls {
     display: flex;
-    gap: 6px;
+    gap: 4px;
     flex-wrap: wrap;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
   .tabbtn {
     font-family: inherit;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
-    padding: 5px 11px;
+    padding: 3px 9px;
     border: 1px solid var(--border-strong);
     background: var(--card);
-    border-radius: 6px;
+    border-radius: 5px;
     cursor: pointer;
     color: var(--text-soft);
     transition: all 0.15s;
     white-space: nowrap;
+    line-height: 1.35;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
   }
   .tabbtn:hover {
     border-color: var(--primary-light);
@@ -357,58 +346,28 @@
     border-color: var(--primary);
     color: #fff;
   }
-  .tabbtn[data-cat="belum"].active {
-    background: var(--red);
-    border-color: var(--red);
-  }
-  .tabbtn[data-cat="titip"].active {
-    background: var(--amber);
-    border-color: var(--amber);
-  }
-  .tabbtn[data-cat="lunas"].active {
-    background: var(--green);
-    border-color: var(--green);
-  }
+  .tabbtn[data-cat="belum"].active { background: var(--red); border-color: var(--red); }
+  .tabbtn[data-cat="titip"].active { background: var(--amber); border-color: var(--amber); }
+  .tabbtn[data-cat="lunas"].active { background: var(--green); border-color: var(--green); }
 
   .filter-select, .searchbox {
     font-family: inherit;
-    font-size: 12px;
-    padding: 5px 10px;
+    font-size: 11px;
+    padding: 3px 8px;
     border: 1px solid var(--border-strong);
-    border-radius: 6px;
+    border-radius: 5px;
     background: var(--input-bg);
     color: var(--text);
     outline: none;
     transition: border-color 0.15s;
+    line-height: 1.35;
+    height: 24px;
   }
   .filter-select:focus, .searchbox:focus {
     border-color: var(--primary-light);
     box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
   }
-  .searchbox {
-    flex: 1;
-    min-width: 160px;
-  }
-  .btn-cetak {
-    background: var(--primary);
-    color: #fff;
-    border-color: var(--primary);
-    font-weight: 600;
-  }
-  .btn-cetak:hover {
-    background: #152a45;
-    border-color: #152a45;
-  }
-  .btn-excel {
-    background: #059669;
-    color: #fff;
-    border-color: #059669;
-    font-weight: 600;
-  }
-  .btn-excel:hover {
-    background: #047857;
-    border-color: #047857;
-  }
+  .searchbox { flex: 1; min-width: 140px; }
 
   .count-note {
     font-size: 11px;
@@ -421,9 +380,7 @@
     color: var(--text-soft);
     margin-bottom: 6px;
   }
-  [data-theme="dark"] .periode-info {
-    color: #94a3b8 !important;
-  }
+  [data-theme="dark"] .periode-info { color: #94a3b8 !important; }
 
   /* ========== TABLE ========== */
   .tablewrap {
@@ -433,16 +390,8 @@
     overflow: hidden;
     box-shadow: var(--shadow);
   }
-  .table-scroll {
-    overflow: auto;
-    max-height: 560px;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-    line-height: 1.35;
-  }
+  .table-scroll { overflow: auto; max-height: 560px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 1.35; }
   thead th {
     position: sticky;
     top: 0;
@@ -469,28 +418,10 @@
   tbody tr:nth-child(even) { background: var(--row-even); }
   tbody tr:nth-child(even):hover { background: var(--row-even-hover); }
 
-  td.num, th.num {
-    font-family: 'IBM Plex Mono', monospace;
-    text-align: right;
-  }
-  td.toko {
-    white-space: normal;
-    max-width: 180px;
-    font-weight: 500;
-  }
-  td.ket {
-    white-space: normal;
-    min-width: 110px;
-    max-width: 150px;
-    color: var(--text-soft);
-    font-size: 11.5px;
-  }
-  th.ket {
-    white-space: normal;
-    min-width: 110px;
-    max-width: 150px;
-    text-align: left;
-  }
+  td.num, th.num { font-family: 'IBM Plex Mono', monospace; text-align: right; }
+  td.toko { white-space: normal; max-width: 180px; font-weight: 500; }
+  td.ket { white-space: normal; min-width: 110px; max-width: 150px; color: var(--text-soft); font-size: 11.5px; }
+  th.ket { white-space: normal; min-width: 110px; max-width: 150px; text-align: left; }
   td.ket-batal { color: var(--red); font-weight: 600; }
 
   .colUmur { display: none; }
@@ -503,7 +434,6 @@
   td.umur-soon { color: var(--amber); font-weight: 600; }
   td.umur-ok { color: var(--text-muted); }
 
-  /* Status badges */
   .badge {
     display: inline-block;
     font-size: 10px;
@@ -513,20 +443,10 @@
     border-radius: 20px;
     letter-spacing: 0.02em;
   }
-  .badge.belum {
-    color: var(--red);
-    background: var(--red-soft);
-  }
-  .badge.titip {
-    color: var(--amber);
-    background: var(--amber-soft);
-  }
-  .badge.lunas {
-    color: var(--green);
-    background: var(--green-soft);
-  }
+  .badge.belum { color: var(--red); background: var(--red-soft); }
+  .badge.titip { color: var(--amber); background: var(--amber-soft); }
+  .badge.lunas { color: var(--green); background: var(--green-soft); }
 
-  /* Empty state */
   .empty-state {
     padding: 64px 20px;
     text-align: center;
@@ -540,7 +460,6 @@
     margin-bottom: 6px;
   }
 
-  /* Pagination */
   .pagination {
     display: flex;
     align-items: center;
@@ -552,14 +471,8 @@
     background: var(--card);
     font-size: 12px;
   }
-  .pagination-info {
-    color: var(--text-muted);
-  }
-  .pagination-controls {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
+  .pagination-info { color: var(--text-muted); }
+  .pagination-controls { display: flex; align-items: center; gap: 6px; }
   .pagination-controls button {
     font-family: inherit;
     font-size: 12px;
@@ -576,10 +489,7 @@
     border-color: var(--primary-light);
     color: var(--primary);
   }
-  .pagination-controls button:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
+  .pagination-controls button:disabled { opacity: 0.45; cursor: not-allowed; }
   .pagination-controls .page-num {
     font-family: 'IBM Plex Mono', monospace;
     min-width: 70px;
@@ -596,16 +506,13 @@
     color: var(--text);
   }
 
-  /* Footer (hidden) */
   footer { display: none !important; }
-
 
   /* Print */
   .print-only { display: none; }
   @media print {
     body { background: #fff; padding: 0; }
     #menuHost, #topbarExtra, .upload-bar, .periode-info, .controls, .count-note, .totals, footer, .pagination { display: none !important; }
-
     .print-only {
       display: block;
       margin-bottom: 14px;
@@ -620,17 +527,14 @@
   }
 
   /* ========== RINGKASAN PANEL ========== */
-  .ringkasan-panel {
-    margin-bottom: 12px;
-  }
+  .ringkasan-panel { margin-bottom: 12px; }
   .ringkasan-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 14px;
   }
-  @media (max-width: 720px) {
-    .ringkasan-grid { grid-template-columns: 1fr; }
-  }
+  @media (max-width: 720px) { .ringkasan-grid { grid-template-columns: 1fr; } }
+
   .rk-col {
     background: var(--card);
     border: 1px solid var(--border);
@@ -639,14 +543,16 @@
     overflow: hidden;
   }
   .rk-col-header {
-    padding: 8px 14px;
+    padding: 4px 12px;
     font-weight: 600;
-    font-size: 13px;
-    letter-spacing: 0.02em;
+    font-size: 12px;
+    letter-spacing: 0.03em;
     display: flex;
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid var(--border);
+    line-height: 1.3;
+    min-height: 26px;
   }
   .rk-col-header.minyak,
   .rk-col-header.rupa {
@@ -658,51 +564,60 @@
     font-size: 10px;
     font-weight: 500;
     background: rgba(255,255,255,0.18);
-    padding: 2px 8px;
+    padding: 1px 7px;
     border-radius: 20px;
+    line-height: 1.4;
   }
+
+  /* 2 KARTU BERDAMPINGAN */
   .rk-body {
-    padding: 12px 14px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    padding: 10px 12px 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
   }
+  @media (max-width: 560px) {
+    .rk-body { grid-template-columns: 1fr; }
+  }
+
   .rk-item {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
-    gap: 12px;
-    padding: 10px 12px;
-    border-radius: 10px;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
     border: 1px solid var(--border);
     background: var(--input-bg);
     cursor: default;
-    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    min-width: 0;
   }
   .rk-item:hover {
-    transform: translateY(-2px) scale(1.01);
-    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     border-color: var(--border-strong);
   }
-  [data-theme="dark"] .rk-item:hover {
-    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
-  }
-  .rk-item.belum { border-left: 3px solid var(--red); }
-  .rk-item.titip { border-left: 3px solid var(--amber); }
-  .rk-item.lunas { border-left: 3px solid var(--green); }
+  [data-theme="dark"] .rk-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+
+  .rk-item.belum    { border-left: 3px solid var(--red); }
+  .rk-item.titip    { border-left: 3px solid var(--amber); }
+  .rk-item.lunas    { border-left: 3px solid var(--green); }
   .rk-item.diterima { border-left: 3px solid var(--primary-light); }
-  .rk-item.total { border-left: 3px solid var(--text-soft); }
+  .rk-item.total    { border-left: 3px solid var(--text-soft); }
+
   .rk-item-left {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    min-width: 0;
   }
   .rk-item-label {
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: var(--text-soft);
+    white-space: nowrap;
   }
   .rk-item-count {
     font-size: 11px;
@@ -711,22 +626,27 @@
   .rk-item-value {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     text-align: right;
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+    line-height: 1.2;
   }
-  .rk-item.belum .rk-item-value { color: var(--red); }
-  .rk-item.titip .rk-item-value { color: var(--amber); }
-  .rk-item.lunas .rk-item-value { color: var(--green); }
+  .rk-item.belum .rk-item-value    { color: var(--red); }
+  .rk-item.titip .rk-item-value    { color: var(--amber); }
+  .rk-item.lunas .rk-item-value    { color: var(--green); }
   .rk-item.diterima .rk-item-value { color: var(--primary-light); }
   [data-theme="dark"] .rk-item.diterima .rk-item-value { color: #93c5fd; }
-  .rk-item.total .rk-item-value { color: var(--text); }
+  .rk-item.total .rk-item-value    { color: var(--text); }
   .rk-item-sub {
     font-size: 10px;
     color: var(--text-muted);
     font-family: 'IBM Plex Mono', monospace;
     text-align: right;
     margin-top: 2px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
   .rk-empty {
     padding: 40px 20px;
@@ -771,17 +691,12 @@
     justify-content: space-between;
     align-items: center;
   }
-  .modal-header h3 {
-    margin: 0;
-    font-size: 15px;
-    font-weight: 600;
-  }
+  .modal-header h3 { margin: 0; font-size: 15px; font-weight: 600; }
   .modal-close {
     background: rgba(255,255,255,0.15);
     border: none;
     color: #fff;
-    width: 30px;
-    height: 30px;
+    width: 30px; height: 30px;
     border-radius: 50%;
     cursor: pointer;
     font-size: 18px;
@@ -798,11 +713,7 @@
     grid-template-columns: 1fr 1fr;
     gap: 14px;
   }
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-  }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
   .form-group.full { grid-column: 1 / -1; }
   .form-group label {
     font-size: 11px;
@@ -828,10 +739,7 @@
     border-color: var(--primary-light);
     box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
   }
-  .form-hint {
-    font-size: 11px;
-    color: var(--text-muted);
-  }
+  .form-hint { font-size: 11px; color: var(--text-muted); }
   .form-actions {
     display: flex;
     gap: 10px;
@@ -866,16 +774,12 @@
 
   @media (max-width: 480px) {
     .form-grid { grid-template-columns: 1fr; }
-    .topbar-title { font-size: 13px; }
-    .topbar-date { display: none; }
   }
 </style>
 </head>
 <body>
 
-<!-- Topbar duplikat sudah dihapus total; menuWrap dipindahkan inline di samping tombol Cetak -->
-
-<!-- Upload status bar -->
+<!-- Upload status bar (hidden) -->
 <div class="upload-bar" id="uploadStatus">
   <span>Belum ada file diupload.</span>
 </div>
@@ -886,26 +790,52 @@
   <!-- ===== SUMMARY CARDS ===== -->
   <div class="totals" id="totalsRow">
     <div class="tcard red">
-      <div class="label">Belum Lunas</div>
-      <div class="value" id="totBelumNominal">Rp 0</div>
-      <div class="sub" id="totBelumCount">0 faktur</div>
+      <div class="tcard-top">
+        <div class="tcard-left">
+          <span class="label">Belum Lunas</span>
+          <span class="sub" id="totBelumCount">0 faktur</span>
+        </div>
+        <div class="tcard-right">
+          <span class="value" id="totBelumNominal">Rp 0</span>
+        </div>
+      </div>
       <div class="sub-breakdown" id="totBelumBreakdown"></div>
     </div>
     <div class="tcard amber">
-      <div class="label">Bayar Titip</div>
-      <div class="value" id="totTitipBayar">Rp 0</div>
-      <div class="sub" id="totTitipSisa">sisa Rp 0 · 0 faktur</div>
+      <div class="tcard-top">
+        <div class="tcard-left">
+          <span class="label">Bayar Titip</span>
+          <span class="sub" id="totTitipCount">0 faktur</span>
+        </div>
+        <div class="tcard-right">
+          <span class="value" id="totTitipBayar">Rp 0</span>
+          <span class="sub-right" id="totTitipSisa">sisa Rp 0</span>
+        </div>
+      </div>
       <div class="sub-breakdown" id="totTitipBreakdown"></div>
     </div>
     <div class="tcard green">
-      <div class="label">Sudah Lunas</div>
-      <div class="value" id="totLunasNominal">Rp 0</div>
-      <div class="sub" id="totLunasCount">0 faktur</div>
+      <div class="tcard-top">
+        <div class="tcard-left">
+          <span class="label">Sudah Lunas</span>
+          <span class="sub" id="totLunasCount">0 faktur</span>
+        </div>
+        <div class="tcard-right">
+          <span class="value" id="totLunasNominal">Rp 0</span>
+          <span class="sub-right" id="totLunasNilaiFaktur"></span>
+        </div>
+      </div>
       <div class="sub-breakdown" id="totLunasBreakdown"></div>
     </div>
     <div class="tcard navy">
-      <div class="label">Total Diterima</div>
-      <div class="value" id="totDiterima">Rp 0</div>
+      <div class="tcard-top">
+        <div class="tcard-left">
+          <span class="label">Total Diterima</span>
+        </div>
+        <div class="tcard-right">
+          <span class="value" id="totDiterima">Rp 0</span>
+        </div>
+      </div>
       <div class="sub-breakdown" id="totDiterimaBreakdown"></div>
     </div>
   </div>
@@ -926,14 +856,19 @@
       <option value="semua">Semua sales</option>
     </select>
     <input type="text" class="searchbox" id="searchBox" placeholder="Cari toko / sales / no faktur...">
-    <!-- Grup khusus: Excel + Cetak + Menu selalu berdampingan & didorong ke kanan -->
     <div class="controls-action-group">
-      <button class="tabbtn btn-excel" id="btnExportExcel" type="button" title="Simpan Excel sesuai filter & tampilan saat ini">📥 Excel</button>
-      <button class="tabbtn btn-cetak" id="btnCetak" type="button">🖨 Cetak</button>
-      <!-- Tombol Menu dirender LANGSUNG inline di sini agar tidak lagi muncul di atas kartu BELUM LUNAS -->
       <div class="menu-wrap" id="menuWrap" style="position:relative;display:inline-flex;align-items:center;">
         <button type="button" class="btn-menu tabbtn" id="menuToggle" aria-haspopup="true" aria-expanded="false" onclick="window.__toggleArMenu(event)">⋮ Menu</button>
         <div class="menu-dropdown" id="menuDropdown">
+          <div class="menu-item excel" id="btnExportExcel" role="button" title="Simpan Excel sesuai filter & tampilan saat ini">
+            <span class="menu-icon">📥</span>
+            <span>Excel</span>
+          </div>
+          <div class="menu-item cetak" id="btnCetak" role="button" title="Cetak tampilan saat ini">
+            <span class="menu-icon">🖨</span>
+            <span>Cetak</span>
+          </div>
+          <div class="menu-divider"></div>
           <label class="menu-item" id="uploadBtnA">
             <span>📄 Upload Minyak</span>
             <input type="file" accept=".xlsx" id="fileA">
@@ -1011,7 +946,6 @@
   </div>
 
   <footer>
-
     <b>Catatan cara kerja:</b> setiap slot (Sumber A / Sumber B) menyimpan hasil upload TERAKHIR saja —
     kalau besok Anda upload file baru ke slot yang sama, data lama di slot itu otomatis tergantikan,
     tidak akan menumpuk/dobel. Anda juga bisa menambah data satu per satu lewat menu
@@ -1023,7 +957,6 @@
     &amp; input manual disimpan otomatis di browser (IndexedDB), jadi tetap ada meski halaman di-refresh —
     baru hilang kalau Anda klik "hapus" pada slot, atau membuka dashboard ini dari browser/komputer lain.
     Parsing file Excel besar dilakukan di Web Worker agar UI tidak freeze. Tabel menggunakan pagination.
-
   </footer>
 </div>
 
@@ -1129,16 +1062,8 @@ function todayStr(){
   const bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][d.getMonth()];
   return `${hari}, ${dd} ${bulan} ${d.getFullYear()}`;
 }
-// tanggalHariIni dihapus bersama topbar duplikat (header sudah disediakan parent index.html)
-var __tglEl = document.getElementById('tanggalHariIni');
-if (__tglEl) __tglEl.textContent = todayStr();
 
-// ---------- Sinkronkan ke host: pindahkan tombol Menu ke samping Cetak ----------
-// WAJIB dijalankan sebelum skrip lain yang merujuk #btnCetak / #menuWrap.
 function relocateMenuAndTheme(){
-  /* disabled: menuWrap sudah dirender inline permanen di samping tombol Cetak */
-  var tb = document.getElementById('themeToggle');
-  if (tb) { tb.disabled = true; tb.style.opacity = '0.35'; tb.title = 'Mode gelap/terang dikontrol dari bilah atas'; }
   try {
     host.setAttribute('data-theme', parent && parent.document ? parent.document.documentElement.getAttribute('data-theme') : 'light');
   } catch(e){}
@@ -1150,7 +1075,6 @@ function relocateMenuAndTheme(){
   }, 800);
 }
 var host = document.documentElement;
-// Jalankan setelah DOM siap (handle kasus DOMContentLoaded sudah lewat)
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', relocateMenuAndTheme);
 } else {
@@ -1183,7 +1107,6 @@ function parseWorkbook(arrayBuffer, sourceLabel){
   const wb = XLSX.read(arrayBuffer, {type:'array', cellDates:false});
   const ws = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
-  // Deteksi posisi kolom KETERANGAN dari baris header (fallback ke COL.KETERANGAN)
   let colKeterangan = COL.KETERANGAN;
   let ketTerbawah = -1;
   const LABEL_LAIN = ['NO','NAMA SALES','SALES','NO FAKTUR','TANGGAL','TGL FAKTUR',
@@ -1232,7 +1155,7 @@ function parseWorkbook(arrayBuffer, sourceLabel){
   return out;
 }
 
-// ---------- Web Worker untuk parsing Excel (agar UI tidak freeze) ----------
+// ---------- Web Worker ----------
 let excelWorker = null;
 function getExcelWorker(){
   if (excelWorker) return excelWorker;
@@ -1332,20 +1255,15 @@ function parseWorkbookInWorker(arrayBuffer, sourceLabel, slotKey){
     };
     worker.addEventListener('message', onMsg);
     worker.addEventListener('error', onErr);
-    // Transfer ownership ArrayBuffer → hemat memory (tidak di-copy).
-    // Setelah transfer, buffer di main thread menjadi detached.
     try {
       worker.postMessage({ arrayBuffer, sourceLabel, slotKey }, [arrayBuffer]);
     } catch (transferErr) {
-      // Browser/lingkungan tidak mendukung transfer → kirim copy biasa
       worker.postMessage({ arrayBuffer, sourceLabel, slotKey });
     }
   });
 }
 
-
-
-// ---------- IndexedDB (pengganti localStorage untuk data besar) ----------
+// ---------- IndexedDB ----------
 const IDB_NAME = 'piutangHarianDB';
 const IDB_VERSION = 1;
 const IDB_STORE = 'slots';
@@ -1391,17 +1309,13 @@ async function saveStateToStorage(){
     });
   } catch(e){
     console.error('Gagal menyimpan data ke IndexedDB:', e);
-    // JANGAN fallback ke localStorage untuk data besar — akan QuotaExceeded
-    // dan error ditelan → silent data loss. Beri tahu user dengan jelas.
     const msg = (e && e.name === 'QuotaExceededError')
       ? 'Storage penuh. Data terlalu besar untuk disimpan di browser ini. Hapus data lama atau gunakan browser lain.'
       : ('Gagal menyimpan data: ' + (e.message || String(e)));
     alert(msg);
-    // Re-throw supaya pemanggil tahu save gagal (opsional)
     throw e;
   }
 }
-
 
 async function loadStateFromStorage(){
   try{
@@ -1415,22 +1329,11 @@ async function loadStateFromStorage(){
       new Promise(r => { getB.onsuccess = () => r(getB.result); getB.onerror = () => r(null); })
     ]);
     if (recA){
-      state.A = {
-        filename: recA.filename,
-        label: recA.label,
-        rows: recA.rows || [],
-        ts: new Date(recA.ts)
-      };
+      state.A = { filename: recA.filename, label: recA.label, rows: recA.rows || [], ts: new Date(recA.ts) };
     }
     if (recB){
-      state.B = {
-        filename: recB.filename,
-        label: recB.label,
-        rows: recB.rows || [],
-        ts: new Date(recB.ts)
-      };
+      state.B = { filename: recB.filename, label: recB.label, rows: recB.rows || [], ts: new Date(recB.ts) };
     }
-    // Migrasi dari localStorage lama jika IDB kosong
     if (!recA && !recB){
       try {
         const raw = localStorage.getItem('piutangHarianState_v1');
@@ -1438,12 +1341,7 @@ async function loadStateFromStorage(){
           const parsed = JSON.parse(raw);
           ['A','B'].forEach(k => {
             if (parsed[k]){
-              state[k] = {
-                filename: parsed[k].filename,
-                label: parsed[k].label,
-                rows: parsed[k].rows,
-                ts: new Date(parsed[k].ts)
-              };
+              state[k] = { filename: parsed[k].filename, label: parsed[k].label, rows: parsed[k].rows, ts: new Date(parsed[k].ts) };
             }
           });
           if (state.A || state.B) await saveStateToStorage();
@@ -1455,19 +1353,13 @@ async function loadStateFromStorage(){
     rebuildSalesFilter();
   } catch(e){
     console.error('Gagal memuat data dari IndexedDB:', e);
-    // Fallback localStorage
     try{
       const raw = localStorage.getItem('piutangHarianState_v1');
       if (!raw) return;
       const parsed = JSON.parse(raw);
       ['A','B'].forEach(k => {
         if (parsed[k]){
-          state[k] = {
-            filename: parsed[k].filename,
-            label: parsed[k].label,
-            rows: parsed[k].rows,
-            ts: new Date(parsed[k].ts)
-          };
+          state[k] = { filename: parsed[k].filename, label: parsed[k].label, rows: parsed[k].rows, ts: new Date(parsed[k].ts) };
         }
       });
       updateUploadStatus();
@@ -1484,7 +1376,6 @@ function labelFromFilename(name){
   return name.replace(/\.xlsx$/i,'');
 }
 
-// ---------- Handler upload (pakai Web Worker) ----------
 function handleFile(slotKey, file){
   const statusEl = document.getElementById('uploadStatus');
   statusEl.innerHTML = `<span>Memproses ${file.name}... (Web Worker)</span>`;
@@ -1495,12 +1386,9 @@ function handleFile(slotKey, file){
       const buffer = e.target.result;
       let rows;
       try {
-        // ArrayBuffer di-transfer ke Worker (hemat memory, tidak di-copy)
         const result = await parseWorkbookInWorker(buffer, label, slotKey);
         rows = result.rows;
       } catch (workerErr) {
-        // Worker gagal. Karena buffer sudah di-transfer (detached),
-        // baca ulang file untuk fallback main-thread.
         console.warn('Worker gagal, fallback main thread:', workerErr);
         statusEl.innerHTML = `<span>Worker gagal, memproses ulang di main thread...</span>`;
         const buffer2 = await new Promise((res, rej) => {
@@ -1518,25 +1406,19 @@ function handleFile(slotKey, file){
       currentPage = 1;
       render();
       statusEl.innerHTML = `<span class="ok">${label}</span>: <span class="file-count">${rows.length}</span> faktur`;
-      // Simpan terpisah — data tetap tampil di memori meski save gagal
-      try {
-        await saveStateToStorage();
-      } catch (saveErr) {
-        // alert sudah ditampilkan di dalam saveStateToStorage
+      try { await saveStateToStorage(); }
+      catch (saveErr) {
         statusEl.innerHTML += ` <span style="color:var(--red)">(belum tersimpan permanen)</span>`;
       }
     } catch(err){
       statusEl.innerHTML = `<span style="color:var(--red)">Gagal membaca file: ${err.message}</span>`;
     }
-
   };
   reader.onerror = () => {
     statusEl.innerHTML = `<span style="color:var(--red)">Gagal membaca file (file rusak / tidak bisa diakses).</span>`;
   };
   reader.readAsArrayBuffer(file);
 }
-
-
 
 async function clearSlot(slotKey){
   state[slotKey] = null;
@@ -1548,8 +1430,6 @@ async function clearSlot(slotKey){
   render();
 }
 window.clearSlot = clearSlot;
-
-
 
 function updateUploadStatus(){
   const el = document.getElementById('uploadStatus');
@@ -1589,7 +1469,6 @@ function rebuildSalesFilter(){
   if (sorted.includes(current)) sel.value = current;
 }
 
-// ---------- Wiring tombol upload ----------
 document.getElementById('fileA').addEventListener('change', function(e){
   if (this.files[0]) handleFile('A', this.files[0]);
   this.value = '';
@@ -1599,8 +1478,7 @@ document.getElementById('fileB').addEventListener('change', function(e){
   this.value = '';
 });
 
-
-// ---------- Menu dropdown (global, andal) ----------
+// ---------- Menu dropdown ----------
 window.__toggleArMenu = function(e){
   if (e) { e.preventDefault(); e.stopPropagation(); }
   var dd = document.getElementById('menuDropdown');
@@ -1635,7 +1513,6 @@ window.__closeArMenu = function(){
   });
   if (menuDropdown) {
     menuDropdown.addEventListener('click', function(e){
-      // biarkan label file membuka picker; item biasa ditutup setelah klik
       if (e.target.closest('input[type=file]')) return;
       if (e.target.closest('.menu-item') && !e.target.closest('label.menu-item')) {
         window.__closeArMenu();
@@ -1643,7 +1520,6 @@ window.__closeArMenu = function(){
     });
   }
 })();
-
 
 // ---------- Filter state + Pagination ----------
 let activeCat = 'ringkasan';
@@ -1665,18 +1541,16 @@ document.querySelectorAll('.tabbtn[data-cat]').forEach(btn => {
     activeCat = btn.dataset.cat;
     currentPage = 1;
 
-    // Langsung ganti panel supaya tidak terasa jeda
     const ringkasanPanel = document.getElementById('ringkasanPanel');
     const tableWrap = document.getElementById('tableWrap');
     if (activeCat === 'ringkasan'){
-      tableWrap.style.display = 'none';
       ringkasanPanel.style.display = 'block';
+      tableWrap.style.display = '';
     } else {
       ringkasanPanel.style.display = 'none';
       tableWrap.style.display = '';
     }
 
-    // Render data di frame berikutnya agar UI dulu yang update
     requestAnimationFrame(() => render());
   });
 });
@@ -1705,7 +1579,6 @@ function renderRingkasan(rowsForCards){
   const panel = document.getElementById('ringkasanPanel');
   const labels = new Set();
   rowsForCards.forEach(r => { if (r.sumber) labels.add(r.sumber); });
-  // Pastikan urutan MINYAK dulu, lalu RUPA-RUPA
   const order = ['MINYAK', 'RUPA-RUPA'];
   const sources = order.filter(s => labels.has(s)).concat(
     Array.from(labels).filter(s => !order.includes(s)).sort()
@@ -1818,13 +1691,15 @@ document.getElementById('btnCetak').addEventListener('click', () => {
   window.print();
 });
 
-// ---------- Export Excel (sesuai filter & tampilan saat ini) ----------
+// ---------- Export Excel ----------
 function getFilteredRowsForExport(){
   const rows = allRows();
   const sumberVal = document.getElementById('sumberFilter').value;
   const salesVal = document.getElementById('salesFilter').value;
   let filtered = rows;
-  if (activeCat !== 'semua' && activeCat !== 'ringkasan') {
+  if (activeCat === 'ringkasan') {
+    filtered = filtered.filter(r => r.kategori === 'belum');
+  } else if (activeCat !== 'semua') {
     filtered = filtered.filter(r => r.kategori === activeCat);
   }
   if (sumberVal !== 'semua') filtered = filtered.filter(r => r.sumber === sumberVal);
@@ -1849,7 +1724,7 @@ function exportCurrentViewToExcel(){
   }
   const stampLabel = {belum:'BELUM LUNAS', titip:'TITIP', lunas:'LUNAS'};
   const catLabel = {semua:'Semua', belum:'Belum_Lunas', titip:'Titip', lunas:'Sudah_Lunas', ringkasan:'Ringkasan'}[activeCat] || 'Data';
-  const includeUmur = (activeCat === 'belum');
+  const includeUmur = (activeCat === 'belum' || activeCat === 'ringkasan');
   const includePelunasan = (activeCat === 'lunas');
 
   const header = ['No', 'Sales', 'No Faktur', 'Toko', 'Tgl Faktur', 'Jatuh Tempo', 'Nominal', 'Sudah Dibayar', 'Sisa'];
@@ -1902,7 +1777,7 @@ function exportCurrentViewToExcel(){
 
 document.getElementById('btnExportExcel').addEventListener('click', exportCurrentViewToExcel);
 
-// ---------- Fungsi data dan render ----------
+// ---------- Data + render ----------
 function allRows(){
   let rows = [];
   ['A','B'].forEach(k => { if (state[k]) rows = rows.concat(state[k].rows); });
@@ -1928,8 +1803,14 @@ function breakdownBySumber(arr, f){
 function fmtBreakdown(map){
   const keys = Object.keys(map).sort();
   if (keys.length === 0) return '';
-  // Selalu tampilkan breakdown kalau ada data (bahkan 1 sumber), supaya jelas
-  return keys.map(k => `${escapeHtml(k)}: ${fmtRp(map[k])}`).join(' · ');
+  return keys.map(k => {
+    const numOnly = Math.round(Number(map[k]) || 0).toLocaleString('id-ID');
+    return `<div class="brk-row">` +
+      `<span class="brk-label">${escapeHtml(k)} :</span>` +
+      `<span class="brk-cur">Rp</span>` +
+      `<span class="brk-num">${numOnly}</span>` +
+    `</div>`;
+  }).join('');
 }
 
 function escapeHtml(s){
@@ -1939,8 +1820,6 @@ function escapeHtml(s){
 function render(){
   const rows = allRows();
 
-  // Filter yang dipakai untuk kartu ringkasan (sumber + sales saja)
-  // Kategori tab, umur, dan search hanya mempengaruhi tabel
   const sumberVal = document.getElementById('sumberFilter').value;
   const salesVal = document.getElementById('salesFilter').value;
   let rowsForCards = rows;
@@ -1968,14 +1847,17 @@ function render(){
   document.getElementById('totBelumBreakdown').innerHTML = fmtBreakdown(breakdownBySumber(belum, r=>r.nominal));
 
   document.getElementById('totTitipBayar').textContent = fmtRp(sum(titip,r=>r.totalPayment));
-  document.getElementById('totTitipSisa').textContent = `sisa ${fmtRp(sum(titip,r=>r.sisaRiil))} · ${titip.length} faktur`;
+  document.getElementById('totTitipCount').textContent = titip.length + ' faktur';
+  document.getElementById('totTitipSisa').textContent = 'sisa ' + fmtRp(sum(titip,r=>r.sisaRiil));
   document.getElementById('totTitipBreakdown').innerHTML = fmtBreakdown(breakdownBySumber(titip, r=>r.totalPayment));
 
   document.getElementById('totLunasNominal').textContent = fmtRp(sum(lunas,r=>r.totalPayment));
   const lunasNominalSum = sum(lunas, r=>r.nominal);
   const lunasPaidSum = sum(lunas, r=>r.totalPayment);
-  document.getElementById('totLunasCount').textContent = lunas.length + ' faktur' +
-    (Math.abs(lunasNominalSum - lunasPaidSum) > 1 ? ` · nilai faktur ${fmtRp(lunasNominalSum)}` : '');
+  document.getElementById('totLunasCount').textContent = lunas.length + ' faktur';
+  const diffLunas = Math.abs(lunasNominalSum - lunasPaidSum);
+  document.getElementById('totLunasNilaiFaktur').textContent =
+    diffLunas > 1 ? `nilai faktur ${fmtRp(lunasNominalSum)}` : '';
   document.getElementById('totLunasBreakdown').innerHTML = fmtBreakdown(breakdownBySumber(lunas, r=>r.totalPayment));
 
   document.getElementById('totDiterima').textContent = fmtRp(sum(lunas,r=>r.totalPayment) + sum(titip,r=>r.totalPayment));
@@ -1983,9 +1865,14 @@ function render(){
   [lunas, titip].forEach(arr => arr.forEach(r => { diterimaMap[r.sumber] = (diterimaMap[r.sumber]||0) + r.totalPayment; }));
   document.getElementById('totDiterimaBreakdown').innerHTML = fmtBreakdown(diterimaMap);
 
-  // filter untuk tabel
+  // ---- Filter untuk tabel ----
   let filtered = rows;
-  if (activeCat !== 'semua' && activeCat !== 'ringkasan') filtered = filtered.filter(r=>r.kategori===activeCat);
+  if (activeCat === 'ringkasan') {
+    // Tab Ringkasan → preview data Belum Lunas
+    filtered = filtered.filter(r => r.kategori === 'belum');
+  } else if (activeCat !== 'semua') {
+    filtered = filtered.filter(r => r.kategori === activeCat);
+  }
   if (sumberVal !== 'semua') filtered = filtered.filter(r=>r.sumber===sumberVal);
   if (salesVal !== 'semua') filtered = filtered.filter(r=>String(r.sales||'').trim()===salesVal);
   const q = document.getElementById('searchBox').value.trim().toLowerCase();
@@ -1999,33 +1886,42 @@ function render(){
   const ringkasanPanel = document.getElementById('ringkasanPanel');
   const tableWrap = document.getElementById('tableWrap');
 
-  // Mode RINGKASAN: tampilkan panel visual, sembunyikan tabel
   if (activeCat === 'ringkasan'){
-    tableWrap.style.display = 'none';
     ringkasanPanel.style.display = 'block';
+    tableWrap.style.display = '';               // ← tabel tetap tampil
     document.getElementById('countNote').textContent =
-      rows.length === 0 ? 'Belum ada data.' : `Ringkasan per sumber · ${rowsForCards.length} faktur (ikut filter sumber/sales)`;
+      rows.length === 0
+        ? 'Belum ada data.'
+        : `Ringkasan per sumber · preview 10 faktur Belum Lunas`;
     renderRingkasan(rowsForCards);
-    return;
+    // TIDAK return → lanjut render tabel di bawah
+  } else {
+    ringkasanPanel.style.display = 'none';
+    tableWrap.style.display = '';
   }
 
-  // Mode tabel biasa
-  tableWrap.style.display = '';
-  ringkasanPanel.style.display = 'none';
-
   const totalFiltered = filtered.length;
-  const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
-  if (currentPage > totalPages) currentPage = totalPages;
-  if (currentPage < 1) currentPage = 1;
+  let totalPages, startIdx, endIdx, pageRows;
 
-  const startIdx = (currentPage - 1) * pageSize;
-  const endIdx = Math.min(startIdx + pageSize, totalFiltered);
-  const pageRows = filtered.slice(startIdx, endIdx);
+  if (activeCat === 'ringkasan'){
+    // Tab Ringkasan → preview 10 baris, tanpa pagination
+    totalPages = 1;
+    startIdx = 0;
+    endIdx = Math.min(10, totalFiltered);
+    pageRows = filtered.slice(0, 10);
+  } else {
+    totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+    startIdx = (currentPage - 1) * pageSize;
+    endIdx = Math.min(startIdx + pageSize, totalFiltered);
+    pageRows = filtered.slice(startIdx, endIdx);
+  }
 
   document.getElementById('countNote').textContent =
     rows.length === 0 ? 'Belum ada data. Upload file atau input manual lewat menu untuk mulai.'
     : `Menampilkan ${totalFiltered} dari ${rows.length} total faktur` +
-      (totalFiltered > pageSize ? ` (halaman ${currentPage}/${totalPages})` : '');
+      (totalFiltered > pageSize && activeCat !== 'ringkasan' ? ` (halaman ${currentPage}/${totalPages})` : '');
 
   const tbody = document.getElementById('tbody');
   const emptyState = document.getElementById('emptyState');
@@ -2045,9 +1941,8 @@ function render(){
     return;
   }
   emptyState.style.display = 'none';
-  paginationBar.style.display = 'flex';
+  paginationBar.style.display = (activeCat === 'ringkasan') ? 'none' : 'flex';
 
-  // Update pagination UI
   document.getElementById('paginationInfo').textContent =
     `Menampilkan ${startIdx + 1}–${endIdx} dari ${totalFiltered}`;
   document.getElementById('pageNumLabel').textContent = `${currentPage} / ${totalPages}`;
@@ -2055,7 +1950,7 @@ function render(){
   document.getElementById('btnNextPage').disabled = currentPage >= totalPages;
 
   const tableEl = document.getElementById('dataTable');
-  if (activeCat === 'belum') tableEl.classList.add('show-umur');
+  if (activeCat === 'belum' || activeCat === 'ringkasan') tableEl.classList.add('show-umur');
   else tableEl.classList.remove('show-umur');
   if (activeCat === 'lunas') tableEl.classList.add('show-lunas');
   else tableEl.classList.remove('show-lunas');
@@ -2084,8 +1979,7 @@ function render(){
   `;}).join('');
 }
 
-
-// ---------- Input Manual Modal ----------
+// ---------- Input Manual ----------
 function dateToExcelSerial(dateStr){
   if (!dateStr) return null;
   const parts = dateStr.split('-');
@@ -2119,7 +2013,6 @@ function closeInputModal(){
   document.getElementById('inputModal').classList.remove('show');
 }
 
-// ---------- Hapus data per kategori ----------
 async function deleteSlot(slotKey){
   const defaultLabel = slotKey === 'A' ? 'AR Minyak' : 'AR Rupa-rupa';
   const data = state[slotKey];
@@ -2144,11 +2037,7 @@ async function deleteSlot(slotKey){
   alert('Data ' + nama + ' (' + jumlah + ' faktur) sudah dihapus.');
 }
 
-
-
-
 document.getElementById('inputBtnA').addEventListener('click', () => {
-
   document.getElementById('menuDropdown').classList.remove('show');
   document.getElementById('menuToggle').classList.remove('active');
   openInputModal('A');
@@ -2206,12 +2095,7 @@ document.getElementById('inputForm').addEventListener('submit', function(e){
   const label = slotKey === 'A' ? 'MINYAK' : 'RUPA-RUPA';
 
   if (!state[slotKey]){
-    state[slotKey] = {
-      filename: '(input manual)',
-      label: label,
-      rows: [],
-      ts: new Date()
-    };
+    state[slotKey] = { filename: '(input manual)', label: label, rows: [], ts: new Date() };
   }
 
   const newRow = {
@@ -2242,52 +2126,33 @@ document.getElementById('inputForm').addEventListener('submit', function(e){
   currentPage = 1;
   render();
   closeInputModal();
-  saveStateToStorage().catch(() => {}); // alert sudah di dalam save jika gagal
+  saveStateToStorage().catch(() => {});
 });
 
-
-// ---------- Theme (Dark / Light) ----------
+// ---------- Theme ----------
 const THEME_KEY = 'arMinyakTheme';
 function applyTheme(theme){
   const isDark = theme === 'dark';
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-  const btn = document.getElementById('themeToggle');
-  if (btn){
-    btn.textContent = isDark ? '☀️' : '🌙';
-    btn.title = isDark ? 'Ganti ke mode terang' : 'Ganti ke mode gelap';
-  }
-  // Update theme-color meta for mobile browser chrome
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.content = isDark ? '#0f172a' : '#1e3a5f';
 }
 function initTheme(){
   let saved = localStorage.getItem(THEME_KEY);
   if (!saved){
-    // Ikuti preferensi sistem jika belum pernah diset
     saved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
   applyTheme(saved);
 }
-const __themeToggleBtn = document.getElementById('themeToggle');
-if (__themeToggleBtn) __themeToggleBtn.addEventListener('click', () => {
-  const current = document.documentElement.getAttribute('data-theme') || 'light';
-  const next = current === 'dark' ? 'light' : 'dark';
-  localStorage.setItem(THEME_KEY, next);
-  applyTheme(next);
-});
 
-// ---------- Persistent storage (minta browser jangan hapus data IndexedDB) ----------
+// ---------- Persistent storage ----------
 async function requestPersistentStorage(){
   try {
     if (!navigator.storage || !navigator.storage.persist) return;
     const already = await navigator.storage.persisted();
-    if (already) {
-      console.log('Storage sudah persistent');
-      return true;
-    }
+    if (already) { console.log('Storage sudah persistent'); return true; }
     const granted = await navigator.storage.persist();
     console.log(granted ? 'Storage persistent diizinkan' : 'Storage persistent ditolak browser');
-    // Opsional: log estimasi kuota
     if (navigator.storage.estimate) {
       const est = await navigator.storage.estimate();
       const usedMB = ((est.usage || 0) / 1048576).toFixed(1);
@@ -2304,7 +2169,6 @@ async function requestPersistentStorage(){
 // ---------- Init ----------
 initTheme();
 (async function initApp(){
-  // Minta browser melindungi data IndexedDB dari penghapusan otomatis
   requestPersistentStorage();
   await loadStateFromStorage();
   updateUploadStatus();
@@ -2313,8 +2177,7 @@ initTheme();
   render();
 })();
 
-// ========== JEMBATAN UNTUK SUB-TAB "SUMBER DATA" DI SCAN DATA ==========
-// Dipanggil dari index.html (populateSumberDataList) lewat iframe#iframe-rekap-ar.
+// ========== JEMBATAN UNTUK SUB-TAB "SUMBER DATA" ==========
 window.__SCAN_GET_AR = function(){
   try {
     const STATUS_TEXT = {belum:'BELUM LUNAS', titip:'BAYAR TITIP', lunas:'SUDAH LUNAS'};
