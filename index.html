@@ -6030,10 +6030,9 @@ function openFakturModal(pageKey, idx){
     if(titleEl) titleEl.innerHTML = '📄 Detail Faktur ' + escScan(r.faktur) + ' <span class="sfm-badge">'+escScan(titleBadge)+'</span>';
 
     // Siapkan kategori produk (pill pendek) untuk diletakkan di kanan Tanggal Faktur
-    let pk = '', pl = null, pillCls = '', pkLbl = '', produkListHtml = '';
+    let pk = '', pillCls = '', pkLbl = '';
     if(!isUmSide){
       pk = r.produkKategori || '';
-      pl = r.produkList || null;
       if(!pk && r.faktur){
         try{
           const rawMap = scanResults.penRawByFaktur || new Map();
@@ -6041,7 +6040,6 @@ function openFakturModal(pageKey, idx){
           if(rawRows.length){
             const pset = new Set();
             rawRows.forEach(rr=>{ if(rr.produk) pset.add(String(rr.produk).trim()); });
-            pl = [...pset];
             pk = produkKategoriFromSet(pset) || '';
           }
         }catch(e){}
@@ -6050,9 +6048,6 @@ function openFakturModal(pageKey, idx){
       else if(pk==='RUPA_RUPA'){ pillCls='rupa'; pkLbl='Rupa Rupa'; }
       else if(pk==='CAMPURAN'){ pillCls='campuran'; pkLbl='Campuran'; }
       else if(pk){ pkLbl = pk; }
-      if(pl && pl.length){
-        produkListHtml = '<div class="sfm-produk-list-full">'+escScan(pl.join(', '))+'</div>';
-      }
     }
 
     // Header info: single-row compact layout (No Faktur • Tanggal • Customer • Alamat • Jenis • Pill)
@@ -6075,9 +6070,41 @@ function openFakturModal(pageKey, idx){
     html += '</div>';
     html += '<div class="sfm-total"><label>'+(isUmSide?'TOTAL NOMINAL UM':'TOTAL NOMINAL FAKTUR')+'</label><b>'+rupiahScan(r.total)+'</b></div>';
 
+    // ===== Rincian Produk (tabel baris mentah) — ditampilkan LEBIH DULU, sebelum
+    // status di sumber lain, supaya langsung terlihat tanpa scroll saat modal dibuka =====
+    let rincianBlockHtml = '';
+    if(pageKey==='umOnly'){
+      rincianBlockHtml = '<div class="sfm-empty">Baris uang masuk ini tidak ditemukan pasangan No Faktur-nya di data Penjualan yang ter-load. Silakan cek manual (misalnya salah ketik No Faktur, faktur beda bulan, dsb). Jika setelah dicek ternyata transaksi ini normal, gunakan tombol di bawah untuk memindahkannya ke sub-tab <b>Penjualan-Ada di UM</b>.</div>';
+    } else if(r.umReconciled){
+      rincianBlockHtml = '<div class="sfm-empty">Baris ini awalnya berasal dari sub-tab <b>UM-Tidak Ada di Penjualan</b>, dan sudah ditandai manual sebagai <b>'+escScan((UM_STATUS_LABEL[r.manualStatus]||'').replace(' (dari UM)',''))+'</b> setelah dicek.</div>';
+    } else {
+      const rawMap = scanResults.penRawByFaktur || new Map();
+      const rawRows = rawMap.get(normScan(r.faktur)) || [];
+      if(rawRows.length){
+        rincianBlockHtml += '<div class="sfm-section-title">Rincian Produk ('+rawRows.length.toLocaleString('id-ID')+' item)</div>';
+        rincianBlockHtml += '<table class="sfm-detail-table"><thead><tr>';
+        rincianBlockHtml += '<th>No</th><th>Tanggal</th><th>Produk</th><th>Qty</th><th>Nominal</th>';
+        rincianBlockHtml += '</tr></thead><tbody>';
+        rawRows.forEach((rr,ii)=>{
+          rincianBlockHtml += '<tr>';
+          rincianBlockHtml += '<td>'+(ii+1)+'</td>';
+          rincianBlockHtml += '<td>'+escScan(formatScanDate(rr.tanggal))+'</td>';
+          rincianBlockHtml += '<td>'+escScan(rr.produk||'-')+'</td>';
+          rincianBlockHtml += '<td class="num">'+escScan((rr.jumlah||rr.jumlah===0)?(Number(rr.jumlah).toLocaleString('id-ID')+(rr.satuan?(' '+escScan(rr.satuan)):'')):'-')+'</td>';
+          rincianBlockHtml += '<td class="num">'+rupiahScan(rr.total)+'</td>';
+          rincianBlockHtml += '</tr>';
+        });
+        const rawTot = rawRows.reduce((n,x)=>n+scanNum(x.total),0);
+        rincianBlockHtml += '</tbody><tfoot><tr><td colspan="4">TOTAL RINCIAN</td><td class="num">'+rupiahScan(rawTot)+'</td></tr></tfoot></table>';
+      } else {
+        rincianBlockHtml = '<div class="sfm-empty">Tidak ada rincian baris mentah untuk faktur ini (data terkunci di ringkasan faktur).</div>';
+      }
+    }
+    html += rincianBlockHtml;
+
     // Ringkasan pasangan UM / DTH / AR dari baris Sumber Data
     if(pageKey==='sumberData'){
-      html += '<div class="sfm-section-title">Pasangan di Sumber Lain</div>';
+      html += '<div class="sfm-section-title">Status di Sumber Lain</div>';
       html += '<div class="sfm-grid">';
       // Kumpulkan kategori yang "Tidak ada" agar tampil sebaris (satu baris berdampingan)
       let noneRow = '';
@@ -6153,38 +6180,6 @@ function openFakturModal(pageKey, idx){
         html += '<div style="grid-column:1/-1"><label>Keterangan dari Rekap AR</label><b>'+escScan(r.ar.keterangan||'-')+'</b></div>';
       }
       html += '</div>';
-    }
-
-    if(pageKey==='umOnly'){
-      html += '<div class="sfm-empty">Baris uang masuk ini tidak ditemukan pasangan No Faktur-nya di data Penjualan yang ter-load. Silakan cek manual (misalnya salah ketik No Faktur, faktur beda bulan, dsb). Jika setelah dicek ternyata transaksi ini normal, gunakan tombol di bawah untuk memindahkannya ke sub-tab <b>Penjualan-Ada di UM</b>.</div>';
-    } else if(r.umReconciled){
-      html += '<div class="sfm-empty">Baris ini awalnya berasal dari sub-tab <b>UM-Tidak Ada di Penjualan</b>, dan sudah ditandai manual sebagai <b>'+escScan((UM_STATUS_LABEL[r.manualStatus]||'').replace(' (dari UM)',''))+'</b> setelah dicek.</div>';
-    } else {
-      const rawMap = scanResults.penRawByFaktur || new Map();
-      const rawRows = rawMap.get(normScan(r.faktur)) || [];
-      if(rawRows.length){
-        html += '<div class="sfm-section-title">Rincian Baris Mentah ('+rawRows.length.toLocaleString('id-ID')+' baris diagregasi menjadi faktur ini)</div>';
-        html += '<table class="sfm-detail-table"><thead><tr>';
-        html += '<th>No</th><th>Tanggal</th><th>Produk</th><th>Qty</th><th>Sales</th><th>Customer</th><th>Alamat</th><th>Pembayaran</th><th>Nominal</th>';
-        html += '</tr></thead><tbody>';
-        rawRows.forEach((rr,ii)=>{
-          html += '<tr>';
-          html += '<td>'+(ii+1)+'</td>';
-          html += '<td>'+escScan(formatScanDate(rr.tanggal))+'</td>';
-          html += '<td>'+escScan(rr.produk||'-')+'</td>';
-          html += '<td class="num">'+escScan((rr.jumlah||rr.jumlah===0)?(Number(rr.jumlah).toLocaleString('id-ID')+(rr.satuan?(' '+escScan(rr.satuan)):'')):'-')+'</td>';
-          html += '<td>'+escScan(rr.sales||'')+'</td>';
-          html += '<td>'+escScan(rr.customer||'')+'</td>';
-          html += '<td>'+escScan(rr.alamat||'')+'</td>';
-          html += '<td>'+escScan(rr.pembayaran||'')+'</td>';
-          html += '<td class="num">'+rupiahScan(rr.total)+'</td>';
-          html += '</tr>';
-        });
-        const rawTot = rawRows.reduce((n,x)=>n+scanNum(x.total),0);
-        html += '</tbody><tfoot><tr><td colspan="8">TOTAL RINCIAN</td><td class="num">'+rupiahScan(rawTot)+'</td></tr></tfoot></table>';
-      } else {
-        html += '<div class="sfm-empty">Tidak ada rincian baris mentah untuk faktur ini (data terkunci di ringkasan faktur).</div>';
-      }
     }
 
     body.innerHTML = html;
