@@ -6105,23 +6105,21 @@ function openFakturModal(pageKey, idx){
     // Ringkasan pasangan UM / DTH / AR dari baris Sumber Data
     if(pageKey==='sumberData'){
       html += '<div class="sfm-section-title">Status di Sumber Lain</div>';
-      html += '<div class="sfm-grid">';
-      // Kumpulkan kategori yang "Tidak ada" agar tampil sebaris (satu baris berdampingan)
-      let noneRow = '';
-      if(!r.um) noneRow += '<div><label>Uang Masuk</label><b style="color:#b91c1c">Tidak ada</b></div>';
-      if(!r.dth) noneRow += '<div><label>DTH</label><b style="color:#b91c1c">Tidak ada</b></div>';
-      if(!r.ar) noneRow += '<div><label>Rekap AR</label><b style="color:#b91c1c">Tidak ada</b></div>';
-      if(noneRow){
-        html += '<div class="sfm-none-row" style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px 22px">'+noneRow+'</div>';
-      }
+      html += '<div class="sfm-grid compact">';
+      // Field pendek (Uang Masuk/DTH tidak ada, Tgl UM, Nominal UM, Tgl DTH, Tgl AR, Sisa AR, Sumber AR)
+      // ditaruh sebaris; badge Posisi di Rekap AR didorong ke ujung kanan.
+      let fullRows = ''; // baris teks panjang (Keterangan ...) tampil di bawah, lebar penuh
+      if(!r.um) html += '<div><label>Uang Masuk</label><b style="color:#b91c1c">Tidak ada</b></div>';
+      if(!r.dth) html += '<div><label>DTH</label><b style="color:#b91c1c">Tidak ada</b></div>';
+      if(!r.ar) html += '<div><label>Rekap AR</label><b style="color:#b91c1c">Tidak ada</b></div>';
       if(r.um){
         html += '<div><label>Tgl UM</label><b>'+escScan(formatScanDate(r.um.tanggal))+'</b></div>';
         html += '<div><label>Nominal UM</label><b>'+rupiahScan(r.um.nominal)+'</b></div>';
-        html += '<div style="grid-column:1/-1"><label>Keterangan UM</label><b>'+escScan(r.um.keterangan||'-')+'</b></div>';
+        fullRows += '<div style="flex:1 1 100%"><label>Keterangan UM</label><b>'+escScan(r.um.keterangan||'-')+'</b></div>';
       }
       if(r.dth){
         html += '<div><label>Tgl DTH</label><b>'+escScan(formatScanDate(r.dth.tanggal))+'</b></div>';
-        html += '<div style="grid-column:1/-1"><label>Keterangan DTH</label><b>'+escScan(r.dth.keterangan||'-')+'</b></div>';
+        fullRows += '<div style="flex:1 1 100%"><label>Keterangan DTH</label><b>'+escScan(r.dth.keterangan||'-')+'</b></div>';
       }
       if(r.ar){
         // Normalisasi posisi di Rekap AR: BELUM LUNAS / BAYAR TITIP / SUDAH LUNAS
@@ -6164,11 +6162,12 @@ function openFakturModal(pageKey, idx){
         };
         const pc = posColors[arPosCls] || posColors.belum;
         html += '<div><label>Tgl AR</label><b>'+escScan(formatScanDate(r.ar.tanggal))+'</b></div>';
-        html += '<div><label>Posisi di Rekap AR</label><b><span style="display:inline-block;background:'+pc.bg+';color:'+pc.fg+';border:1px solid '+pc.bd+';padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.02em">'+escScan(arPos)+'</span></b></div>';
         if(r.ar.sisa!=null){
           html += '<div><label>Sisa AR</label><b>'+rupiahScan(r.ar.sisa)+'</b></div>';
         }
-        if(r.ar.nominal!=null && r.ar.nominal!==''){
+        // Nominal AR hanya ditampilkan jika BEDA dari Sisa AR (mis. sudah ada bayar sebagian);
+        // kalau sama persis (belum ada pembayaran), tidak perlu ditampilkan dua kali.
+        if(r.ar.nominal!=null && r.ar.nominal!=='' && Number(r.ar.nominal)!==Number(r.ar.sisa)){
           html += '<div><label>Nominal AR</label><b>'+rupiahScan(r.ar.nominal)+'</b></div>';
         }
         if(r.ar.bayar!=null && Number(r.ar.bayar)>0){
@@ -6177,8 +6176,10 @@ function openFakturModal(pageKey, idx){
         if(r.ar.sumber){
           html += '<div><label>Sumber AR</label><b>'+escScan(r.ar.sumber)+'</b></div>';
         }
-        html += '<div style="grid-column:1/-1"><label>Keterangan dari Rekap AR</label><b>'+escScan(r.ar.keterangan||'-')+'</b></div>';
+        html += '<div style="margin-left:auto;align-self:center"><label>Posisi di Rekap AR</label><b><span style="display:inline-block;background:'+pc.bg+';color:'+pc.fg+';border:1px solid '+pc.bd+';padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.02em">'+escScan(arPos)+'</span></b></div>';
+        fullRows += '<div style="flex:1 1 100%"><label>Keterangan dari Rekap AR</label><b>'+escScan(r.ar.keterangan||'-')+'</b></div>';
       }
+      html += fullRows;
       html += '</div>';
     }
 
