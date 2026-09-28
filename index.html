@@ -1474,14 +1474,29 @@
 
           <div class="cd-filter-bar">
             <div class="cd-filter-group">
-              <label for="cdFilterBulanPenjualan">Bulan Penjualan (filter)</label>
-              <select id="cdFilterBulanPenjualan"></select>
+              <label for="cdMonthPenBtn">Bulan Penjualan (filter)</label>
+              <div class="scan-month-dropdown cd-month-dd" id="cdMonthPenDd">
+                <button type="button" class="scan-month-btn" id="cdMonthPenBtn" onclick="cdToggleMonthMenu('pen',event)">Semua bulan</button>
+                <div class="scan-month-menu" id="cdMonthPenMenu" onclick="event.stopPropagation()">
+                  <div class="scan-month-help">Pilih maksimal 2 bulan</div>
+                  <label class="scan-month-option"><input type="checkbox" id="cdMonthPenAll" onchange="cdClearMonths('pen')" checked><span>Semua bulan</span></label>
+                  <div id="cdMonthPenOptions"></div>
+                </div>
+              </div>
+              <select id="cdFilterBulanPenjualan" hidden></select>
             </div>
             <div class="cd-filter-group">
-              <label for="cdFilterBulanUM">Bulan Uang Masuk (filter)</label>
-              <select id="cdFilterBulanUM"></select>
-              <span style="margin:0 6px;color:#94a3b8;font-size:12px">s/d</span>
-              <select id="cdFilterBulanUM2" title="Opsional: pilih bulan akhir untuk cek rentang 2 bulan atau lebih (mis. Penjualan Agustus yang bisa dibayar Agustus ATAU September)"></select>
+              <label for="cdMonthUmBtn">Bulan Uang Masuk (filter)</label>
+              <div class="scan-month-dropdown cd-month-dd" id="cdMonthUmDd">
+                <button type="button" class="scan-month-btn" id="cdMonthUmBtn" onclick="cdToggleMonthMenu('um',event)">Semua bulan</button>
+                <div class="scan-month-menu" id="cdMonthUmMenu" onclick="event.stopPropagation()">
+                  <div class="scan-month-help">Pilih maksimal 2 bulan</div>
+                  <label class="scan-month-option"><input type="checkbox" id="cdMonthUmAll" onchange="cdClearMonths('um')" checked><span>Semua bulan</span></label>
+                  <div id="cdMonthUmOptions"></div>
+                </div>
+              </div>
+              <select id="cdFilterBulanUM" hidden></select>
+              <select hidden id="cdFilterBulanUM2" title="Opsional: pilih bulan akhir untuk cek rentang 2 bulan atau lebih (mis. Penjualan Agustus yang bisa dibayar Agustus ATAU September)"></select>
             </div>
             <div class="cd-filter-actions">
               <button type="button" class="cd-btn" id="btnCdMuat" onclick="cdOnMuat()" title="Muat data Penjualan &amp; Uang Masuk sesuai filter">🔄 Muat</button>
@@ -2898,9 +2913,9 @@ async function cdLoadData(opts){
   // Isi opsi bulan dari data live (dilewati saat reuse: data mentah tidak berubah)
   if(!canReuse){ try{ cdPopulateMonthsFromLive(penRaw, umRaw); }catch(e){} }
 
-  const bulanPen = (document.getElementById('cdFilterBulanPenjualan')||{}).value || '';
-  const bulanUM = (document.getElementById('cdFilterBulanUM')||{}).value || '';
-  const bulanUM2 = (document.getElementById('cdFilterBulanUM2')||{}).value || '';
+  const bulanPen = cdSelValue('pen');   // '' = semua bulan, atau array 1-2 bulan
+  const bulanUM = cdSelValue('um');
+  const bulanUM2 = '';
   // Rentang Bulan Uang Masuk: kalau "s/d" diisi, cakup beberapa bulan sekaligus
   // (mis. Agustus s/d September) — supaya Penjualan Agustus yang dibayar bulan
   // September tetap ketemu pasangannya, bukan dianggap "Belum Ada Uang Masuk".
@@ -7294,6 +7309,69 @@ function confirmPayChange(){
     try{if(scanResults&&scanResults.scanned)scanDataRun()}catch(e){console.warn(e)}
   }).catch(function(e){console.warn(e);showToast('Gagal mengubah pembayaran.')});
 }
+</script>
+
+<style>
+.cd-month-dd{position:relative;display:inline-block}
+.cd-month-dd .scan-month-btn{width:160px;height:26px;padding:3px 24px 3px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+.cd-month-dd .scan-month-btn::after{top:5px}
+.cd-month-dd .scan-month-menu{top:30px}
+html[data-theme="dark"] .cd-month-dd .scan-month-btn{background:#0f172a;color:#e2e8f0;border-color:#475569}
+</style>
+<script>
+/* ===== Contiguous Data: Bulan Penjualan / Bulan Uang Masuk = dropdown centang (maks 2 bulan) ===== */
+var _cdSel={pen:null,um:null};
+var _CD_MAP={pen:['cdFilterBulanPenjualan','cdMonthPen'],um:['cdFilterBulanUM','cdMonthUm']};
+function cdSelValue(k){var a=_cdSel[k];return (a&&a.length)?a.slice():''}
+function cdUpdateMonthBtn(k){
+  var b=document.getElementById(_CD_MAP[k][1]+'Btn'),a=_cdSel[k]||[];if(!b)return;
+  var t=a.length?a.map(function(x){return cdMonthLabel(x)}).join(' + '):'Semua bulan';
+  b.textContent=t;b.title=t;
+  var all=document.getElementById(_CD_MAP[k][1]+'All');if(all)all.checked=!a.length;
+}
+function cdRenderMonthMulti(){
+  Object.keys(_CD_MAP).forEach(function(k){
+    var sel=document.getElementById(_CD_MAP[k][0]),box=document.getElementById(_CD_MAP[k][1]+'Options');if(!sel||!box)return;
+    var vals=[].slice.call(sel.options).map(function(o){return o.value}).filter(Boolean);
+    if(!vals.length)return;
+    if(_cdSel[k]===null)_cdSel[k]=sel.value?[sel.value]:[];
+    _cdSel[k]=_cdSel[k].filter(function(v){return vals.indexOf(v)>-1});
+    box.innerHTML=vals.map(function(v){
+      return '<label class="scan-month-option"><input type="checkbox" value="'+escScan(v)+'"'+(_cdSel[k].indexOf(v)>-1?' checked':'')+' onchange="cdOnMonthCheck(\''+k+'\',this)"><span>'+escScan(cdMonthLabel(v))+'</span></label>';
+    }).join('');
+    cdUpdateMonthBtn(k);
+  });
+}
+function cdReloadMonths(){
+  if(window._cdCache&&window._cdCache.loaded){cdLoadData({mode:window._cdMode||'all',silent:true})}
+}
+function cdOnMonthCheck(k,cb){
+  var box=document.getElementById(_CD_MAP[k][1]+'Options');
+  var ch=[].slice.call(box.querySelectorAll('input:checked'));
+  if(ch.length>2){cb.checked=false;if(typeof showToast==='function')showToast('Pilih maksimal 2 bulan.');return}
+  _cdSel[k]=ch.map(function(x){return x.value}).sort();
+  cdUpdateMonthBtn(k);cdReloadMonths();
+}
+function cdClearMonths(k){
+  _cdSel[k]=[];
+  [].slice.call(document.querySelectorAll('#'+_CD_MAP[k][1]+'Options input')).forEach(function(x){x.checked=false});
+  cdUpdateMonthBtn(k);cdReloadMonths();
+}
+function cdToggleMonthMenu(k,ev){
+  if(ev){ev.preventDefault();ev.stopPropagation()}
+  Object.keys(_CD_MAP).forEach(function(o){
+    var m=document.getElementById(_CD_MAP[o][1]+'Menu');if(!m)return;
+    if(o===k)m.classList.toggle('open');else m.classList.remove('open');
+  });
+}
+document.addEventListener('click',function(){Object.keys(_CD_MAP).forEach(function(o){var m=document.getElementById(_CD_MAP[o][1]+'Menu');if(m)m.classList.remove('open')})});
+
+var _cdPop1=populateCdFilters;populateCdFilters=function(){var r=_cdPop1.apply(this,arguments);try{cdRenderMonthMulti()}catch(e){}return r};
+var _cdPop2=cdPopulateMonthsFromLive;cdPopulateMonthsFromLive=function(){var r=_cdPop2.apply(this,arguments);try{cdRenderMonthMulti()}catch(e){}return r};
+var _cdMk0=cdMonthKeysWithPrev;
+cdMonthKeysWithPrev=function(b){if(Array.isArray(b)){var o=[];b.forEach(function(k){_cdMk0(k).forEach(function(x){if(o.indexOf(x)<0)o.push(x)})});return o}return _cdMk0(b)};
+var _cdMl0=cdMonthLabel;
+cdMonthLabel=function(k){return Array.isArray(k)?k.map(_cdMl0).join(' + '):_cdMl0(k)};
 </script>
 </body>
 </html>
