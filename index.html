@@ -5157,7 +5157,9 @@ function applySumberDataFilters(){
   }
   if(fBulanUM.length && !onlyPenAdaUmKosong && !onlyPenAdaUmKosongTempo && !onlyPenAdaUmKosongCash && !onlyArTitip && !onlyPenKosongSemua){
     const set = new Set(fBulanUM);
-    out = out.filter(r => r.um && r.um.tanggal && set.has(monthKeyFromDate(r.um.tanggal)));
+    // Saat mencari (No Faktur/Toko/Sales), faktur yang BELUM punya UM sama sekali tetap ditampilkan
+    // supaya hasil pencarian tidak hilang hanya karena filter Bulan UM.
+    out = out.filter(r => (fCari && !r.um) || (r.um && r.um.tanggal && set.has(monthKeyFromDate(r.um.tanggal))));
   }
   if(fCari){
     out = out.filter(r=>{
