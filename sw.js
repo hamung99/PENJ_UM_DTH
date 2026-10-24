@@ -1,6 +1,9 @@
-const CACHE_NAME = 'rekap-gabungan-v4';
+const CACHE_NAME = 'rekap-gabungan-v5';
 const APP_SHELL = [
   './index.html',
+  './penjualan.html',
+  './uangmasuk.html',
+  './rekap-ar.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
@@ -28,7 +31,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch: network-first for the app shell (so updates are picked up),
+// Fetch: network-first for same-origin files (so updates are picked up),
 // falling back to cache when offline. Cache-first for everything else (CDN libs, etc).
 self.addEventListener('fetch', (event) => {
   const req = event.request;
@@ -41,11 +44,22 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const resClone = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+          // Simpan hanya respons sukses (jangan cache 404/500)
+          if (res && res.ok) {
+            const resClone = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+          }
           return res;
         })
-        .catch(() => caches.match(req).then((res) => res || caches.match('./index.html')))
+        .catch(() =>
+          caches.match(req).then((res) => {
+            if (res) return res;
+            // Fallback ke index.html hanya untuk halaman utama,
+            // bukan untuk iframe (supaya tidak muncul app di dalam app)
+            if (req.destination === 'document') return caches.match('./index.html');
+            return Response.error();
+          })
+        )
     );
   } else {
     event.respondWith(
