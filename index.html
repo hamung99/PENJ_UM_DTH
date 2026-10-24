@@ -1079,6 +1079,8 @@
   /* batang sinyal tetap di tengah & tidak meluber keluar baris */
   .scan-signal{padding:0!important;align-items:center}
   .scan-signal .bar{height:16px;width:8px}
+  /* sembunyi saat idle; override aturan display:inline-flex di atas */
+  .scan-signal:not(.active){display:none!important}
   .scan-gear-wrap{align-items:center}
   /* garis tepi tipis 1px, warna seragam untuk semua kontrol bertepi */
   .btn-scan-filter-menu,
@@ -1561,7 +1563,7 @@
         <div class="scan-sub-toolbar">
           <input type="search" id="fltCariSumberData" placeholder="🔍 Cari: No Faktur / Customer / Toko / Alamat…" oninput="onScanSearchInputFromPanel(this)" autocomplete="off">
         </div>
-        <div id="scanSumberDataTable" class="scan-table-wrap-multi"><div class="scan-empty">Klik SCAN DATA untuk membaca 4 Sumber Data (Penjualan, Uang Masuk, DTH, Rekap AR).</div></div>
+        <div id="scanSumberDataTable" class="scan-table-wrap-multi"><div class="scan-empty">Klik SCAN DATA untuk membaca Penjualan &amp; Uang Masuk. Klik + DTH &amp; AR bila perlu menambah DTH dan Rekap AR.</div></div>
         <div class="scan-pager" id="pager-sumber-data" style="display:none"></div>
       </div>
 
