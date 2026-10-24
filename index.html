@@ -1420,7 +1420,8 @@
             <div class="bar"></div>
             <div class="bar"></div>
           </div>
-          <button type="button" id="btnScanData" onclick="scanDataRun()" title="Wajib pilih Bulan Penjualan dulu (maks. 3 bulan). Scan dibatasi ke bulan terpilih agar tetap cepat.">SCAN DATA</button>
+          <button type="button" id="btnScanData" onclick="scanDataRun(false)" title="Wajib pilih Bulan Penjualan dulu (maks. 3 bulan). Mode ringan: hanya Penjualan &amp; Uang Masuk (DTH &amp; AR tidak dibaca).">SCAN DATA</button>
+          <button type="button" class="btn-sub-tab" id="btnScanDthAr" onclick="scanDthArRun()" title="Tambahkan pembacaan DTH &amp; Rekap AR ke hasil scan (lebih berat — klik hanya jika perlu)">+ DTH &amp; AR</button>
           <button type="button" class="btn-sub-tab" id="btnContiguousTab" onclick="switchScanSubTab(this,'scan-contiguous-data')" title="Bandingkan Penjualan &amp; Uang Masuk berdampingan per bulan">Contiguous Data</button>
           <button type="button" class="btn-sub-tab active" id="btnSumberTab" onclick="switchScanSubTab(this,'scan-sumber-data')" title="Gabungan 4 sumber: Penjualan, UM, DTH, AR">Sumber Data</button>
           <div class="scan-gear-wrap" id="scanGearWrap">
@@ -3654,6 +3655,7 @@ function groupByInvoice(rows, isUM){
 function setScanButtonBusy(b){
   const x=document.getElementById('btnScanData');
   if(x){x.disabled=b;x.textContent=b?'MEMBACA...':'SCAN DATA';}
+  const y=document.getElementById('btnScanDthAr'); if(y) y.disabled=b;
   // Animasi sinyal 7 batang: tampil & bergerak hanya saat proses scan.
   const sig=document.querySelector('.scan-signal');
   if(sig) sig.classList.toggle('active', !!b);
@@ -4567,8 +4569,20 @@ function initScanMonthDropdown(){
   attempt();
 }
 
-function scanDataRun(){
+/* Mode ringan: SCAN DATA hanya Penjualan + Uang Masuk. DTH & AR baru dibaca setelah tombol "+ DTH & AR" diklik. */
+let scanIncludeDthAr=false;
+function scanDthArRun(){
   if(scanBusy) return;
+  if(!(scanResults && scanResults.scanned)){
+    alert('Klik SCAN DATA dulu (pilih Bulan Penjualan), baru klik + DTH & AR.');
+    return;
+  }
+  scanDataRun(true);
+}
+
+function scanDataRun(withDthAr){
+  if(scanBusy) return;
+  if(typeof withDthAr==='boolean') scanIncludeDthAr=withDthAr;
   scanBusy=true; setScanButtonBusy(true);
 
   // Safety net: kalau dalam 5 menit scan belum selesai (apa pun penyebabnya),
@@ -4583,7 +4597,7 @@ function scanDataRun(){
 
   const sdt=document.getElementById('scanSumberDataTable');
   if(sdt) sdt.innerHTML='<div class="scan-empty">Sedang membaca data...</div>';
-  ensureDthLoaded();
+  if(scanIncludeDthAr) ensureDthLoaded();
 
   let tries=0;
   let refreshedPen=false;   // ← perbaikan: flag, bukan tries===1
@@ -4634,7 +4648,7 @@ function scanDataRun(){
       const dthFnReady   = !!dw && typeof dw.__SCAN_GET_DTH==='function';
       const dthDataReady = dthFnReady && (dw.__DTH_DATA_READY === true);
       // DTH tunggu lebih singkat (10 detik saja), jangan sampai menahan scan.
-      const dthStillBooting = !dthDataReady && tries<40;
+      const dthStillBooting = scanIncludeDthAr && !dthDataReady && tries<40;
 
       if((!ready || (penRaw.length===0 && umRaw.length===0) || dthStillBooting) && tries<40){
         setTimeout(attempt, 250);
@@ -4643,7 +4657,7 @@ function scanDataRun(){
 
       console.log('[SCAN] penRaw='+penRaw.length+' umRaw='+umRaw.length+' tries='+tries);
 
-      const dthRaw = dthFnReady?(dw.__SCAN_GET_DTH()||[]):[];
+      const dthRaw = (scanIncludeDthAr && dthFnReady)?(dw.__SCAN_GET_DTH()||[]):[];
       const dthFakturSet=new Set(dthRaw.map(x=>normScan(x.faktur)).filter(Boolean));
       const dthByFaktur=new Map();
       dthRaw.forEach(x=>{
@@ -4746,7 +4760,7 @@ function scanDataRun(){
         activeUmMonth,
         scanMonths:scanMonths.slice(),
         penByMonth,penHistoryByMonth,umByMonth,penKeys,
-        dthLoaded:dthDataReady,
+        dthLoaded:(scanIncludeDthAr && dthDataReady),
         dthFakturSet,dthByFaktur,
         dthRawAll:dthRaw,
         dthTypoIndex:null,
@@ -4935,7 +4949,7 @@ function populateSumberDataList(){
   const penRaw = scanResults.penRawAll || [];
   const umRaw  = scanResults.umRawAll || [];
   const dthRaw = scanResults.dthRawAll || [];
-  const arRaw  = readSumberDataAR();
+  const arRaw  = scanIncludeDthAr ? readSumberDataAR() : [];
 
   const norm = v => String(v == null ? '' : v).trim().toLowerCase().replace(/\s+/g,' ');
   const faktur = v => norm(v).replace(/[^a-z0-9]/g,'');
