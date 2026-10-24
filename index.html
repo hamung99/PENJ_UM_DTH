@@ -3397,17 +3397,60 @@ function sumberDataUmMismatch(p, umHits){
 // (typo umum: 1 digit tertukar/kurang/lebih) TAPI Customer/Alamat/Sales sangat cocok.
 // Hanya dipanggil untuk baris yang sudah kadung ditandai mismatch (severity 'high'),
 // jadi tidak menambah beban scan untuk baris normal.
+/* ===== PERFORMA: pencarian typo No Faktur (1 edit) =====
+   Versi lama: tiap faktur dibandingkan ke SEMUA baris Uang Masuk memakai Levenshtein
+   (normScan + matriks DP untuk setiap pasangan) -> sangat lambat pada data besar.
+   Versi ini: indeks per panjang faktur (dibangun sekali per scan) + pembanding 1-edit
+   linear tanpa matriks. Hasilnya sama persis, plus batas waktu pengaman. */
+let __typoIdx=null, __typoDeadline=0, __typoWarned=false;
+function __typoIdxReset(){ __typoIdx=null; __typoDeadline=performance.now()+4000; __typoWarned=false; }
+function __typoOneEdit(a,b){
+  // true jika a!==b dan jarak Levenshtein tepat 1
+  const la=a.length, lb=b.length;
+  if(a===b) return false;
+  if(la===lb){
+    let d=0;
+    for(let i=0;i<la;i++){ if(a.charCodeAt(i)!==b.charCodeAt(i)){ if(++d>1) return false; } }
+    return d===1;
+  }
+  if(Math.abs(la-lb)!==1) return false;
+  const s=la<lb?a:b, l=la<lb?b:a; // s lebih pendek
+  let i=0;
+  while(i<s.length && s.charCodeAt(i)===l.charCodeAt(i)) i++;
+  for(let j=i;j<s.length;j++){ if(s.charCodeAt(j)!==l.charCodeAt(j+1)) return false; }
+  return true;
+}
 function sumberDataFindTypoSuggestion(p, umRaw){
   if(!p || !p.faktur || !umRaw || !umRaw.length) return null;
+  if(performance.now()>__typoDeadline){
+    if(!__typoWarned){ __typoWarned=true; console.warn('[SCAN] saran typo dihentikan (batas waktu 4 dtk) supaya halaman tidak hang'); }
+    return null;
+  }
   const f1=normScan(p.faktur);
-  let best=null, bestScore=0;
-  for(let i=0;i<umRaw.length;i++){
-    const u=umRaw[i];
-    const f2=normScan(u.faktur);
-    if(!f2 || f2===f1) continue;
-    if(!fakturTypoMatch(f1,f2)) continue;
-    const s=scanIdentityScore(p,u);
-    if(s>bestScore){ bestScore=s; best={faktur:u.faktur||'', tanggal:u.tanggal||'', score:s}; }
+  if(!f1) return null;
+  if(!__typoIdx){
+    __typoIdx=new Map();
+    for(let i=0;i<umRaw.length;i++){
+      const f2=normScan(umRaw[i].faktur);
+      if(!f2) continue;
+      let arr=__typoIdx.get(f2.length);
+      if(!arr){ arr=[]; __typoIdx.set(f2.length,arr); }
+      arr.push({f:f2,u:umRaw[i],i:i});
+    }
+  }
+  let best=null, bestScore=0, bestI=Infinity;
+  for(let L=f1.length-1;L<=f1.length+1;L++){
+    const arr=__typoIdx.get(L);
+    if(!arr) continue;
+    for(let k=0;k<arr.length;k++){
+      const e=arr[k];
+      if(!__typoOneEdit(f1,e.f)) continue;
+      const s=scanIdentityScore(p,e.u);
+      if(s>bestScore || (s===bestScore && s>0 && e.i<bestI)){
+        bestScore=s; bestI=e.i;
+        best={faktur:e.u.faktur||'', tanggal:e.u.tanggal||'', score:s};
+      }
+    }
   }
   return (best && bestScore>=0.85) ? best : null;
 }
@@ -4957,7 +5000,7 @@ function populateSumberDataList(){
   // Union semua No. Faktur yang punya kunci, dari 4 sumber sekaligus.
   const allKeys = new Set([...penIdx.map.keys(), ...umIdx.map.keys(), ...dthIdx.map.keys(), ...arIdx.map.keys()]);
 
-  const rows=[];
+  const rows=[]; __typoIdxReset();
   allKeys.forEach(k=>{
     const penHits = penIdx.map.get(k) || [];
     const umHits  = umIdx.map.get(k)  || [];
