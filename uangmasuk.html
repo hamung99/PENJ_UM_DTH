@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laporan Uang Masuk Harian</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"></script>
+<style>
+
+  :root{
+    --bg:#F0F4FA; --card:#F2F6FC; --primary:#24518E; --primary-d:#1A4B75;
+    --accent:#1E4D7B; --danger:#e03131; --text:#1f2733; --muted:#7A8B9E;
+    --border:#E5ECF4; --tab-inactive:#E6ECF5; --tab-inactive-text:#333333;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text)}
+  header{
+    position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;
+    background:var(--primary);color:#fff;padding:3px 12px;box-shadow:0 2px 6px rgba(0,0,0,.12);
+  }
+  header h1{font-size:16px;font-weight:700;line-height:1.15}
+  header small{display:block;font-size:10px;font-weight:400;opacity:.85;margin-top:0px}
+
+  /* ===== MENU DROPDOWN POJOK KANAN ATAS ===== */
+  .menu-wrap{position:relative}
+  .menu-btn{
+    background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);color:#fff;
+    font-size:13px;padding:5px 12px;border-radius:6px;cursor:pointer;
+  }
+  .menu-btn:hover{background:rgba(255,255,255,.28)}
+  .dropdown{
+    display:none;position:absolute;right:0;top:calc(100% + 8px);min-width:230px;
+    background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);overflow:hidden;
+  }
+  .dropdown.show{display:block}
+  .dropdown button{
+    display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+    padding:12px 16px;border:0;background:#fff;color:var(--text);font-size:14px;cursor:pointer;
+  }
+  .dropdown button:hover{background:#f0f4ff}
+  .dropdown hr{border:0;border-top:1px solid var(--border)}
+
+  main{width:100%;max-width:none;margin:12px auto;padding:0 10px 40px}
+
+  /* ===== KARTU RINGKASAN (Neumorphism + Glassmorphism) ===== */
+  .cards{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+    margin:12px 0 14px;
+  }
+  @media(max-width:900px){
+    .cards{grid-template-columns:repeat(2,1fr)}
+  }
+  .card{
+    position:relative;
+    background:linear-gradient(145deg,#ffffff 0%,#f0f6ff 100%);
+    border:1px solid transparent;
+    border-radius:12px;
+    padding:10px 14px;
+    box-shadow:0 0 0 1px rgba(47,110,180,.12),0 4px 16px rgba(31,78,120,.08),inset 0 1px 0 rgba(255,255,255,.9);
+    overflow:hidden;
+    transition:transform .2s,box-shadow .2s;
+  }
+  .card::before{
+    content:'';position:absolute;inset:0;
+    background:linear-gradient(135deg,rgba(48,84,150,.06) 0%,transparent 50%,rgba(80,160,255,.05) 100%);
+    pointer-events:none;
+  }
+  .card::after{
+    content:'';position:absolute;top:0;left:0;right:0;height:2px;
+    background:linear-gradient(90deg,#305496,#5b9bd5,#305496);opacity:.7;
+  }
+  .card.green::after{background:linear-gradient(90deg,#1e7a3c,#2e9e58,#1e7a3c)}
+  .card.orange::after{background:linear-gradient(90deg,#d97706,#f59e0b,#d97706)}
+  .card:hover{
+    transform:translateY(-2px);
+    box-shadow:0 0 0 1px rgba(47,110,180,.22),0 8px 24px rgba(31,78,120,.14),0 0 20px rgba(91,155,213,.15);
+  }
+  .card .label{
+    font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;
+    font-weight:600;position:relative;z-index:1;
+  }
+  .card .value{
+    display:block;font-size:16px;font-weight:700;margin-top:4px;line-height:1.2;
+    color:#0f172a;letter-spacing:-.01em;position:relative;z-index:1;
+  }
+  .card.blue  .value{color:#0c3b8a}
+  .card.green .value{color:#1e7a3c}
+  .card.orange .value{color:#b45309}
+
+  /* ===== TAB ===== */
+  .tabs{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+  .tabs button{
+    padding:4px 12px;border:1px solid var(--border);background:var(--tab-inactive);border-radius:6px;
+    font-size:12px;cursor:pointer;color:var(--tab-inactive-text);flex:0 0 auto;
+  }
+  .tabs button:hover{background:#dde6f2}
+  .tabs button.active{background:var(--primary-d);border-color:var(--primary-d);color:#fff;font-weight:600}
+  .tabs-filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-left:auto}
+  .tabs-filters select{padding:5px 10px;border:1px solid var(--border);border-radius:7px;font-size:12.5px;width:auto;background:#fff;height:30px}
+  .tabs-filters input{padding:5px 12px;border:1px solid var(--border);border-radius:7px;font-size:12.5px;width:220px;height:30px}
+
+  /* ===== TABEL ===== */
+  .table-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .table-head{display:none !important}
+  .table-head select{padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;width:auto;background:#fff}
+  .table-head h2{font-size:15px;color:var(--accent)}
+  .table-head input{
+    padding:6px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;width:240px;
+  }
+  .table-scroll{overflow:auto;max-height:65vh}
+  table{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}
+  thead th{
+    position:sticky;top:0;background:var(--accent);color:#ffffff;font-weight:600;
+    padding:9px 12px;border-bottom:2px solid var(--accent);text-align:left;
+  }
+  tbody td{padding:7px 12px;border-bottom:1px solid var(--border)}
+  tbody tr:hover{background:#eaf0fa}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  td.kategori-pembayaran{font-size:11px;line-height:1.35;white-space:normal;min-width:110px}
+  tfoot td{padding:10px 12px;font-weight:700;background:#eef2fb;border-top:2px solid var(--border)}
+  .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+  .badge.piutang{background:#dde9f7;color:var(--primary-d)}
+  .badge.dropping{background:#e6f7ec;color:#1e7a3c}
+
+  /* ===== TABEL REKAP HARIAN — kolom dipadatkan, tanpa scroll horizontal ===== */
+  table.table-harian{
+    table-layout:fixed;width:100%;font-size:11.5px;white-space:nowrap;
+  }
+  table.table-harian thead th{
+    padding:6px 6px;font-size:11px;white-space:nowrap;
+  }
+  table.table-harian tbody td{
+    padding:5px 6px;overflow:hidden;text-overflow:ellipsis;
+  }
+  table.table-harian tfoot td{padding:7px 6px;font-size:11.5px}
+  table.table-harian .badge{padding:1px 6px;font-size:10px}
+  table.table-harian td.kategori-pembayaran{
+    font-size:10.5px;line-height:1.3;white-space:normal;min-width:0;
+  }
+  /* Lebar proporsional (%) agar muat 1 layar tanpa scroll kanan */
+  table.table-harian th:nth-child(1),
+  table.table-harian td:nth-child(1){width:5.5%}   /* Tanggal */
+  table.table-harian th:nth-child(2),
+  table.table-harian td:nth-child(2){width:6.5%}   /* Jenis */
+  table.table-harian th:nth-child(3),
+  table.table-harian td:nth-child(3){width:6.5%}   /* Sales */
+  table.table-harian th:nth-child(4),
+  table.table-harian td:nth-child(4){width:6.5%}   /* Penerima */
+  table.table-harian th:nth-child(5),
+  table.table-harian td:nth-child(5){width:11%}    /* No Faktur */
+  table.table-harian th:nth-child(6),
+  table.table-harian td:nth-child(6){width:11%}    /* Nama Toko */
+  table.table-harian th:nth-child(7),
+  table.table-harian td:nth-child(7){width:9%}     /* Alamat */
+  table.table-harian th:nth-child(8),
+  table.table-harian td:nth-child(8){width:5.5%}   /* Tgl Faktur */
+  table.table-harian th:nth-child(9),
+  table.table-harian td:nth-child(9){width:7%}     /* JT */
+  table.table-harian th:nth-child(10),
+  table.table-harian td:nth-child(10){width:9%}    /* Tagihan */
+  table.table-harian th:nth-child(11),
+  table.table-harian td:nth-child(11){width:9%}    /* Kategori/Pembayaran */
+  table.table-harian th:nth-child(12),
+  table.table-harian td:nth-child(12){width:5.5%}  /* Ket */
+  table.table-harian th:nth-child(13),
+  table.table-harian td:nth-child(13){width:8%}    /* Total */
+
+  /* ===== AREA UPLOAD / MODAL ===== */
+  .overlay{
+    display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100;
+    align-items:center;justify-content:center;padding:16px;
+  }
+  .overlay.show{display:flex}
+  .modal{background:#fff;border-radius:14px;padding:24px;width:100%;max-width:440px}
+  .modal h3{margin-bottom:6px;font-size:17px}
+  .modal p{font-size:13px;color:var(--muted);margin-bottom:16px}
+  .drop{
+    border:2px dashed var(--border);border-radius:10px;padding:28px;text-align:center;
+    color:var(--muted);font-size:14px;cursor:pointer;
+  }
+  .drop:hover{border-color:var(--primary);color:var(--primary)}
+  .modal .row{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+  .btn{padding:9px 18px;border-radius:8px;border:0;font-size:14px;cursor:pointer}
+  .btn.primary{background:var(--primary);color:#fff}
+  .btn.primary:hover{background:var(--primary-d)}
+  .btn.danger{background:var(--danger);color:#fff}
+  .btn.ghost{background:#eef1f6;color:var(--text)}
+  select{padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;width:100%}
+
+  /* ===== TOAST ===== */
+  #toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+    background:#1f2733;color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;
+    transition:.3s;opacity:0;z-index:200;box-shadow:0 6px 20px rgba(0,0,0,.3);
+  }
+  #toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  #toast.ok{background:#1e7a3c} #toast.err{background:var(--danger)}
+
+  .empty{text-align:center;padding:60px 20px;color:var(--muted)}
+  .empty .big{font-size:46px;margin-bottom:12px}
+
+
+  .pager{
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+    padding:6px 14px;border-top:1px solid var(--border);background:var(--card);font-size:12.5px;
+  }
+  .pager .info{color:var(--muted)}
+  .pager .controls{display:flex;align-items:center;gap:8px}
+  .pager button{
+    padding:4px 10px;border:1px solid var(--border);background:#fff;border-radius:6px;
+    cursor:pointer;font-size:12.5px;color:var(--text);
+  }
+  .pager button:hover:not(:disabled){background:#eef2ff;border-color:var(--primary)}
+  .pager button:disabled{opacity:.45;cursor:not-allowed}
+  .pager select{padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12.5px}
+  .busy-overlay{
+    display:none;position:fixed;inset:0;background:rgba(15,23,42,.35);z-index:150;
+    align-items:center;justify-content:center;
+  }
+  .busy-overlay.show{display:flex}
+  .busy-box{
+    background:#fff;border-radius:12px;padding:20px 28px;box-shadow:0 12px 40px rgba(0,0,0,.2);
+    display:flex;align-items:center;gap:12px;font-size:14px;font-weight:600;color:var(--primary-d);
+  }
+  .busy-box .spin{
+    width:22px;height:22px;border:3px solid #cbd5e1;border-top-color:var(--primary);
+    border-radius:50%;animation:spin .8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .db-hint{font-size:11px;color:var(--muted);margin-top:6px}
+
+
+  /* ===== DARK THEME ===== */
+  html[data-theme="dark"]{
+    --bg:#0f172a; --card:#1e293b; --primary:#3b82f6; --primary-d:#2563eb;
+    --accent:#1e3a5f; --danger:#ef4444; --text:#e2e8f0; --muted:#94a3b8;
+    --border:#334155; --tab-inactive:#1e293b; --tab-inactive-text:#cbd5e1;
+  }
+  html[data-theme="dark"] body{background:var(--bg);color:var(--text)}
+  html[data-theme="dark"] header{background:#1e3a5f}
+  html[data-theme="dark"] .card{
+    background:linear-gradient(145deg,#1e293b 0%,#1e3a5f 100%)!important;
+    box-shadow:0 0 0 1px rgba(59,130,246,.2),0 4px 16px rgba(0,0,0,.35)!important;
+  }
+  html[data-theme="dark"] .card small{color:#94a3b8!important}
+  html[data-theme="dark"] .card b,html[data-theme="dark"] .card .val{color:#f1f5f9!important}
+  html[data-theme="dark"] .tabs button{background:#1e293b;color:#cbd5e1;border-color:#475569}
+  html[data-theme="dark"] .tabs button:hover{background:#1e3a5f;color:#e0f2fe}
+  html[data-theme="dark"] .tabs button.active{background:#2563eb;border-color:#2563eb;color:#fff}
+  html[data-theme="dark"] .tabs-filters select,
+  html[data-theme="dark"] .tabs-filters input{background:#0f172a;color:#e2e8f0;border-color:#475569}
+  html[data-theme="dark"] .table-card{background:#1e293b;border-color:#334155}
+  html[data-theme="dark"] .table-scroll{background:#0f172a}
+  html[data-theme="dark"] table{background:#0f172a;color:#e2e8f0}
+  html[data-theme="dark"] thead th{background:#1e3a5f!important;color:#ffffff!important;border-bottom-color:#1e3a5f}
+  html[data-theme="dark"] tbody td{color:#e2e8f0!important;border-bottom-color:#334155;background:transparent}
+  html[data-theme="dark"] tbody tr{background:#0f172a}
+  html[data-theme="dark"] tbody tr:nth-child(even){background:#1a2332}
+  html[data-theme="dark"] tbody tr:hover{background:#1e3a5f!important}
+  html[data-theme="dark"] tfoot td{background:#1e293b!important;color:#f1f5f9!important;border-top-color:#334155}
+  html[data-theme="dark"] .badge.piutang{background:#1e3a5f;color:#93c5fd}
+  html[data-theme="dark"] .badge.dropping{background:#14532d;color:#86efac}
+  html[data-theme="dark"] .dropdown{background:#1e293b;color:#e2e8f0}
+  html[data-theme="dark"] .dropdown button{background:#1e293b;color:#e2e8f0}
+  html[data-theme="dark"] .dropdown button:hover{background:#1e3a5f}
+  html[data-theme="dark"] .modal{background:#1e293b;color:#e2e8f0}
+  html[data-theme="dark"] .modal p{color:#94a3b8}
+  html[data-theme="dark"] .drop{border-color:#475569;color:#94a3b8}
+  html[data-theme="dark"] .btn.ghost{background:#334155;color:#e2e8f0}
+  html[data-theme="dark"] select{background:#0f172a;color:#e2e8f0;border-color:#475569}
+  html[data-theme="dark"] .pager{background:#1e293b;border-top-color:#334155}
+  html[data-theme="dark"] .pager .info{color:#94a3b8}
+  html[data-theme="dark"] .pager button{background:#0f172a;color:#e2e8f0;border-color:#475569}
+  html[data-theme="dark"] .pager button:hover:not(:disabled){background:#1e3a5f;border-color:#60a5fa}
+  html[data-theme="dark"] .pager select{background:#0f172a;color:#e2e8f0;border-color:#475569}
+
+</style>
+</head>
+<body>
+
+<header>
+  <div></div>
+  <div class="menu-wrap">
+    <button class="menu-btn" id="menuBtn">☰ Menu ▾</button>
+    <div class="dropdown" id="dropdown">
+      <button onclick="openUpload()">📂 Upload Excel</button>
+      <hr>
+      <button onclick="openDelete()">🗑️ Hapus Data per Bulan</button>
+      <hr>
+      <button onclick="exportExcel()">⬇️ Unduh Hasil (Excel)</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="cards" id="cards" style="display:none">
+    <div class="card blue"><div class="label">Piutang Tempo</div><div class="value" id="sumPiutang">Rp 0</div></div>
+    <div class="card green"><div class="label">Cash Dropping</div><div class="value" id="sumCash">Rp 0</div></div>
+    <div class="card orange"><div class="label">Grand Total</div><div class="value" id="sumGrand">Rp 0</div></div>
+    <div class="card"><div class="label">Total Transaksi</div><div class="value" id="sumTrx">0</div></div>
+  </div>
+
+  <div class="tabs" id="tabs" style="display:none">
+    <button data-tab="detail" class="active">Data Detail</button>
+    <button data-tab="harian">Rekap Harian</button>
+    <button data-tab="sales">Rekap Sales</button>
+    <button data-tab="minyak">Rekap Minyak &amp; Rupa2</button>
+    <button type="button" id="btnExportUmFilter" onclick="exportActiveUmExcel()" title="Unduh Excel tab aktif sesuai filter" style="padding:4px 12px;border:1px solid #15803d;background:#16a34a;color:#fff;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;margin-left:4px">⬇️ Excel</button>
+    <div class="tabs-filters">
+      <select id="filterMonth" onchange="onMonthChange()"></select>
+      <select id="filterDate" onchange="onDateChange()"></select>
+      <input type="text" id="searchBox" placeholder="🔍 Cari toko / sales / faktur..." oninput="onSearchInput()">
+    </div>
+  </div>
+
+  <div class="empty card" id="emptyState">
+    <div class="big">📊</div>
+    <p style="margin-bottom:16px">Belum ada data. Klik <b>☰ Menu → Upload Excel</b> untuk memuat file laporan.</p>
+    <button class="btn primary" onclick="openUpload()">Upload File Excel</button>
+    <div class="db-hint" id="dbHint"></div>
+  </div>
+
+  <div class="table-card" id="tableCard" style="display:none">
+    <!-- filters moved to tabs row; title removed -->
+    <div class="table-scroll" id="tableScroll"></div>
+    <div class="pager" id="pager" style="display:none">
+      <div class="info" id="pagerInfo">—</div>
+      <div class="controls">
+        <label>Baris/halaman
+          <select id="pageSize" onchange="onPageSizeChange()">
+            <option value="50">50</option>
+            <option value="100" selected>100</option>
+            <option value="200">200</option>
+            <option value="500">500</option>
+          </select>
+        </label>
+        <button type="button" id="btnPrev" onclick="goPage(-1)">‹ Prev</button>
+        <span id="pageLabel">1 / 1</span>
+        <button type="button" id="btnNext" onclick="goPage(1)">Next ›</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="overlay" id="uploadModal">
+  <div class="modal">
+    <h3>Upload File Excel</h3>
+    <p>Pilih file laporan uang masuk harian (.xlsx). Sheet "Sheet2" akan dilewati otomatis. Parsing berjalan di Web Worker; data disimpan ke IndexedDB.</p>
+    <div class="drop" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      Klik atau seret file Excel ke sini<br><small>Format: LAPORAN UANG MASUK HARIAN (*.xlsx)</small>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none" onchange="handleFile(this.files[0])">
+    <div class="row">
+      <button class="btn ghost" onclick="closeModal('uploadModal')">Batal</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="deleteModal">
+  <div class="modal">
+    <h3>Hapus Data per Bulan</h3>
+    <p>Pilih bulan laporan yang ingin dihapus. Data bulan lain tidak terpengaruh.</p>
+    <select id="monthSelect"></select>
+    <div class="row">
+      <button class="btn ghost" onclick="closeModal('deleteModal')">Batal</button>
+      <button class="btn danger" onclick="confirmDelete()">Hapus Bulan Ini</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div class="busy-overlay" id="busyOverlay"><div class="busy-box"><div class="spin"></div><span id="busyText">Memproses...</span></div></div>
+
+<script>
+/* ==========================================================================
+   STATE
+   ========================================================================== */
+let records = [];
+let activeTab = 'detail';
+let filterMonth = '';
+let filterDate = '';
+let currentPage = 1;
+let pageSize = 100;
+let searchQuery = '';
+
+/* ==========================================================================
+   INDEXEDDB (Dexie) — struktur serupa Rekap Penjualan
+   ========================================================================== */
+const IDB_SUPPORTED = (() => {
+  try { return typeof indexedDB !== 'undefined' && typeof Dexie !== 'undefined'; }
+  catch(e){ return false; }
+})();
+let db = null, useIDB = false;
+
+async function initDB(){
+  if (!IDB_SUPPORTED) return;
+  try {
+    db = new Dexie('rekapUangMasuk_v1');
+    db.version(1).stores({
+      tx: '++id,bulan,Tanggal_Laporan,Jenis,Sales',
+      meta: '&key'
+    });
+    await db.open();
+    useIDB = true;
+  } catch(e){
+    console.warn('IndexedDB unavailable; in-memory mode.', e);
+    db = null; useIDB = false;
+  }
+}
+
+function isValidTransactionRecord(r){
+  if(!r) return false;
+  const noFaktur = r.No_Faktur == null ? '' : String(r.No_Faktur).trim();
+  const namaToko = r.Nama_Toko == null ? '' : String(r.Nama_Toko).trim();
+  // Baris transaksi wajib mempunyai No Faktur numerik dan Nama Toko.
+  // Ini juga membersihkan data lama di IndexedDB yang sempat terbaca
+  // sampai ke bagian tanda tangan (ADMIN, SUPERVISOR, HEAD OFFICE, dll.).
+  return !!namaToko && /^\d{8,}$/.test(noFaktur.replace(/\s+/g,''));
+}
+
+async function loadFromIDB(){
+  if (!useIDB) return;
+  try {
+    const all = await db.tx.toArray();
+    const invalidIds = all.filter(r => !isValidTransactionRecord(r)).map(r => r.id).filter(id => id != null);
+    if(invalidIds.length){
+      await db.tx.bulkDelete(invalidIds);
+    }
+    records = all.filter(isValidTransactionRecord);
+    await saveMetaMonths();
+  } catch(e){
+    console.warn('loadFromIDB', e);
+    records = [];
+  }
+}
+
+async function saveMetaMonths(){
+  if (!useIDB) return;
+  const months = [...new Set(records.map(r => r.bulan || (r.Tanggal_Laporan||'').slice(0,7)).filter(Boolean))].sort();
+  await db.meta.put({key:'months', value: months});
+  await db.meta.put({key:'count', value: records.length});
+}
+
+/* ==========================================================================
+   WEB WORKER — parsing Excel berat di background
+   ========================================================================== */
+const WORKER_SRC = `
+self.importScripts('https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js');
+
+function toNum(v){
+  if(v === null || v === undefined || v === '') return 0;
+  if(typeof v === 'number') return v;
+  const s = String(v).replace(/,/g,'').trim();
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+function excelSerialToDate(serial){
+  const d = new Date(Date.UTC(1899,11,30) + Math.round(serial) * 86400000);
+  return d.toISOString().slice(0,10);
+}
+function fmtDate(v){
+  if(v === null || v === undefined || v === '') return null;
+  if(v instanceof Date && !isNaN(v)){
+    const p = n => String(n).padStart(2,'0');
+    return v.getFullYear() + '-' + p(v.getMonth()+1) + '-' + p(v.getDate());
+  }
+  if(typeof v === 'number') return excelSerialToDate(v);
+  const s = String(v).trim();
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return s.slice(0,10);
+  const m2 = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+  if(m2) return m2[3]+'-'+m2[2].padStart(2,'0')+'-'+m2[1].padStart(2,'0');
+  return s;
+}
+function parseDroppingSales(val){
+  if(!val || typeof val !== 'string') return [null,null];
+  const m = val.trim().match(/^(.+?)\s*\((.+?)\)/);
+  if(m) return [m[1].trim(), m[2].trim()];
+  return [val.trim(), null];
+}
+function extractDateFromSheetName(name){
+  const m = name.match(/^(\d{1,2})-(\d{1,2})/);
+  if(m) return '2026-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  return null;
+}
+function parseSheetRows(rows, sheetName){
+  const recs = [];
+  let tanggal = extractDateFromSheetName(sheetName);
+  for(const row of rows.slice(0,10)){
+    for(const cell of row){
+      if(typeof cell === 'string'){
+        const m = cell.match(/(\d{2}\/\d{2}\/\d{4})/);
+        if(m){
+          const p = m[1].split('/');
+          tanggal = p[2]+'-'+p[1]+'-'+p[0];
+        }
+      }
+    }
+  }
+  let currentSection = null, currentSales = null, headerFound = false;
+  for(const row of rows){
+    const rowText = row.map(c => (c ? String(c).toUpperCase() : '')).join(' ');
+    if(rowText.includes('PIUTANG TEMPO')){ currentSection='PIUTANG TEMPO'; headerFound=false; continue; }
+    if(rowText.includes('CASH DROPPING')){ currentSection='CASH DROPPING'; headerFound=false; continue; }
+    if(rowText.includes('UANG MASUK DARI PIUTANG')){ currentSection=null; continue; }
+    if(row.slice(0,2).some(c => typeof c === 'string' && c.trim().toUpperCase()==='TOTAL')) continue;
+    if(!currentSection) continue;
+    const rowVals = row.map(c => (c ? String(c).trim().toUpperCase() : ''));
+    if(rowVals.includes('NO') && (rowVals.includes('SALES') || rowVals.includes('DROPPING/SALES'))){
+      headerFound = true; continue;
+    }
+    if(headerFound){
+      const nonNull = row.filter(c => c !== null && c !== undefined && c !== '');
+      if(nonNull.length <= 6){
+        const txt = row.filter(c => c).map(c => String(c).toUpperCase()).join(' ');
+        if(/MINYAK|RUPA-RUPA|TRANSFER|CASH|KET/.test(txt)) continue;
+      }
+    }
+    if(!headerFound) continue;
+    const noVal=row[1], salesVal=row[2], noFaktur=row[3], namaToko=row[4], alamat=row[5],
+          tglFaktur=row[6], jt=row[7], tagihan=row[8],
+          minyakCash=row[9], minyakTransfer=row[10],
+          rupa2Cash=row[11], rupa2Transfer=row[12],
+          ket=row[13], total=row[14];
+    // Hanya baca baris transaksi yang benar-benar memiliki No Faktur + Nama Toko.
+    // Ini mencegah bagian tanda tangan (ADMIN, SUPERVISOR, HEAD OFFICE, OWNER)
+    // atau teks lain di bawah tabel ikut masuk sebagai data.
+    const noFakturText = noFaktur == null ? '' : String(noFaktur).trim();
+    const namaTokoText = namaToko == null ? '' : String(namaToko).trim();
+    if(!noFakturText || !namaTokoText) continue;
+    if(typeof noVal==='string' && noVal.toUpperCase().includes('TOTAL')) continue;
+    // No Faktur transaksi harus berupa nomor, bukan teks seperti ADMIN.
+    if(!/^\d{8,}$/.test(noFakturText.replace(/\s+/g,''))) continue;
+    if(salesVal && typeof salesVal==='string') currentSales = salesVal.trim();
+    let penerima=null, salesFinal=currentSales;
+    if(currentSection==='CASH DROPPING' && currentSales){
+      const [p, s] = parseDroppingSales(currentSales);
+      penerima = p;
+      if(s) salesFinal = s;
+    }
+    const tag = toNum(tagihan), mc=toNum(minyakCash), mt=toNum(minyakTransfer),
+          rc=toNum(rupa2Cash), rt=toNum(rupa2Transfer);
+    let tot = toNum(total);
+    if(tot === 0) tot = mc+mt+rc+rt;
+    const tglLap = tanggal || '';
+    recs.push({
+      Tanggal_Laporan: tglLap,
+      bulan: (tglLap||'').slice(0,7),
+      Jenis: currentSection,
+      No: noVal ?? null,
+      Sales: salesFinal ?? null,
+      Penerima: currentSection==='CASH DROPPING' ? penerima : null,
+      No_Faktur: noFaktur ?? null,
+      Nama_Toko: namaToko ?? null,
+      Alamat: alamat ?? null,
+      Tgl_Faktur: fmtDate(tglFaktur),
+      JT: jt instanceof Date ? fmtDate(jt) : (typeof jt==='number' ? excelSerialToDate(jt) : (jt ? String(jt).trim() : null)),
+      Tagihan_Nominal: tag,
+      Minyak_Cash: mc,
+      Minyak_Transfer: mt,
+      Rupa2_Cash: rc,
+      Rupa2_Transfer: rt,
+      Keterangan: ket ?? null,
+      Total: tot
+    });
+  }
+  return recs;
+}
+
+self.onmessage = function(e){
+  try {
+    if (typeof XLSX === 'undefined') {
+      self.postMessage({type:'error', message:'Library XLSX gagal dimuat di Worker (importScripts).'});
+      return;
+    }
+    const buf = e.data;
+    const wb = XLSX.read(buf, {type:'array', cellDates:true});
+    const newRecs = [];
+    wb.SheetNames.forEach(name => {
+      if(name.toUpperCase() === 'SHEET2') return;
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], {header:1, defval:null, raw:true});
+      newRecs.push(...parseSheetRows(rows, name));
+    });
+    self.postMessage({type:'done', records: newRecs});
+  } catch(err){
+    self.postMessage({type:'error', message: err && (err.message || String(err))});
+  }
+};
+`;
+
+let _worker = null, _fallbackMode = false;
+function getWorker(){
+  if (_fallbackMode) return null;
+  if (_worker) return _worker;
+  try {
+    const blob = new Blob([WORKER_SRC], {type:'application/javascript'});
+    const url = URL.createObjectURL(blob);
+    _worker = new Worker(url);
+    return _worker;
+  } catch(e){
+    console.warn('Worker init failed', e);
+    _fallbackMode = true;
+    return null;
+  }
+}
+
+function cloneBuffer(buf){
+  if (buf instanceof ArrayBuffer) return buf.slice(0);
+  if (ArrayBuffer.isView(buf)) return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+  return buf;
+}
+
+/* Sync fallback parser (same logic, main thread) */
+function toNum(v){
+  if(v === null || v === undefined || v === '') return 0;
+  if(typeof v === 'number') return v;
+  const s = String(v).replace(/,/g,'').trim();
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+function excelSerialToDate(serial){
+  const d = new Date(Date.UTC(1899,11,30) + Math.round(serial) * 86400000);
+  return d.toISOString().slice(0,10);
+}
+function fmtDate(v){
+  if(v === null || v === undefined || v === '') return null;
+  if(v instanceof Date && !isNaN(v)){
+    const p = n => String(n).padStart(2,'0');
+    return v.getFullYear() + '-' + p(v.getMonth()+1) + '-' + p(v.getDate());
+  }
+  if(typeof v === 'number') return excelSerialToDate(v);
+  const s = String(v).trim();
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return s.slice(0,10);
+  const m2 = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+  if(m2) return `${m2[3]}-${m2[2].padStart(2,'0')}-${m2[1].padStart(2,'0')}`;
+  return s;
+}
+function parseDroppingSales(val){
+  if(!val || typeof val !== 'string') return [null,null];
+  const m = val.trim().match(/^(.+?)\s*\((.+?)\)/);
+  if(m) return [m[1].trim(), m[2].trim()];
+  return [val.trim(), null];
+}
+function extractDateFromSheetName(name){
+  const m = name.match(/^(\d{1,2})-(\d{1,2})/);
+  if(m) return `2026-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  return null;
+}
+function parseSheetRows(rows, sheetName){
+  const recs = [];
+  let tanggal = extractDateFromSheetName(sheetName);
+  for(const row of rows.slice(0,10)){
+    for(const cell of row){
+      if(typeof cell === 'string'){
+        const m = cell.match(/(\d{2}\/\d{2}\/\d{4})/);
+        if(m){
+          const p = m[1].split('/');
+          tanggal = `${p[2]}-${p[1]}-${p[0]}`;
+        }
+      }
+    }
+  }
+  let currentSection = null, currentSales = null, headerFound = false;
+  for(const row of rows){
+    const rowText = row.map(c => (c ? String(c).toUpperCase() : '')).join(' ');
+    if(rowText.includes('PIUTANG TEMPO')){ currentSection='PIUTANG TEMPO'; headerFound=false; continue; }
+    if(rowText.includes('CASH DROPPING')){ currentSection='CASH DROPPING'; headerFound=false; continue; }
+    if(rowText.includes('UANG MASUK DARI PIUTANG')){ currentSection=null; continue; }
+    if(row.slice(0,2).some(c => typeof c === 'string' && c.trim().toUpperCase()==='TOTAL')) continue;
+    if(!currentSection) continue;
+    const rowVals = row.map(c => (c ? String(c).trim().toUpperCase() : ''));
+    if(rowVals.includes('NO') && (rowVals.includes('SALES') || rowVals.includes('DROPPING/SALES'))){
+      headerFound = true; continue;
+    }
+    if(headerFound){
+      const nonNull = row.filter(c => c !== null && c !== undefined && c !== '');
+      if(nonNull.length <= 6){
+        const txt = row.filter(c => c).map(c => String(c).toUpperCase()).join(' ');
+        if(/MINYAK|RUPA-RUPA|TRANSFER|CASH|KET/.test(txt)) continue;
+      }
+    }
+    if(!headerFound) continue;
+    const noVal=row[1], salesVal=row[2], noFaktur=row[3], namaToko=row[4], alamat=row[5],
+          tglFaktur=row[6], jt=row[7], tagihan=row[8],
+          minyakCash=row[9], minyakTransfer=row[10],
+          rupa2Cash=row[11], rupa2Transfer=row[12],
+          ket=row[13], total=row[14];
+    // Hanya baca baris transaksi yang benar-benar memiliki No Faktur + Nama Toko.
+    // Ini mencegah bagian tanda tangan (ADMIN, SUPERVISOR, HEAD OFFICE, OWNER)
+    // atau teks lain di bawah tabel ikut masuk sebagai data.
+    const noFakturText = noFaktur == null ? '' : String(noFaktur).trim();
+    const namaTokoText = namaToko == null ? '' : String(namaToko).trim();
+    if(!noFakturText || !namaTokoText) continue;
+    if(typeof noVal==='string' && noVal.toUpperCase().includes('TOTAL')) continue;
+    // No Faktur transaksi harus berupa nomor, bukan teks seperti ADMIN.
+    if(!/^\d{8,}$/.test(noFakturText.replace(/\s+/g,''))) continue;
+    if(salesVal && typeof salesVal==='string') currentSales = salesVal.trim();
+    let penerima=null, salesFinal=currentSales;
+    if(currentSection==='CASH DROPPING' && currentSales){
+      const [p, s] = parseDroppingSales(currentSales);
+      penerima = p;
+      if(s) salesFinal = s;
+    }
+    const tag = toNum(tagihan), mc=toNum(minyakCash), mt=toNum(minyakTransfer),
+          rc=toNum(rupa2Cash), rt=toNum(rupa2Transfer);
+    let tot = toNum(total);
+    if(tot === 0) tot = mc+mt+rc+rt;
+    const tglLap = tanggal || '';
+    recs.push({
+      Tanggal_Laporan: tglLap,
+      bulan: (tglLap||'').slice(0,7),
+      Jenis: currentSection,
+      No: noVal ?? null,
+      Sales: salesFinal ?? null,
+      Penerima: currentSection==='CASH DROPPING' ? penerima : null,
+      No_Faktur: noFaktur ?? null,
+      Nama_Toko: namaToko ?? null,
+      Alamat: alamat ?? null,
+      Tgl_Faktur: fmtDate(tglFaktur),
+      JT: jt instanceof Date ? fmtDate(jt) : (typeof jt==='number' ? excelSerialToDate(jt) : (jt ? String(jt).trim() : null)),
+      Tagihan_Nominal: tag,
+      Minyak_Cash: mc,
+      Minyak_Transfer: mt,
+      Rupa2_Cash: rc,
+      Rupa2_Transfer: rt,
+      Keterangan: ket ?? null,
+      Total: tot
+    });
+  }
+  return recs;
+}
+
+function parseExcelSync(buf){
+  const wb = XLSX.read(buf, {type:'array', cellDates:true});
+  const newRecs = [];
+  wb.SheetNames.forEach(name => {
+    if(name.toUpperCase() === 'SHEET2') return;
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], {header:1, defval:null, raw:true});
+    newRecs.push(...parseSheetRows(rows, name));
+  });
+  return newRecs;
+}
+
+/* ==========================================================================
+   UI helpers
+   ========================================================================== */
+function showBusy(msg){
+  document.getElementById('busyText').textContent = msg || 'Memproses...';
+  document.getElementById('busyOverlay').classList.add('show');
+}
+function hideBusy(){
+  document.getElementById('busyOverlay').classList.remove('show');
+}
+
+/** Default bulan: bulan berjalan jika ada di data, else bulan terbaru. */
+function pickDefaultMonth(months){
+  const list = (months||[]).filter(Boolean).slice().sort();
+  if (!list.length) return '';
+  const now = new Date();
+  const cur = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  if (list.includes(cur)) return cur;
+  return list[list.length-1];
+}
+
+function populateFilters(){
+  const months = [...new Set(records.map(r => r.bulan || (r.Tanggal_Laporan||'').slice(0,7)).filter(Boolean))].sort();
+  if (!filterMonth || !months.includes(filterMonth)){
+    filterMonth = pickDefaultMonth(months);
+  }
+  const monthsDisplay = months.slice().reverse(); // bulan terbaru di atas
+  document.getElementById('filterMonth').innerHTML =
+    '<option value="">Semua Bulan</option>' +
+    monthsDisplay.map(m => `<option value="${m}" ${m===filterMonth?'selected':''}>${bulanNama(m)}</option>`).join('');
+  populateDates();
+}
+function populateDates(){
+  let dates = records.map(r => r.Tanggal_Laporan || '');
+  if(filterMonth) dates = dates.filter(d => d.slice(0,7) === filterMonth);
+  dates = [...new Set(dates.filter(Boolean))].sort().reverse();
+  if(!dates.includes(filterDate)) filterDate = '';
+  document.getElementById('filterDate').innerHTML =
+    '<option value="">Semua Tanggal</option>' +
+    dates.map(d => `<option value="${d}" ${d===filterDate?'selected':''}>${tglId(d)}</option>`).join('');
+}
+function onMonthChange(){
+  filterMonth = document.getElementById('filterMonth').value;
+  filterDate = '';
+  currentPage = 1;
+  populateDates();
+  renderAll();
+}
+function onDateChange(){
+  filterDate = document.getElementById('filterDate').value;
+  currentPage = 1;
+  renderAll();
+}
+function onSearchInput(){
+  searchQuery = document.getElementById('searchBox').value.toLowerCase();
+  currentPage = 1;
+  renderTable();
+}
+function onPageSizeChange(){
+  pageSize = parseInt(document.getElementById('pageSize').value, 10) || 100;
+  currentPage = 1;
+  renderTable();
+}
+function goPage(delta){
+  currentPage = Math.max(1, currentPage + delta);
+  renderTable();
+}
+
+function filteredRecords(){
+  return records.filter(r =>
+    (!filterMonth || (r.bulan || (r.Tanggal_Laporan||'').slice(0,7)) === filterMonth) &&
+    (!filterDate  || r.Tanggal_Laporan === filterDate)
+  );
+}
+
+function bulanNama(ym){
+  if(!ym) return '';
+  const [y, mo] = ym.split('-');
+  const nama = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  return `${nama[parseInt(mo,10)-1]} ${y}`;
+}
+
+/* ==========================================================================
+   UPLOAD + PARSE (Worker) + persist IndexedDB
+   ========================================================================== */
+async function ingestRecords(newRecs){
+  if(newRecs.length === 0){
+    toast('Tidak ada data yang berhasil diekstrak.', 'err');
+    return;
+  }
+  // pastikan field bulan
+  newRecs.forEach(r => {
+    if(!r.bulan) r.bulan = (r.Tanggal_Laporan||'').slice(0,7);
+  });
+  const months = [...new Set(newRecs.map(r => r.bulan).filter(Boolean))];
+
+  if (useIDB){
+    // hapus data bulan yang sama di IDB, lalu bulkPut
+    for (const m of months){
+      await db.tx.where('bulan').equals(m).delete();
+    }
+    // remove id if any
+    const clean = newRecs.map(({id, ...rest}) => rest);
+    await db.tx.bulkAdd(clean);
+    await loadFromIDB();
+    await saveMetaMonths();
+  } else {
+    records = records.filter(r => !months.includes(r.bulan || (r.Tanggal_Laporan||'').slice(0,7)));
+    records.push(...newRecs);
+  }
+  closeModal('uploadModal');
+  toast(`${newRecs.length} transaksi berhasil dimuat${useIDB ? ' (tersimpan di IndexedDB)' : ''}.`, 'ok');
+  currentPage = 1;
+  renderAll();
+}
+
+function handleFile(file){
+  if(!file) return;
+  showBusy('Membaca file Excel...');
+  const reader = new FileReader();
+  reader.onload = e => {
+    const buf = e.target.result;
+    parseExcelBuffer(buf);
+  };
+  reader.onerror = () => { hideBusy(); toast('Gagal membaca file.', 'err'); };
+  reader.readAsArrayBuffer(file);
+}
+
+/** Parse via Worker dengan timeout + fallback aman ke main thread */
+function parseExcelBuffer(buf){
+  const copy = cloneBuffer(buf);
+  const w = getWorker();
+  if (!w){
+    fallbackParse(copy);
+    return;
+  }
+
+  let settled = false;
+  const finish = async (recs, errMsg) => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(timer);
+    try { w.removeEventListener('message', onMsg); w.removeEventListener('error', onErr); } catch(e){}
+    if (errMsg){
+      console.warn('Worker parse failed:', errMsg, '— fallback sync');
+      _fallbackMode = true;
+      fallbackParse(copy);
+      return;
+    }
+    try {
+      showBusy('Menyimpan ke IndexedDB...');
+      await ingestRecords(recs || []);
+    } catch(err){
+      console.error(err);
+      toast('Gagal menyimpan: ' + (err && err.message ? err.message : err), 'err');
+    } finally {
+      hideBusy();
+    }
+  };
+
+  const onMsg = (ev) => {
+    const d = ev.data || {};
+    if (d.type === 'error') finish(null, d.message || 'Worker error');
+    else finish(d.records || [], null);
+  };
+  const onErr = (ev) => {
+    finish(null, (ev && ev.message) || 'Worker runtime error');
+  };
+
+  w.addEventListener('message', onMsg);
+  w.addEventListener('error', onErr);
+
+  showBusy('Mem-parsing Excel di background...');
+  const timer = setTimeout(() => {
+    finish(null, 'Worker timeout');
+  }, 45000);
+
+  try {
+    // Jangan transfer buffer agar salinan tetap ada untuk fallback
+    w.postMessage(copy);
+  } catch(err){
+    finish(null, err && err.message ? err.message : 'postMessage failed');
+  }
+}
+
+async function fallbackParse(buf){
+  try {
+    showBusy('Parsing Excel...');
+    const ab = buf instanceof ArrayBuffer ? buf : (buf && buf.buffer ? buf.buffer : buf);
+    const newRecs = parseExcelSync(ab);
+    await ingestRecords(newRecs);
+  } catch(err){
+    console.error(err);
+    toast('Gagal membaca file: ' + (err && err.message ? err.message : err), 'err');
+  } finally {
+    hideBusy();
+  }
+}
+
+/* Drag & drop */
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor='var(--primary)'; });
+dz.addEventListener('dragleave', () => dz.style.borderColor='');
+dz.addEventListener('drop', e => { e.preventDefault(); dz.style.borderColor=''; handleFile(e.dataTransfer.files[0]); });
+
+/* ==========================================================================
+   HAPUS DATA PER BULAN
+   ========================================================================== */
+function openDelete(){
+  const months = [...new Set(records.map(r => r.bulan || (r.Tanggal_Laporan||'').slice(0,7)).filter(Boolean))].sort();
+  const sel = document.getElementById('monthSelect');
+  sel.innerHTML = months.length
+    ? months.map(m => `<option value="${m}">${bulanNama(m)}</option>`).join('')
+    : '<option value="">(tidak ada data)</option>';
+  openModal('deleteModal');
+}
+
+async function confirmDelete(){
+  const m = document.getElementById('monthSelect').value;
+  if(!m){ toast('Tidak ada bulan yang dipilih.', 'err'); return; }
+  const before = records.length;
+  if (useIDB){
+    await db.tx.where('bulan').equals(m).delete();
+    await loadFromIDB();
+    await saveMetaMonths();
+  } else {
+    records = records.filter(r => (r.bulan || (r.Tanggal_Laporan||'').slice(0,7)) !== m);
+  }
+  closeModal('deleteModal');
+  toast(`Data ${bulanNama(m)} dihapus (${before - records.length} transaksi).`, 'ok');
+  currentPage = 1;
+  renderAll();
+}
+
+/* ==========================================================================
+   EXPORT
+   ========================================================================== */
+function exportExcel(){
+  const filtered = filteredRecords();
+  if(filtered.length === 0){ toast('Tidak ada data (sesuai filter) untuk diunduh.', 'err'); return; }
+  // strip Dexie id — HANYA data terfilter
+  const data = filtered.map(({id, bulan, ...rest}) => rest);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), 'Data_Detail');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rekapHarian()), 'Rekap_Harian');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rekapSales()), 'Rekap_Sales');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rekapMinyak()), 'Rekap_Minyak_Rupa2');
+  const suffix = filterMonth ? ('_' + filterMonth) : (filterDate ? ('_' + filterDate) : '');
+  const fname = 'UangMasuk_Filter' + suffix + '_' + new Date().toISOString().slice(0,10) + '.xlsx';
+  XLSX.writeFile(wb, fname);
+  toast('File ' + fname + ' berhasil diunduh (sesuai filter).', 'ok');
+}
+
+/** Unduh hanya sheet tab aktif (sesuai filter) */
+function exportActiveUmExcel(){
+  const filtered = filteredRecords();
+  if(filtered.length === 0){ toast('Tidak ada data (sesuai filter) untuk diunduh.', 'err'); return; }
+  const wb = XLSX.utils.book_new();
+  let sheetName = 'Data';
+  let data = [];
+  if(activeTab === 'harian'){
+    // Samakan dengan tabel di layar: detail transaksi (bukan ringkasan per tanggal)
+    sheetName = 'Rekap_Harian';
+    const sorted = filtered.slice().sort((a,b) => {
+      const da = a.Tanggal_Laporan || '', db = b.Tanggal_Laporan || '';
+      if(da !== db) return db.localeCompare(da);
+      return String(a.No_Faktur||'').localeCompare(String(b.No_Faktur||''));
+    });
+    data = sorted.map(r => ({
+      Tanggal: r.Tanggal_Laporan || '',
+      Jenis: r.Jenis === 'PIUTANG TEMPO' ? 'Piutang' : (r.Jenis === 'CASH DROPPING' ? 'Dropping' : (r.Jenis || '')),
+      Sales: r.Sales || '',
+      Penerima: r.Penerima || '',
+      'No Faktur': r.No_Faktur || '',
+      'Nama Toko': r.Nama_Toko || '',
+      Alamat: r.Alamat || '',
+      'Tgl Faktur': r.Tgl_Faktur || '',
+      JT: r.JT || '',
+      Tagihan: r.Tagihan_Nominal || 0,
+      'Kategori/Pembayaran': [
+        r.Minyak_Cash ? 'MinyakCash' : '',
+        r.Minyak_Transfer ? 'Minyak Transfer' : '',
+        r.Rupa2_Cash ? 'Rupa2Cash' : '',
+        r.Rupa2_Transfer ? 'Rupa2 Transfer' : ''
+      ].filter(Boolean).join(', ') || '—',
+      Minyak_Cash: r.Minyak_Cash || 0,
+      Minyak_Transfer: r.Minyak_Transfer || 0,
+      Rupa2_Cash: r.Rupa2_Cash || 0,
+      Rupa2_Transfer: r.Rupa2_Transfer || 0,
+      Ket: r.Keterangan || '',
+      Total: r.Total || 0
+    }));
+  } else if(activeTab === 'sales'){
+    sheetName = 'Rekap_Sales';
+    data = rekapSales();
+  } else if(activeTab === 'minyak'){
+    sheetName = 'Rekap_Minyak_Rupa2';
+    data = rekapMinyak();
+  } else {
+    sheetName = 'Data_Detail';
+    data = filtered.map(({id, bulan, ...rest}) => rest);
+  }
+  if(!data.length){ toast('Tidak ada baris untuk diunduh di tab ini.', 'err'); return; }
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), sheetName);
+  const suffix = filterMonth ? ('_' + filterMonth) : (filterDate ? ('_' + filterDate) : '');
+  const fname = 'UM_' + sheetName + suffix + '_' + new Date().toISOString().slice(0,10) + '.xlsx';
+  XLSX.writeFile(wb, fname);
+  toast('File ' + fname + ' diunduh (filter aktif).', 'ok');
+}
+
+/* ==========================================================================
+   REKAP
+   ========================================================================== */
+function groupSum(key){
+  const map = {};
+  filteredRecords().forEach(r => {
+    const k = r[key] ?? '(kosong)';
+    if(!map[k]) map[k] = {Tagihan_Nominal:0,Minyak_Cash:0,Minyak_Transfer:0,Rupa2_Cash:0,Rupa2_Transfer:0,Total:0,Jumlah_Transaksi:0};
+    const o = map[k];
+    o.Tagihan_Nominal += r.Tagihan_Nominal; o.Minyak_Cash += r.Minyak_Cash;
+    o.Minyak_Transfer += r.Minyak_Transfer; o.Rupa2_Cash += r.Rupa2_Cash;
+    o.Rupa2_Transfer += r.Rupa2_Transfer; o.Total += r.Total;
+    o.Jumlah_Transaksi++;
+  });
+  return map;
+}
+function rekapHarian(){
+  const map = groupSum('Tanggal_Laporan');
+  return Object.keys(map).sort().reverse().map(k => ({Tanggal_Laporan:k, ...map[k]}));
+}
+function rekapSales(){
+  const map = groupSum('Sales');
+  return Object.keys(map)
+    .map(k => ({Sales:k, ...map[k]}))
+    .sort((a,b) => b.Total - a.Total);
+}
+function rekapMinyak(){
+  return rekapHarian().map(r => ({
+    ...r,
+    Total_Minyak: r.Minyak_Cash + r.Minyak_Transfer,
+    Total_Rupa2: r.Rupa2_Cash + r.Rupa2_Transfer
+  }));
+}
+
+/* ==========================================================================
+   RENDER + PAGINATION
+   ========================================================================== */
+const rupiah = n => 'Rp ' + Math.round(n).toLocaleString('id-ID');
+/** Format lebih pendek untuk tabel padat (tanpa prefix Rp) */
+const rupiahShort = n => Math.round(n || 0).toLocaleString('id-ID');
+function tglId(iso){
+  if(!iso) return '';
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(!m) return iso;
+  return m[3]+'/'+m[2]+'/'+m[1].slice(2);
+}
+
+function renderAll(){
+  const hasData = records.length > 0;
+  document.getElementById('emptyState').style.display = hasData ? 'none' : 'block';
+  document.getElementById('cards').style.display = hasData ? 'grid' : 'none';
+  document.getElementById('tabs').style.display = hasData ? 'flex' : 'none';
+  document.getElementById('tableCard').style.display = hasData ? 'block' : 'none';
+  const hint = document.getElementById('dbHint');
+  if (hint){
+    hint.textContent = useIDB
+      ? 'IndexedDB aktif — data tetap tersimpan setelah refresh.'
+      : 'Mode memori — data hilang saat refresh.';
+  }
+  if(!hasData) return;
+
+  populateFilters();
+  const frec = filteredRecords();
+  const piu = frec.filter(r => r.Jenis==='PIUTANG TEMPO').reduce((a,r)=>a+r.Total,0);
+  const cash = frec.filter(r => r.Jenis==='CASH DROPPING').reduce((a,r)=>a+r.Total,0);
+  document.getElementById('sumPiutang').textContent = rupiah(piu);
+  document.getElementById('sumCash').textContent = rupiah(cash);
+  document.getElementById('sumGrand').textContent = rupiah(piu+cash);
+  document.getElementById('sumTrx').textContent = frec.length.toLocaleString('id-ID');
+  renderTable();
+}
+
+function esc(v){ return v==null ? '' : String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function kategoriPembayaranHtml(r){
+  const parts = [];
+  if (r.Minyak_Cash) parts.push('MinyakCash');
+  if (r.Minyak_Transfer) parts.push('Minyak Transfer');
+  if (r.Rupa2_Cash) parts.push('Rupa2Cash');
+  if (r.Rupa2_Transfer) parts.push('Rupa2 Transfer');
+  return parts.length ? parts.join('<br>') : '—';
+}
+
+function renderTable(){
+  const q = searchQuery;
+  let html = '', title = '';
+  const pager = document.getElementById('pager');
+
+  if(activeTab === 'detail' || activeTab === 'harian'){
+    title = activeTab === 'harian' ? 'Rekap Harian' : 'Data Detail';
+    let data = filteredRecords();
+    data = data.slice().sort((a,b) => {
+      const da = a.Tanggal_Laporan || '', db = b.Tanggal_Laporan || '';
+      if(da !== db) return db.localeCompare(da); // tanggal terbaru di atas
+      return String(a.No_Faktur||'').localeCompare(String(b.No_Faktur||''));
+    });
+    if(q) data = data.filter(r => [r.Nama_Toko,r.Sales,r.No_Faktur,r.Penerima,r.Alamat].some(v => v && String(v).toLowerCase().includes(q)));
+    const totalRows = data.length;
+    const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+    if(currentPage > totalPages) currentPage = totalPages;
+    const start = (currentPage - 1) * pageSize;
+    const pageData = data.slice(start, start + pageSize);
+    const sum = data.reduce((a,r)=>a+r.Total,0);
+
+    if(activeTab === 'harian'){
+      // Format sesuai gambar: tanpa kolom No, 4 kolom nominal diganti Kategori/Pembayaran
+      // table-harian = kolom dipadatkan agar tidak perlu scroll horizontal
+      html = `<table class="table-harian"><thead><tr>
+        <th>Tanggal</th><th>Jenis</th><th>Sales</th><th>Penerima</th>
+        <th>No Faktur</th><th>Nama Toko</th><th>Alamat</th><th>Tgl Faktur</th><th>JT</th>
+        <th class="num">Tagihan</th><th>Kategori/Pembayaran</th><th>Ket</th><th class="num">Total</th>
+        </tr></thead><tbody>` +
+        pageData.map(r => `<tr>
+          <td>${tglId(r.Tanggal_Laporan)}</td>
+          <td><span class="badge ${r.Jenis==='PIUTANG TEMPO'?'piutang':'dropping'}">${r.Jenis==='PIUTANG TEMPO'?'Piutang':'Dropping'}</span></td>
+          <td title="${esc(r.Sales)}">${esc(r.Sales)}</td>
+          <td title="${esc(r.Penerima)}">${esc(r.Penerima)}</td>
+          <td title="${esc(r.No_Faktur)}">${esc(r.No_Faktur)}</td>
+          <td title="${esc(r.Nama_Toko)}">${esc(r.Nama_Toko)}</td>
+          <td title="${esc(r.Alamat)}">${esc(r.Alamat)}</td>
+          <td>${tglId(r.Tgl_Faktur)}</td><td title="${esc(r.JT)}">${esc(r.JT)}</td>
+          <td class="num" title="${rupiah(r.Tagihan_Nominal)}">${rupiahShort(r.Tagihan_Nominal)}</td>
+          <td class="kategori-pembayaran">${kategoriPembayaranHtml(r)}</td>
+          <td title="${esc(r.Keterangan)}">${esc(r.Keterangan)}</td>
+          <td class="num" title="${rupiah(r.Total)}"><b>${rupiahShort(r.Total)}</b></td>
+        </tr>`).join('') +
+        `</tbody><tfoot><tr><td colspan="12">Total (${totalRows.toLocaleString('id-ID')} transaksi)</td><td class="num" title="${rupiah(sum)}">${rupiahShort(sum)}</td></tr></tfoot></table>`;
+    } else {
+      html = `<table><thead><tr>
+        <th>Tanggal</th><th>Jenis</th><th>No</th><th>Sales</th><th>Penerima</th>
+        <th>No Faktur</th><th>Nama Toko</th><th>Alamat</th><th>Tgl Faktur</th><th>JT</th>
+        <th class="num">Tagihan</th><th class="num">Minyak Cash</th><th class="num">Minyak Transfer</th>
+        <th class="num">Rupa2 Cash</th><th class="num">Rupa2 Transfer</th><th>Ket</th><th class="num">Total</th>
+        </tr></thead><tbody>` +
+        pageData.map(r => `<tr>
+          <td>${tglId(r.Tanggal_Laporan)}</td>
+          <td><span class="badge ${r.Jenis==='PIUTANG TEMPO'?'piutang':'dropping'}">${r.Jenis==='PIUTANG TEMPO'?'PIUTANG':'DROPPING'}</span></td>
+          <td>${esc(r.No)}</td><td>${esc(r.Sales)}</td><td>${esc(r.Penerima)}</td>
+          <td>${esc(r.No_Faktur)}</td><td>${esc(r.Nama_Toko)}</td><td>${esc(r.Alamat)}</td>
+          <td>${tglId(r.Tgl_Faktur)}</td><td>${esc(r.JT)}</td>
+          <td class="num">${rupiah(r.Tagihan_Nominal)}</td><td class="num">${rupiah(r.Minyak_Cash)}</td>
+          <td class="num">${rupiah(r.Minyak_Transfer)}</td><td class="num">${rupiah(r.Rupa2_Cash)}</td>
+          <td class="num">${rupiah(r.Rupa2_Transfer)}</td><td>${esc(r.Keterangan)}</td><td class="num"><b>${rupiah(r.Total)}</b></td>
+        </tr>`).join('') +
+        `</tbody><tfoot><tr><td colspan="16">Total (${totalRows.toLocaleString('id-ID')} transaksi)</td><td class="num">${rupiah(sum)}</td></tr></tfoot></table>`;
+    }
+
+    pager.style.display = 'flex';
+    document.getElementById('pagerInfo').textContent =
+      totalRows === 0 ? 'Tidak ada baris'
+      : `Menampilkan ${start+1}–${Math.min(start+pageSize, totalRows)} dari ${totalRows.toLocaleString('id-ID')} baris`;
+    document.getElementById('pageLabel').textContent = currentPage + ' / ' + totalPages;
+    document.getElementById('btnPrev').disabled = currentPage <= 1;
+    document.getElementById('btnNext').disabled = currentPage >= totalPages;
+  }
+  else {
+    pager.style.display = 'none';
+    let data, cols, keys;
+    if(activeTab === 'sales'){ title='Rekap Sales'; data=rekapSales(); keys=['Sales']; cols=['Sales','Tagihan_Nominal','Minyak_Cash','Minyak_Transfer','Rupa2_Cash','Rupa2_Transfer','Total','Jumlah_Transaksi']; }
+    if(activeTab === 'minyak'){ title='Rekap Minyak & Rupa2'; data=rekapMinyak(); keys=['Tanggal_Laporan']; cols=['Tanggal_Laporan','Minyak_Cash','Minyak_Transfer','Rupa2_Cash','Rupa2_Transfer','Total_Minyak','Total_Rupa2','Total']; }
+    if(q) data = data.filter(r => keys.some(k => r[k] && String(r[k]).toLowerCase().includes(q)));
+    const numCols = cols.slice(1);
+    const label = {Tanggal_Laporan:'Tanggal',Sales:'Sales',Tagihan_Nominal:'Tagihan/Nominal',Minyak_Cash:'Minyak Cash',Minyak_Transfer:'Minyak Transfer',Rupa2_Cash:'Rupa2 Cash',Rupa2_Transfer:'Rupa2 Transfer',Total_Minyak:'Total Minyak',Total_Rupa2:'Total Rupa2',Total:'Total',Jumlah_Transaksi:'Jml Trx'};
+    html = `<table><thead><tr>${cols.map(c=>`<th class="${numCols.includes(c)?'num':''}">${label[c]||c}</th>`).join('')}</tr></thead><tbody>` +
+      data.map(r => `<tr>${cols.map(c => numCols.includes(c)
+          ? `<td class="num">${c==='Jumlah_Transaksi' ? r[c].toLocaleString('id-ID') : rupiah(r[c])}</td>`
+          : `<td>${c==='Tanggal_Laporan' ? tglId(r[c]) : esc(r[c])}</td>`).join('')}</tr>`).join('') +
+      `</tbody><tfoot><tr>${cols.map((c,i) => {
+          if(i===0) return `<td>Total</td>`;
+          if(c==='Jumlah_Transaksi') return `<td class="num">${data.reduce((a,r)=>a+r[c],0).toLocaleString('id-ID')}</td>`;
+          return `<td class="num">${rupiah(data.reduce((a,r)=>a+r[c],0))}</td>`;
+      }).join('')}</tr></tfoot></table>`;
+  }
+  const _tt=document.getElementById('tableTitle'); if(_tt) _tt.textContent = title;
+  document.getElementById('tableScroll').innerHTML = html;
+}
+
+/* ==========================================================================
+   UI: menu, modal, tab, toast
+   ========================================================================== */
+const menuBtn = document.getElementById('menuBtn');
+const dropdown = document.getElementById('dropdown');
+menuBtn.addEventListener('click', e => { e.stopPropagation(); dropdown.classList.toggle('show'); });
+document.addEventListener('click', () => dropdown.classList.remove('show'));
+
+function openUpload(){ openModal('uploadModal'); document.getElementById('fileInput').value=''; }
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.overlay').forEach(o => o.addEventListener('click', e => { if(e.target===o) o.classList.remove('show'); }));
+
+document.querySelectorAll('#tabs button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#tabs button').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  activeTab = b.dataset.tab;
+  document.getElementById('searchBox').value = '';
+  searchQuery = '';
+  currentPage = 1;
+  renderTable();
+}));
+
+let toastTimer;
+function toast(msg, type){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + (type || '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = '', 3000);
+}
+
+/* ==========================================================================
+   BOOT — restore dari IndexedDB
+   ========================================================================== */
+(async function boot(){
+  await initDB();
+  if (useIDB){
+    await loadFromIDB();
+    const n = records.length;
+    if (n > 0){
+      toast(`Data dari IndexedDB dimuat: ${n.toLocaleString('id-ID')} baris (persistensi aktif).`, 'ok');
+    }
+  }
+  const hint = document.getElementById('dbHint');
+  if (hint && records.length === 0){
+    hint.textContent = useIDB
+      ? 'IndexedDB siap — data akan tersimpan otomatis setelah upload.'
+      : 'Mode memori — data hilang saat refresh.';
+  }
+  renderAll();
+})();
+</script>
+
+<script>
+window.__SCAN_GET_ACTIVE_MONTH = function(){ try { return filterMonth || ''; } catch(e){ return ''; } };
+
+window.__SCAN_GET_UANGMASUK = function(){
+  try {
+    return (records||[]).map(function(x){
+      return {faktur:String(x.No_Faktur??'').trim(),tanggal:x.Tanggal_Laporan||'',sales:String(x.Sales||'').trim(),customer:String(x.Nama_Toko||'').trim(),alamat:String(x.Alamat||'').trim(),total:x.Total,jenis:String(x.Jenis||'').trim()};
+    });
+  } catch(e){ return []; }
+};
+</script>
+
+<script>
+(function(){
+  function applyTheme(t){
+    try { document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light'); } catch(e){}
+  }
+  window.addEventListener('message', function(ev){
+    if (ev && ev.data && ev.data.type === 'SET_THEME') applyTheme(ev.data.theme);
+  });
+  try {
+    applyTheme(localStorage.getItem('rekap_theme') || 'light');
+  } catch(e){}
+})();
+</script>
+
+</body>
+</html>
