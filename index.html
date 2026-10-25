@@ -4626,7 +4626,7 @@ function scanDataRun(withDthAr){
         const selM=(typeof getUiPenMonths==='function'?getUiPenMonths():[])
           .map(v=>String(v||'').trim()).filter(Boolean).slice(0,3);
         const needM=new Set(selM);
-        selM.forEach(m=>{ const p=prevMonthKey(m); if(p) needM.add(p); });
+        // (tanpa tambahan bulan sebelumnya: hanya bulan yang dipilih, maks. 3 bulan)
         let fin=false, tRef=null;
         const go=function(){ if(fin) return; fin=true; clearTimeout(tRef); setTimeout(attempt,50); };
         tRef=setTimeout(function(){ console.warn('[SCAN] muat data timeout 15s, lanjut.'); go(); }, 15000);
@@ -4645,7 +4645,8 @@ function scanDataRun(withDthAr){
       }
 
       const penRaw=ready?(penPreloaded||pw.__SCAN_GET_PENJUALAN()||[]):[];
-      const umRaw =ready?(uw.__SCAN_GET_UANGMASUK()||[]):[];
+      let umRaw =ready?(uw.__SCAN_GET_UANGMASUK()||[]):[];
+      const umRawTotalSemua = umRaw.length;
 
       const dthFnReady   = !!dw && typeof dw.__SCAN_GET_DTH==='function';
       const dthDataReady = dthFnReady && (dw.__DTH_DATA_READY === true);
@@ -4724,7 +4725,24 @@ function scanDataRun(withDthAr){
       const monthOf = r => monthKeyFromDate(r && r.tanggal) || '';
       const scanMonthSet = new Set(scanMonths);
       const historyMonthSet = new Set(scanMonths);
-      scanMonths.forEach(m=>{ const p=prevMonthKey(m); if(p) historyMonthSet.add(p); });
+      // (tanpa tambahan bulan sebelumnya: histori = bulan yang dipilih saja)
+
+      // BATASI Uang Masuk: Uang Masuk tidak mungkin lebih lama dari bulan penjualan.
+      // Sebelumnya SELURUH riwayat UM ikut diproses (pencocokan identitas/typo per baris),
+      // inilah penyebab halaman ngefreeze. Sekarang hanya UM dari bulan terawal yang dipilih
+      // sampai seterusnya, dan maksimal SCAN_UM_MAX_ROWS baris terbaru.
+      const SCAN_UM_MAX_ROWS = 20000;
+      try{
+        const earliest = scanMonths.slice().sort()[0];
+        const minUmMonth = earliest; // UM mulai dari bulan terawal yang dipilih (mis. Agustus)
+        if(minUmMonth){
+          umRaw = umRaw.filter(r=>{ const mk=monthOf(r); return !mk || mk>=minUmMonth; });
+        }
+        if(umRaw.length>SCAN_UM_MAX_ROWS){
+          umRaw = umRaw.slice().sort((x,y)=>String(monthOf(y)).localeCompare(String(monthOf(x)))).slice(0,SCAN_UM_MAX_ROWS);
+        }
+        console.log('[SCAN] UM dibatasi: '+umRawTotalSemua+' -> '+umRaw.length+' baris (mulai '+minUmMonth+')');
+      }catch(e){ console.warn('[SCAN] batas UM gagal', e); }
 
       const penRawActive = penRaw.filter(r=>scanMonthSet.has(monthOf(r)));
       const penRawHistory = penRaw.filter(r=>historyMonthSet.has(monthOf(r)));
