@@ -6607,6 +6607,10 @@ function applyBatalHighlightToPenjualanIframe(){
 
     if(typeof w.__rekap_apply_batal !== 'function'){
       w.__rekap_apply_batal = function(){
+        // ANTI-LOOP: lepas observer selama badge dipasang ulang, kalau tidak setiap
+        // perubahan badge memicu observer lagi -> loop tak berujung -> halaman freeze.
+        var __o = w.__rekap_obs;
+        try{ if(__o) __o.disconnect(); }catch(_){}
         try{
           var s = w.__rekap_status_sets || {batal:new Set(),titip:new Set(),lunas:new Set()};
           d.querySelectorAll('.rekap-batal-badge,.rekap-titip-badge,.rekap-lunas-badge').forEach(function(b){b.remove();});
@@ -6640,9 +6644,17 @@ function applyBatalHighlightToPenjualanIframe(){
             });
           });
         }catch(e){/*silent*/}
+        finally{
+          try{ if(__o){ __o.takeRecords(); __o.observe(d.body, {childList:true, subtree:true}); } }catch(_){}
+        }
       };
       try{
-        var obs = new w.MutationObserver(function(){ try{ w.__rekap_apply_batal && w.__rekap_apply_batal(); }catch(_){} });
+        var __t = null;
+        var obs = new w.MutationObserver(function(){
+          if(__t) return;   // gabungkan banyak perubahan jadi satu proses (debounce)
+          __t = w.setTimeout(function(){ __t=null; try{ w.__rekap_apply_batal && w.__rekap_apply_batal(); }catch(_){} }, 300);
+        });
+        w.__rekap_obs = obs;
         obs.observe(d.body, {childList:true, subtree:true});
       }catch(_){}
     }
