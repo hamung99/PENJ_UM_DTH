@@ -7155,6 +7155,25 @@ function updateCloudStatusUI(cloudUpdatedAt){
   el.textContent = line;
 }
 
+/* ---- kompres data sebelum dikirim: paket jadi jauh lebih kecil sehingga tidak
+   mudah putus di tengah jalan (ERR_HTTP2_PROTOCOL_ERROR / Failed to fetch) ---- */
+async function cloudGzipEncode(obj){
+  const json = JSON.stringify(obj);
+  const stream = new Blob([json]).stream().pipeThrough(new CompressionStream('gzip'));
+  const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+  let bin = ''; const CH = 0x8000;
+  for (let i = 0; i < bytes.length; i += CH) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+  return { _gz: 1, enc: 'gzip-b64', rawChars: json.length, b64: btoa(bin) };
+}
+async function cloudGzipDecode(p){
+  const bin = atob(p.b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return JSON.parse(await new Response(stream).text());
+}
+function cloudSleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
 /* ---- upload data device ini ke Cloud (menimpa data Cloud) ---- */
 async function cloudPush(){
   if (!_sb) { alert('Modul Cloud Sync gagal dimuat. Periksa koneksi internet lalu muat ulang halaman.'); return; }
@@ -7162,8 +7181,19 @@ async function cloudPush(){
   try {
     const data = await collectAllBackupData();
     const nowIso = new Date().toISOString();
-    const { error } = await _sb.from(CLOUD_TABLE).upsert({ id: CLOUD_ROW_ID, data: data, updated_at: nowIso });
-    if (error) throw error;
+    let payload = data;
+    if (typeof CompressionStream === 'function') {
+      try { payload = await cloudGzipEncode(data); } catch(e) { payload = data; }
+    }
+    let lastErr = null;
+    for (let i = 1; i <= 3; i++) {
+      try {
+        const { error } = await _sb.from(CLOUD_TABLE).upsert({ id: CLOUD_ROW_ID, data: payload, updated_at: nowIso });
+        if (error) throw error;
+        lastErr = null; break;
+      } catch(e) { lastErr = e; if (i < 3) await cloudSleep(1500 * i); }
+    }
+    if (lastErr) throw lastErr;
     localStorage.setItem(CLOUD_LAST_SYNC_KEY, nowIso);
     localStorage.setItem(BACKUP_LAST_KEY, todayStr());
     updateBackupStatusUI();
@@ -7193,7 +7223,9 @@ async function cloudPull(silent){
     updateCloudStatusUI(cloudUpdatedAt);
     if (!silent) {
       if (!confirm('PERINGATAN: ini akan MENIMPA semua data di device ini dengan data dari Cloud (terakhir diupload: ' + fmtCloudTime(cloudUpdatedAt) + '). Lanjutkan?')) return;
-      await restoreAllBackupData(rows[0].data);
+      let cloudPayload = rows[0].data;
+      if (cloudPayload && cloudPayload._gz) cloudPayload = await cloudGzipDecode(cloudPayload);
+      await restoreAllBackupData(cloudPayload);
       localStorage.setItem(CLOUD_LAST_SYNC_KEY, cloudUpdatedAt);
       alert('✅ Data terbaru dari Cloud berhasil diambil. Halaman akan dimuat ulang.');
       location.reload();
